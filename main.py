@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 # import snpy
 
-FILTER_WHEEL = ['u', 'g', 'r', 'i', 'B']
+FILTER_WHEEL = ['u', 'g', 'r', 'i', 'B', 'V0']
 
 if __name__ == '__main__':
     KrisciunasPath = "targetLists\91bglike_justnames.txt"
@@ -17,18 +17,38 @@ if __name__ == '__main__':
     light = allCPSPhotData[:,3]
     err = allCPSPhotData[:,4]
 
-    sigma = 5
+    # sigma = 1
+    # for tar in KrisciunasNames:
+    #     for n in range(len(FILTER_WHEEL)):
+    #         # output_names = names[(names == tar) & (filters == FILTER_WHEEL[n])]
+    #         output_light = light[(names == tar) & (filters == FILTER_WHEEL[n])].astype('float64')
+    #         output_time = time[(names == tar) & (filters == FILTER_WHEEL[n])].astype('float64') + 53000
+    #         output_err = err[(names == tar) & (filters == FILTER_WHEEL[n])].astype('float64')
+    #         plt.errorbar(output_time, output_light, yerr=output_err*sigma, fmt='o', label=FILTER_WHEEL[n])
+    #
+    #     plt.title(tar); plt.xlabel('Time [MJD]'); plt.ylabel('Intensity [mag]')
+    #     plt.gca().invert_yaxis()
+    #     plt.legend()
+    #     # plt.savefig('save\\'+str(tar)+'.png')
+    #     plt.show()
+    #     break
+
+    # Alternative Format
+    sigma = 1
     for tar in KrisciunasNames:
         for n in range(len(FILTER_WHEEL)):
             # output_names = names[(names == tar) & (filters == FILTER_WHEEL[n])]
             output_light = light[(names == tar) & (filters == FILTER_WHEEL[n])].astype('float64')
-            output_time = time[(names == tar) & (filters == FILTER_WHEEL[n])].astype('float64') + 53000
+            output_time = time[(names == tar) & (filters == FILTER_WHEEL[n])].astype('float64')
+            output_time_mod = output_time - np.min(output_time)
             output_err = err[(names == tar) & (filters == FILTER_WHEEL[n])].astype('float64')
-            plt.errorbar(output_time, output_light, yerr=output_err*sigma, fmt='o', label=FILTER_WHEEL[n])
+            plt.errorbar(output_time_mod, output_light, yerr=output_err * sigma, fmt='o', label=FILTER_WHEEL[n])
 
-        plt.title(tar); plt.xlabel('Time [MJD]'); plt.ylabel('Intensity [mag]')
+        plt.title(tar);
+        plt.xlabel('MJD - '+str(np.min(output_time+53000)));
+        plt.ylabel('Intensity [mag]')
         plt.gca().invert_yaxis()
         plt.legend()
-        plt.savefig('save\\'+str(tar)+'.png')
+        # plt.savefig('save\\'+str(tar)+'.png')
         plt.show()
-
+        break
