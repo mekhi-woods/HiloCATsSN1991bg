@@ -1,0 +1,25 @@
+SN_name	delta_m_15[mag]	Subtype	Wang_subtype	Branch_subtype	N_opt	N_IR	t_sp[days]
+2005bl	2.000(063)	91bg-like	91bg	CL	12	0	−4.6
+2005ke	1.736(061)	91bg-like	91bg	CL	39	27	−1.4
+2006bd	2.256(105)	91bg-like	91bg	CL	8	4	7.0
+2006gt	1.641(064)	91bg-like	91bg	CL	14	10	−0.3
+2006mr	1.929(079)	91bg-like	91bg	CL	31	24	−2.3
+2007N	2.121(083)	91bg-like	91bg	CL	23	15	12.0
+2007al	1.782(082)	91bg-like	91bg	CL	16	10	None
+2007ax	2.036(066)	91bg-like	91bg	CL	13	8	−2.0
+2007ba	1.668(062)	91bg-like	91bg	CL	18	14	6.0
+2008bd	1.929(104)	91bg-like	91bg	None	18	5	7.9
+2008bi	2.092(094)	91bg-like	91bg	None	18	6	9.9
+2008bt	1.743(063)	91bg-like	91bg	CL	14	3	1
+2009F	1.973(061)	91bg-like	91bg	CL	18	10	−5.0
+
+
+
+
+
+
+
+
+
+
+
