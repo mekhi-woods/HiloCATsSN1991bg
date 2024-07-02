@@ -1,9 +1,26 @@
+from astropy import units as u
+from astropy.coordinates import SkyCoord
+from astropy.cosmology import FlatLambdaCDM
+from astropy import cosmology as cosmo
+from astro_ghost.ghostHelperFunctions import getTransientHosts
+import shutil
+import numpy as np
+
+import matplotlib.pyplot as plt
+
+import scripts.general as gen
+
+COSMO_MODEL = cosmo.FlatLambdaCDM(H0=70, Om0=0.3)
+
 GHOST_DATA = '../data/GHOST/'
 TEST_ROOT = '../tests/'
 
+ATLAS_SAVE_TXT = '../snpy/atlas/atlas_saved.txt'
+BURNS_SAVE_TXT = '../snpy/burns/burns_saved.txt'
+
 def ghost_host_galaxy(dict_path, save_loc=TEST_ROOT, keep_data=True, update_saved=False):
     cosmo = FlatLambdaCDM(70, 0.3) # Hubble Constant, Omega-Matter
-    data = dict_unpacker(dict_path)
+    data = gen.dict_unpacker(dict_path)
     all_z, all_logstellarmass = [], []
     print('[+++] Finding host galaxy mass using GHOST...')
 
@@ -16,7 +33,10 @@ def ghost_host_galaxy(dict_path, save_loc=TEST_ROOT, keep_data=True, update_save
 
         transient_position = SkyCoord(ra, dec, unit=u.deg)
         try:
-            host_data = getTransientHosts(transientCoord=[transient_position], transientName=[obj], verbose=False, starcut="gentle", savepath=save_loc+'ghost_stuff/', GHOSTpath=GHOST_DATA)
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                host_data = getTransientHosts(transientCoord=[transient_position], transientName=[obj], verbose=False, starcut="gentle", savepath=save_loc+'ghost_stuff/', GHOSTpath=GHOST_DATA)
 
             gMag, iMag, iAbsMag = host_data['gKronMag'].loc[0], host_data['iKronMag'].loc[0], (host_data['iKronMag'].loc[0] - cosmo.distmod(z).value)
             gMagErr, iMagErr, iAbsMagErr = host_data['gKronMagErr'].loc[0], host_data['iKronMagErr'].loc[0], host_data['iKronMagErr'].loc[0]
@@ -46,10 +66,9 @@ def ghost_host_galaxy(dict_path, save_loc=TEST_ROOT, keep_data=True, update_save
         shutil.rmtree(save_loc+'ghost_stuff/') # Clear messy data
     if update_saved:
         print('Saving data to'+dict_path+'...')
-        dict_packer(data, dict_path)
+        gen.dict_packer(data, dict_path)
 
     return all_z, all_logstellarmass
-
 def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins = [50, 50, 10], labels = True, raw = False):
     if 'atlas_all' in choice:
         choice = ['altas_muvmass', 'altas_muvz', 'altas_muvmu', 'altas_residualsvz', 'altas_residualsvmass']
@@ -62,10 +81,10 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
 
             if 'burns_muvmass' in choice:
                 fig.suptitle('Host Mass of CSP 91bg-like SNe Ia') # Figure Title
-                objs = dict_unpacker(BURNS_SAVE_TXT)
+                objs = gen.dict_unpacker(BURNS_SAVE_TXT)
             elif 'altas_muvmass' in choice:
                 fig.suptitle('Host Mass of ATLAS 91bg-like SNe Ia') # Figure Title
-                objs = dict_unpacker(ATLAS_SAVE_TXT)
+                objs = gen.dict_unpacker(ATLAS_SAVE_TXT)
 
             mass_hist = []
             for obj in objs:
@@ -93,10 +112,10 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
 
             if 'burns_muvz' in choice:
                 fig.suptitle('Distance Modulus vs. Redshift of CSP 91bg-like SNe Ia)') # Figure Title
-                objs = dict_unpacker(BURNS_SAVE_TXT)
+                objs = gen.dict_unpacker(BURNS_SAVE_TXT)
             elif 'altas_muvz' in choice:
                 fig.suptitle('Distance Modulus vs. Redshift of ATLAS 91bg-like SNe Ia') # Figure Title
-                objs = dict_unpacker(ATLAS_SAVE_TXT)
+                objs = gen.dict_unpacker(ATLAS_SAVE_TXT)
 
             # Plot -- mu vs z
             mu_hist = []
@@ -133,10 +152,10 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
         try:
             if 'burns_muvmu' in choice:
                 plt.title('SNooPy Distance Modulus vs. Cosmological Distance Modulus of CSP 91bg-like SNe Ia)') # Figure Title
-                objs = dict_unpacker(BURNS_SAVE_TXT)
+                objs = gen.dict_unpacker(BURNS_SAVE_TXT)
             elif 'altas_muvmu' in choice:
                 plt.title('SNooPy Distance Modulus vs. Cosmological Distance Modulus of ATLAS 91bg-like SNe Ia') # Figure Title
-                objs = dict_unpacker(ATLAS_SAVE_TXT)
+                objs = gen.dict_unpacker(ATLAS_SAVE_TXT)
 
             # Plot -- mu vs mu
             x_mu, y_mu = [], []
@@ -170,11 +189,11 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             if 'burns_residualsvz' in choice:
                 fig.suptitle('Hubble Residuals vs. Redshift of CSP 91bg-like SNe Ia\n '+
                              'Dist. Sigma: '+str(sigma)) # Figure Title
-                objs = dict_unpacker(BURNS_SAVE_TXT)
+                objs = gen.dict_unpacker(BURNS_SAVE_TXT)
             elif 'altas_residualsvz' in choice:
                 fig.suptitle('Hubble Residuals vs. Redshift of ATLAS 91bg-like SNe Ia\n'+
                              'Dist. Sigma: '+str(sigma)) # Figure Title
-                objs = dict_unpacker(ATLAS_SAVE_TXT)
+                objs = gen.dict_unpacker(ATLAS_SAVE_TXT)
 
             # Compute mu_cosmo
             mu_cosmo, mu_snpy, mu_err, z, objnames = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
@@ -211,8 +230,8 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             print("[KeyError] Please run 'snpy_fit()' before attempting to plot.")
 
     if ('burns_residualsvmass' in choice) or ('altas_residualsvmass' in choice):
-        sigmas = [3, 3]
-        objsRemove = ['2022skw', '2023cvq']
+        sigmas = [1, 1]
+        objsRemove = ['2022skw', '2023cvq', '2021cad', '2020nta']
 
         try:
             fig, axs = plt.subplots(1, 2, figsize=plot_size, gridspec_kw={'width_ratios': plot_ratio})
@@ -220,11 +239,11 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             if 'burns_residualsvmass' in choice:
                 fig.suptitle('Hubble Residuals vs. Host Mass of CSP 91bg-like SNe Ia\n '+
                              'Dist. Sigma: '+str(sigmas[0])+' | Mass Sigma: '+str(sigmas[1])) # Figure Title
-                objs = dict_unpacker(BURNS_SAVE_TXT)
+                objs = gen.dict_unpacker(BURNS_SAVE_TXT)
             elif 'altas_residualsvmass' in choice:
                 fig.suptitle('Hubble Residuals vs. Host Mass of ATLAS 91bg-like SNe Ia\n '+
                              'Dist. Sigma: '+str(sigmas[0])+' | Mass Sigma: '+str(sigmas[1])) # Figure Title
-                objs = dict_unpacker(ATLAS_SAVE_TXT)
+                objs = gen.dict_unpacker(ATLAS_SAVE_TXT)
 
             # Compute mu_cosmo
             mu_cosmo, mu_snpy, mu_err, mass, mass_err, objnames = np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
@@ -253,10 +272,12 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             # Formatting
             axs[0].set(xlabel='Host Mass', ylabel='Hubble Residuals') # Sub-plot Labels
             axs[1].get_yaxis().set_visible(False)
+            # axs[0].invert_xaxis()
             plt.tight_layout()
 
             # Limits
-            ylimiter = (np.max(np.abs(mu_hist)) + np.max(mu_err*sigmas[0])) + 0.01
+            ylimiter = (np.max(np.abs(mu_hist)) + np.max(mu_err*sigmas[0]))
+            ylimiter = 1.5
             axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
             # axs[0].set_xlim(9.75, 11.5); axs[1].set_xlim(9.75, 11.5)
 
@@ -273,11 +294,11 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             if 'burns_res_zcorr' in choice:
                 fig.suptitle('Hubble Residuals vs. Redshift of CSP 91bg-like SNe Ia\n '+
                              'Dist. Sigma: '+str(sigma)) # Figure Title
-                objs = dict_unpacker(BURNS_SAVE_TXT)
+                objs = gen.dict_unpacker(BURNS_SAVE_TXT)
             elif 'altas_res_zcorr' in choice:
                 fig.suptitle('Hubble Residuals vs. Redshift of ATLAS 91bg-like SNe Ia\n'+
                              'Dist. Sigma: '+str(sigma)) # Figure Title
-                objs = dict_unpacker(ATLAS_SAVE_TXT)
+                objs = gen.dict_unpacker(ATLAS_SAVE_TXT)
 
             # Compute mu_cosmo
             mu_cosmo, mu_snpy, mu_err, z, objnames = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])

@@ -1,10 +1,11 @@
 import os
 import snpy
+import glob
 import numpy as np
 import matplotlib.pyplot as plt
+from zipfile import ZipFile
 from scripts import tns_redshifts
 
-""" GENERAL """
 def TNS_details(ra, dec):
     tns_bot_id, tns_bot_name, tns_bot_api_key = '73181', 'YSE_Bot1', '0d771345fa6b876a5bb99cd5042ab8b5ae91fc67'
 
