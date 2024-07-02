@@ -1,52 +1,51 @@
-def ztf_collection(submit=False, limit=1000):
-    objs = dict_unpacker(ATLAS_SAVE_TXT)
-    print("Number of targets =", len(objs))
-    ralist, declist, jdslist, jdelist = [], [], [], []
-    i = 0
-    for obj in objs:
-        ralist.append(float(objs[obj]['ra']))
-        declist.append(float(objs[obj]['dec']))
-        jdslist.append(float(objs[obj]['MJDs'])-100)
-        jdelist.append(float(objs[obj]['MJDe'])+100)
-        i += 1
-        if i % limit == 0:
-            if submit:
-                ztf_submit_post(ralist, declist, jdslist, jdelist)
-            ralist, declist, jdslist, jdelist = [], [], [], []
-    if submit and len(ralist) > 0:
-        ztf_submit_post(ralist, declist, jdslist, jdelist)
+import os
+import numpy as np
+import scripts.general as gen
+import requests
+import json
+
+def ztf_collection(submit=False):
+    limit = 10
+    ra, dec, jds, jde = [], [], [], []
+    atlas_txt = gen.dict_unpacker('../snpy/atlas/atlas_saved.txt')
+
+    for tar in atlas_txt:
+        ra.append(float(atlas_txt[tar]['ra']))
+        dec.append(float(atlas_txt[tar]['dec']))
+        jds.append(float(atlas_txt[tar]['MJDs']))
+        jde.append(float(atlas_txt[tar]['MJDe']))
+
+    ra_json, dec_json = json.dumps(ra), json.dumps(dec)
+    # jdstart, jdend = json.dumps(min(jds)), json.dumps(max(jde))
+    jdstart, jdend = 2458216.1234, 2458450.0253
+
+    if submit:
+        payload = {'ra': ra_json, 'dec': dec_json, 'jdstart': jdstart, 'jdend': jdend, 'email': 'mekhidw@hawaii.edu', 'userpass': 'wxdk286'}
+        r = requests.post('https://ztfweb.ipac.caltech.edu/cgi-bin/batchfp.py/submit', auth=('ztffps', 'dontgocrazy!'), data=payload)
+        print("Status_code=", r.status_code)
+        print(r.text)
+
+
 
     return
 
-def ztf_submit_post(ra_list, dec_list, jds, jde):
-    print('Submiting request to ZTF...')
+def ztf_processing():
+    header_num = 54
+    path = '../data/ZTF/batchfp_req0002064117_lc.txt'
+    data = np.genfromtxt(path, delimiter=' ', skip_header=header_num, dtype=str)
 
-    email = 'mekhidw@hawaii.edu' # email you subscribed with.
-    userpass = 'wxdk286' # password that was issued to you.
+    hdr = []
+    with open(path, 'r') as f:
+        for i in range(header_num):
+            hdr.append(f.readline())
 
-    ra, dec = json.dumps(ra_list), json.dumps(dec_list)
-    jdend, jdstart = json.dumps(jde), json.dumps(jds)
-    payload = {'ra': ra, 'dec': dec, 'jdstart': jdstart, 'jdend': jdend, 'email': email, 'userpass': userpass}
+    obj = {'ra': hdr[3].split(' ')[5], 'dec': hdr[4].split(' ')[5]}
 
-    # fixed IP address/URL where requests are submitted:
-    url = 'https://ztfweb.ipac.caltech.edu/cgi-bin/batchfp.py/submit'
-    r = requests.post(url, auth=('ztffps', 'dontgocrazy!'), data=payload)
+    print(data[:, 22]) #JD
+    print(data[:, 10]) # mag (zpmaginpsci)
+    print(data[:, 11]) # magerr (zpmaginpsciunc)
 
-    print('RA ['+str(type(payload['ra'][0]))+']:', payload['ra'])
-    print('DEC ['+str(type(payload['dec'][0]))+']:', payload['dec'])
-    print('MJD Start ['+str(type(payload['jdstart'][0]))+']:', payload['jdstart'])
-    print('MJD End ['+str(type(payload['jdend'][0]))+']:', payload['jdend'])
-    print("Status_code=", r.status_code)
-    return
 
-def ztf_alt_collection():
-    ra, dec, jds, jde = 186.07860833333334, 10.446222222222222, 2460350, 2460450
 
-    email = 'mekhidw@hawaii.edu' # email you subscribed with.
-    userpass = 'wxdk286' # password that was issued to you.
-
-    cmd = f"wget --http-user=ztffps --http-passwd=dontgocrazy! -O log.txt \"https://ztfweb.ipac.caltech.edu/cgi-bin/requestForcedPhotometry.cgi?ra={dec}&dec={ra}&jdstart={jds}&jdend={jde}&email={email}&userpass={userpass}\""
-    print(cmd)
-    os.system(cmd)
 
     return

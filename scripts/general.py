@@ -165,7 +165,7 @@ def handle_problem_children(state, problem_c=None):
         raise Exception("Invalid state: '"+state+"' [READ/WRITE]")
 def save_to_zip(zip_loc, save_loc):
     print('Saving zipped files to...', save_loc)
-    files = glob.glob(zip_loc+'*')
+    files = glob.glob(zip_loc+'*.png')
     with ZipFile(save_loc, 'w') as zip:
         for n_file in files:
             zip.write(n_file)

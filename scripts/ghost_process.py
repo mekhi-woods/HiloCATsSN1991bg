@@ -69,7 +69,7 @@ def ghost_host_galaxy(dict_path, save_loc=TEST_ROOT, keep_data=True, update_save
         gen.dict_packer(data, dict_path)
 
     return all_z, all_logstellarmass
-def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins = [50, 50, 10], labels = True, raw = False):
+def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins = [50, 50, 10], labels = True, raw = False, save = False):
     if 'atlas_all' in choice:
         choice = ['altas_muvmass', 'altas_muvz', 'altas_muvmu', 'altas_residualsvz', 'altas_residualsvmass']
     if 'burns_all' in choice:
@@ -80,11 +80,12 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             fig, axs = plt.subplots(1, 2, figsize=plot_size, gridspec_kw={'width_ratios': plot_ratio})
 
             if 'burns_muvmass' in choice:
-                fig.suptitle('Host Mass of CSP 91bg-like SNe Ia') # Figure Title
+                title = 'Host Mass of CSP 91bg-like SNe Ia'
                 objs = gen.dict_unpacker(BURNS_SAVE_TXT)
             elif 'altas_muvmass' in choice:
-                fig.suptitle('Host Mass of ATLAS 91bg-like SNe Ia') # Figure Title
+                title = 'Host Mass of ATLAS 91bg-like SNe Ia'
                 objs = gen.dict_unpacker(ATLAS_SAVE_TXT)
+            fig.suptitle(title)  # Figure Title
 
             mass_hist = []
             for obj in objs:
@@ -100,6 +101,10 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             axs[1].get_yaxis().set_visible(False)
             plt.tight_layout()
             plt.show()
+
+            if save:
+                fig.savefig('../save/plots/dist_v_mass-'+choice[0][:5]+'.png')
+
         except KeyError:
             print("[KeyError] Please run 'ghost_host_galaxy()' before attempting to plot.")
 
@@ -142,6 +147,10 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             fig.tight_layout()
 
             plt.show()
+
+            if save:
+                fig.savefig('../save/plots/dist_v_z-'+choice[0][:5]+'.png')
+
         except KeyError:
             print("[KeyError] Please run 'snpy_fit()' before attempting to plot.")
 
@@ -178,6 +187,10 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             plt.legend()
 
             plt.show()
+
+            if save:
+                fig.savefig('../save/plots/dist_v_dist-'+choice[0][:5]+'.png')
+
         except KeyError:
             print("[KeyError] Please run 'snpy_fit()' before attempting to plot.")
 
@@ -226,6 +239,10 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
 
             plt.show()
+
+            if save:
+                fig.savefig('../save/plots/resid_v_z-'+choice[0][:5]+'.png')
+
         except KeyError:
             print("[KeyError] Please run 'snpy_fit()' before attempting to plot.")
 
@@ -282,6 +299,10 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             # axs[0].set_xlim(9.75, 11.5); axs[1].set_xlim(9.75, 11.5)
 
             plt.show()
+
+            if save:
+                fig.savefig('../save/plots/resid_v_mass-' + choice[0][:5] + '.png')
+
         except KeyError:
             print("[KeyError] Please run 'snpy_fit()' before attempting to plot.")
 
