@@ -11,7 +11,7 @@ def KrLC(save=False, saveLoc='save\\'):
         workingDir = saveLoc + '\\' + CUR_TIME
         os.mkdir(workingDir)
 
-    KrisciunasPath = "targetLists\\91bglike_justnames.txt"
+    KrisciunasPath = "txts\\91bglike_justnames.txt"
     KrisciunasNames = np.genfromtxt(KrisciunasPath, dtype=str, delimiter=', ')
 
     allCPSPhot = "data\\CSPdata\\SN_photo.dat"

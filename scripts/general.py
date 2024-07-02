@@ -1,7 +1,13 @@
 import os
+import snpy
+import numpy as np
+import matplotlib.pyplot as plt
+from scripts import tns_redshifts
 
 """ GENERAL """
 def TNS_details(ra, dec):
+    tns_bot_id, tns_bot_name, tns_bot_api_key = '73181', 'YSE_Bot1', '0d771345fa6b876a5bb99cd5042ab8b5ae91fc67'
+
     # Code from David
     headers = tns_redshifts.build_tns_header(tns_bot_id, tns_bot_name)
     tns_api_url = f"https://www.wis-tns.org/api/get"
@@ -17,8 +23,8 @@ def TNS_details(ra, dec):
     transient_detail = tns_redshifts.rate_limit_query_tns(get_data, headers, get_tns_url)
 
     return transient_detail
-
-def snpy_fit(path, objname, save_loc, plot_save_loc, skip_problems=False, use_saved=False, snpy_plots=True, save_plots=True):
+def snpy_fit(path, objname, save_loc, plot_save_loc,
+             skip_problems=False, use_saved=False, snpy_plots=True, save_plots=True):
     problem_children = handle_problem_children(state='READ') # Open problem children
 
     if skip_problems and (objname in problem_children):
@@ -59,7 +65,6 @@ def snpy_fit(path, objname, save_loc, plot_save_loc, skip_problems=False, use_sa
     return {'ra': n_s.ra, 'dec': n_s.decl, 'z': n_s.z, 'MJDs': min(mjds), 'MJDe': max(mjde),
             'mu': n_s.parameters['DM'], 'st': n_s.parameters['st'], 'Tmax': n_s.parameters['Tmax'], 'EBVhost': n_s.parameters['EBVhost'],
             'mu_err': n_s.errors['DM'], 'st_err': n_s.errors['st'], 'Tmax_err': n_s.errors['Tmax'], 'EBVhost_err': n_s.errors['EBVhost']}
-
 def snpy_fit_indv(objname):
     path = '/content/HiloCATsSN1991bg/snpy/atlas/'+objname+'_EBV_model2.snpy'
 
@@ -89,7 +94,6 @@ def snpy_fit_indv(objname):
         '\t MJD min:', min(mjds), '| MJD max:', max(mjde))
 
     return
-
 def write_ASCII(objs, save_loc, quiet=True):
     print('[+++] Saving data to ASCII files for SNooPy...')
     for obj in objs:
@@ -107,8 +111,7 @@ def write_ASCII(objs, save_loc, quiet=True):
             for i in range(len(objs[obj]['time_c'])):
                 f.write(str(objs[obj]['time_c'][i])+'\t'+str(objs[obj]['mag_c'][i])+'\t'+str(objs[obj]['dmag_c'][i])+'\n')
     return
-
-def read_DR3(loc='/content/HiloCATsSN1991bg/DR3_fits.dat'):
+def read_DR3(loc='../txts/DR3_fits.dat'):
     data = np.genfromtxt(loc, dtype=str, skip_header=1)
     dr3 = {}
     for n in range(len(data[:, 0])):
@@ -116,7 +119,6 @@ def read_DR3(loc='/content/HiloCATsSN1991bg/DR3_fits.dat'):
                            'Tmax': float(data[:, 5][n]), 'e_Tmax': float(data[:, 6][n]),
                            'EBVHost': float(data[:, 25][n]), 'e_EBVHost': float(data[:, 26][n])}})
     return dr3
-
 def dict_unpacker(path, delimiter=', '):
     with open(path, 'r') as f:
         hdr = f.readline()[:-1].split(delimiter)
@@ -131,7 +133,6 @@ def dict_unpacker(path, delimiter=', '):
         for j in range(len(hdr)):
             temp_objs[obj].update({hdr[j]: data[i, j]})
     return temp_objs
-
 def dict_packer(data_dict, save_loc, delimiter=', '):
     catagories = list(data_dict[list(data_dict.keys())[0]].keys())
     with open(save_loc, 'w') as f:
@@ -145,22 +146,22 @@ def dict_packer(data_dict, save_loc, delimiter=', '):
                 f.write(delimiter+str(data_dict[objname][category]))
             f.write('\n')
     return
-
 def handle_problem_children(state, problem_c=None):
+    path = '../problem_children.txt'
+
     if state == 'READ':
         # Read problem children
-        problem_c = np.genfromtxt(PROB_CHILD_TXT, dtype=str)
+        problem_c = np.genfromtxt(path, dtype=str)
         return problem_c
     elif state == 'WRITE':
         # Write problem children
         problem_c = np.unique(problem_c)
-        with open(PROB_CHILD_TXT, 'w') as f:
+        with open(path, 'w') as f:
             for c in problem_c:
                 f.write(c+'\n')
         return None
     else:
         raise Exception("Invalid state: '"+state+"' [READ/WRITE]")
-
 def save_to_zip(zip_loc, save_loc):
     print('Saving zipped files to...', save_loc)
     files = glob.glob(zip_loc+'*')
@@ -168,9 +169,3 @@ def save_to_zip(zip_loc, save_loc):
         for n_file in files:
             zip.write(n_file)
     return
-
-def malmquist_bias_corr(mu, z, mu_err, m, b):
-    summation = 0
-    for n in range(len(mu)):
-        summation = summation + (mu[n] - ((m*z[n])+b)) / (mu_err[n]**2)
-    return summation

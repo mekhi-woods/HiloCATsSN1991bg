@@ -1,17 +1,19 @@
+import scripts.general as gen
+import matplotlib.pyplot as plt
 import numpy as np
+import os
 
-def burns_fitting(skip_problems=False, use_saved=False, snpy_plots=True):
+save_loc = '../snpy/burns/'
+
+def burns_fitting(name_file='../txts/91bglike_justnames.txt', data_path='../data/CSPdata/',
+                  skip_problems=False, use_saved=False, snpy_plots=True):
     print('[+++] Fitting CSP data with SNooPy...')
     # Get Chris Burns Data
-    objnames = np.genfromtxt('/content/HiloCATsSN1991bg/targetLists/91bglike_justnames.txt', dtype=str, delimiter=', ')
-
-    # Get CSP paths of Chris Burns Data
     objpaths = []
-    for name in objnames:
-        if os.path.exists('/content/HiloCATsSN1991bg/data/CSPdata/SN'+name+'_snpy.txt'):
-            objpaths.append('/content/HiloCATsSN1991bg/data/CSPdata/SN'+name+'_snpy.txt')
-        else:
-            print(name, 'not found...')
+    with open(name_file, 'r') as f:
+        for name in f.readline().split(', '):
+            if os.path.exists(data_path+'SN'+name+'_snpy.txt'):
+                objpaths.append(data_path+'SN'+name+'_snpy.txt')
 
     # Fitting
     objs = {}
@@ -20,9 +22,9 @@ def burns_fitting(skip_problems=False, use_saved=False, snpy_plots=True):
     print('Fitting arguments: ', fit_args)
     for n in range(len(objpaths)):
         tracker = '['+str(n+1)+'/'+str(len(objpaths))+']' # Purely cosmetic
-        objname = objpaths[n][39:-9]
+        objname = objpaths[n][len(data_path)+2:-9]
         print(tracker, objname)
-        temp_dict = snpy_fit(objpaths[n], objname, save_loc=SNPY_BURNS, plot_save_loc=SNPY_BURNS_PLOTS, **fit_args)
+        temp_dict = gen.snpy_fit(objpaths[n], objname, save_loc=save_loc, plot_save_loc=save_loc+'plots/', **fit_args)
 
         if type(temp_dict) == dict:
             print('\tResults: \n',
@@ -35,14 +37,15 @@ def burns_fitting(skip_problems=False, use_saved=False, snpy_plots=True):
         else:
             err_i += 1
             print('[!!!]\t', temp_dict, '\n')
+
     print('Finshed! Successfully fit', len(objpaths)-err_i, '/', len(objpaths), 'SNe from ATLAS! ['+str(round(((len(objpaths)-err_i) / len(objpaths))*100, 2))+'%]')
 
     # Announce problem children
-    print('Problem children: ', handle_problem_children(state='READ'))
+    print('Problem children: ', gen.handle_problem_children(state='READ'))
 
     # Save Data
     if len(objs) > 0:
-        dict_packer(objs, BURNS_SAVE_TXT, delimiter=', ') # Save data from fitting
+        gen.dict_packer(objs, save_loc+'burns_saved.txt', delimiter=', ') # Save data from fitting
     return
 
 def burns_plotting(choice):
