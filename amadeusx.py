@@ -19,13 +19,13 @@ if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
     # csp.burns_fitting(skip_problems=False, use_saved=False, snpy_plots=True)
-    # csp.ghost_host_galaxy(BURNS_SAVE_TXT, save_loc=TEST_ROOT, keep_data=False, update_saved=True)
+    ghost.ghost_host_galaxy('../snpy/burns/burns_saved.txt', save_loc='../tests/', keep_data=False, update_saved=True)
 
     # atlas.atlas_collection(quiet=False, check_data=True)
     # atlas_objs = atlas.atlas_processing(err_max=1000, n_iter=0, sleep_t=5, use_TNS=True, loc_TNS=TNS_KEY_TXT)
     # gen.write_ASCII(atlas_objs, '../snpy/atlas/ascii/', quiet=True)
     # atlas.atlas_snpy_fitting(n_iter=0, skip_problems=False, use_saved=False, snpy_plots=True, save_plots=True)
-    # ghost.ghost_host_galaxy('../snpy/atlas/atlas_saved.txt', save_loc='../tests/', keep_data=True, update_saved=True)
+    # ghost.ghost_host_galaxy('../snpy/atlas/atlas_saved.txt', save_loc='../tests/', keep_data=False, update_saved=True)
 
     # ztf_collection(submit=True)
     # ztf_alt_collection()
