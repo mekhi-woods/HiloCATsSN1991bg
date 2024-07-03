@@ -54,6 +54,7 @@ def ztf_processing():
 
     sigma = 1
     plt.errorbar(obj['time'], obj['flux'], yerr=obj['flux_unc']*sigma, fmt='o')
+    # plt.gca().invert_yaxis()
     plt.show()
 
 
