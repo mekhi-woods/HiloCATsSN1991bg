@@ -3,6 +3,7 @@ import numpy as np
 import scripts.general as gen
 import requests
 import json
+import matplotlib.pyplot as plt
 
 def ztf_collection(submit=False):
     limit = 10
@@ -34,18 +35,26 @@ def ztf_processing():
     path = '../data/ZTF/batchfp_req0002064117_lc.txt'
     data = np.genfromtxt(path, delimiter=' ', skip_header=header_num, dtype=str)
 
+    # Grab header
     hdr = []
     with open(path, 'r') as f:
         for i in range(header_num):
             hdr.append(f.readline())
 
-    obj = {'ra': hdr[3].split(' ')[5], 'dec': hdr[4].split(' ')[5]}
+    # Create Object
+    # flux(forcediffimflux), flux_unc(forcediffimfluxunc)
+    obj = {'ra': hdr[3].split(' ')[5], 'dec': hdr[4].split(' ')[5],
+           'time': data[:, 22].astype(float), 'flux': data[:, 24].astype(float), 'flux_unc': data[:, 25].astype(float)}
 
-    print(data[:, 22]) #JD
-    print(data[:, 10]) # mag (zpmaginpsci)
-    print(data[:, 11]) # magerr (zpmaginpsciunc)
+    # Clean data
+    negs = np.where(obj['flux'] > 0)[0]
+    extremes = np.where(obj['flux_unc'] < 200)[0]
+    for cat in ['flux', 'flux_unc', 'time']:
+        obj[cat] = obj[cat][negs]
 
-
+    sigma = 1
+    plt.errorbar(obj['time'], obj['flux'], yerr=obj['flux_unc']*sigma, fmt='o')
+    plt.show()
 
 
     return
