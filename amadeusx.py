@@ -19,7 +19,7 @@ if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
     # csp.burns_fitting(skip_problems=False, use_saved=False, snpy_plots=True)
-    # ghost.ghost_host_galaxy('../snpy/burns/burns_saved.txt', save_loc='../tests/', keep_data=False, update_saved=True)
+    # ghost.ghost_host_galaxy('../snpy/burns/burns_saved.txt', save_loc='../tests/', keep_data=False, update_saved=False)
 
     # atlas.atlas_collection(quiet=False, check_data=True)
     # atlas_objs = atlas.atlas_processing(err_max=1000, n_iter=0, sleep_t=5, use_TNS=True, loc_TNS=TNS_KEY_TXT)
@@ -28,14 +28,17 @@ if __name__ == '__main__':
     # ghost.ghost_host_galaxy('../snpy/atlas/atlas_saved.txt', save_loc='../tests/', keep_data=False, update_saved=True)
 
     # ztf.ztf_collection(submit=True)
-    ztf.ztf_processing()
+    # ztf.ztf_processing()
 
     # burns_plotting([]) # Options: ['reg_hist', 'res_hist', 'zvmu']
     #
-    # atlas_plotting([])
+    # atlas.atlas_plotting(['reg_hist'])
+
+    # ghost.combined_data()
+
     #
-    # ghost_plot_args = {'plot_size': (18, 6), 'plot_ratio': [10, 1], 'hist_bins': [40, 40, 35, 35], 'labels': False, 'raw': False, 'save': True}
-    # ghost.ghost_plotting(['atlas_all'], **ghost_plot_args)
+    ghost_plot_args = {'plot_size': (18, 6), 'plot_ratio': [10, 1], 'hist_bins': [40, 40, 35, 35], 'labels': True, 'raw': False, 'save': True}
+    ghost.ghost_plotting(['atlas_residualsvz'], **ghost_plot_args)
     #
     # snpy_fit_indv('2023cvq')
 

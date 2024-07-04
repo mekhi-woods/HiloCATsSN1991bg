@@ -5,6 +5,7 @@ import requests
 import urllib.request
 import scripts.general as gen
 import time as systime
+import matplotlib.pyplot as plt
 
 DATA_ATLAS = '../data/ATLAS/'
 SNPY_ATLAS = '../snpy/atlas/'
@@ -229,15 +230,21 @@ def atlas_snpy_fitting(n_iter=0, skip_problems=True, use_saved=True, snpy_plots=
 def atlas_plotting(choice):
     if 'reg_hist' in choice:
         print('[+++] Ploting Histogram of ATLAS SNooPy Fitting Parameters...')
-        data = np.genfromtxt(SNPY_ATLAS+'atlas_saved.txt', dtype=str, delimiter=', ', skip_header=1)
-        objnames, st, Tmax, EBVHost = data[:, 0], data[:, 3].astype(float), data[:, 4].astype(float), data[:, 5].astype(float)
-        reg_params = [st, Tmax, EBVHost]
-        bins_reg = [15, 20, 15]
-        plot_title = 'ATLAS SNooPy Parameters'
-
+        objs = gen.dict_unpacker(ATLAS_SAVE_TXT)
         fig, ax = plt.subplots(1, 3, figsize=(15, 5))
-        titles = ['st', plot_title+'\nTmax', 'EBVhost']
-        for i in range(len(titles)):
-            ax[i].hist(reg_params[i], bins=bins_reg[i])
-            ax[i].set_title(titles[i])
+        titles = ['st', 'ATLAS SNooPy Parameters' + '\nTmax', 'EBVhost']
+        all_st, all_tmax, all_ebvhost = [], [], []
+        for obj in objs:
+            all_st.append(float(objs[obj]['st']))
+            all_tmax.append(float(objs[obj]['Tmax']))
+            all_ebvhost.append(float(objs[obj]['EBVhost']))
+        ax[0].hist(all_st, bins=50, color='red')
+        ax[1].hist(all_tmax, bins=50, color='purple')
+        ax[2].hist(all_ebvhost, bins=50, color='blue')
+
+        ax[0].set_title('st'); ax[1].set_title('ATLAS SNooPy Parameters' + '\nTmax'); ax[2].set_title('EBVhost')
+        ax[1].set(xlabel='MJD+53000')
+
+        plt.savefig('../save/plots/atlas_param_hist.png')
+
         plt.show()
