@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # atlas.atlas_snpy_fitting(n_iter=0, skip_problems=False, use_saved=False, snpy_plots=True, save_plots=True)
     # ghost.ghost_host_galaxy('../snpy/atlas/atlas_saved.txt', save_loc='../tests/', keep_data=False, update_saved=True)
 
-    # ztf.ztf_collection(submit=True)
+    # ztf.ztf_wget(submit=True)
     # ztf.ztf_processing()
 
     # burns_plotting([]) # Options: ['reg_hist', 'res_hist', 'zvmu']
@@ -36,10 +36,10 @@ if __name__ == '__main__':
 
     # ghost.combined_data()
 
-    #
-    ghost_plot_args = {'plot_size': (18, 6), 'plot_ratio': [10, 1], 'hist_bins': [40, 40, 35, 35], 'labels': True, 'raw': False, 'save': True}
-    ghost.ghost_plotting(['atlas_residualsvz'], **ghost_plot_args)
-    #
+
+    ghost_plot_args = {'plot_size': (18, 6), 'plot_ratio': [10, 1], 'hist_bins': [40, 40, 35, 35], 'labels': True, 'raw': False, 'save': True, 'ignore_type': ['bad']}
+    ghost.ghost_plotting(['combined_residualsvmass'], **ghost_plot_args)
+
     # snpy_fit_indv('2023cvq')
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')

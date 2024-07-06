@@ -137,7 +137,17 @@ def combined_data():
     gen.dict_packer(combined_objs, '../snpy/combined_saved.txt')
 
     return
-def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins = [50, 50, 10], labels = True, raw = False, save = False):
+def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins = [50, 50, 10],
+                   labels = True, raw = False, save = False, ignore_type=None):
+    badObjs = ['2018ame', '2018ast', '2020nta', '2021agej', '2021agnf', '2021cad', '2021mab', '2022an', '2022fjx',
+               '2022omn', '2022oux', '2022skw', '2023cvq', '2023ex', '2023mkp', '2023omo', '2023yrs']
+    okayObjs = ['2018jag', '2019cp', '2021bls', '2021gel', '2021jbp', '2019be', '2020acoo', '2021jvp', '2021oyx',
+                '2021pom',
+                '2021uve', '2022aaok', '2022abom', '2022dsu', '2022rjs', '2022ydr', '2022yv', '2023abdv', '2023fwb',
+                '2023jah']
+    goodObjs = ['2019exc', '2019cdc', '2019ecx', '2020fhs', '2021fnr', '2019ecx', '2022aecb', '2022ihz', '2022xhh',
+                '2022xkq', '2023acdv', '2023bhm', '2024bjb', '2024jhk']
+
     if 'atlas_all' in choice:
         choice = ['altas_muvmass', 'altas_muvz', 'altas_muvmu', 'altas_residualsvz', 'altas_residualsvmass']
     if 'burns_all' in choice:
@@ -330,7 +340,11 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             # Compute mu_cosmo
             mu_cosmo, mu_snpy, mu_err, z, objnames = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
             for obj in objs:
-                if obj in objsRemove:
+                if ('bad' in ignore_type) and (obj in badObjs):
+                    continue
+                elif ('okay' in ignore_type) and (obj in okayObjs):
+                    continue
+                elif ('good' in ignore_type) and (obj in goodObjs):
                     continue
                 objnames = np.append(objnames, obj)
                 z = np.append(z, float(objs[obj]['z']))
@@ -359,6 +373,9 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             ylimiter = (np.max(np.abs(mu_hist)) + np.max(mu_err*sigma)) + 0.01
             axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
 
+            # Scatter
+            print('Scatter: ', np.std(mu_res))
+
             if save:
                 fig.savefig('../save/plots/resid_v_z-'+choice[0][:5]+'.png')
 
@@ -369,7 +386,6 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
 
     if ('burns_residualsvmass' in choice) or ('atlas_residualsvmass' in choice) or ('combined_residualsvmass' in choice):
         sigmas = [1, 1]
-        objsRemove = ['2021cad', '2020nta', '2022skw', '2023cvq', '2023yrs', '2018ast']
 
         try:
             fig, axs = plt.subplots(1, 2, figsize=plot_size, gridspec_kw={'width_ratios': plot_ratio})
@@ -390,7 +406,11 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
             # Compute mu_cosmo
             mu_cosmo, mu_snpy, mu_err, mass, mass_err, objnames = np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
             for obj in objs:
-                if obj in objsRemove:
+                if ('bad' in ignore_type) and (obj in badObjs):
+                    continue
+                elif ('okay' in ignore_type) and (obj in okayObjs):
+                    continue
+                elif ('good' in ignore_type) and (obj in goodObjs):
                     continue
                 objnames = np.append(objnames, obj)
                 mass = np.append(mass, float(objs[obj]['logstellarmass']))
@@ -419,9 +439,10 @@ def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins 
 
             # Limits
             ylimiter = (np.max(np.abs(mu_hist)) + np.max(mu_err*sigmas[0]))
-            ylimiter = 1.5
             axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
-            # axs[0].set_xlim(9.75, 11.5); axs[1].set_xlim(9.75, 11.5)
+
+            # Scatter
+            print('Scatter: ', np.std(mu_res))
 
             if save:
                 fig.savefig('../save/plots/resid_v_mass-' + choice[0][:5] + '.png')

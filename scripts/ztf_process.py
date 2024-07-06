@@ -5,26 +5,32 @@ import requests
 import json
 import matplotlib.pyplot as plt
 
-def ztf_collection(submit=False):
-    limit = 10
-    ra, dec, jds, jde = [], [], [], []
+def ztf_wget(submit=False):
+    # ra, dec, jds, jde = 186.07860833333334, 10.446222222222222, 2460350, 2460450
+    # email = 'mekhidw@hawaii.edu'  # email you subscribed with.
+    # userpass = 'wxdk286'  # password that was issued to you.
+    # cmd = f"wget --http-user=ztffps --http-passwd=dontgocrazy! -O ../tests/log.txt \"https://ztfweb.ipac.caltech.edu/cgi-bin/requestForcedPhotometry.cgi?ra={dec}&dec={ra}&jdstart={jds}&jdend={jde}&email={'mekhidw@hawaii.edu'}&userpass={'wxdk286'}\""
+    # print(cmd)
+    # os.system(cmd)
+
     atlas_txt = gen.dict_unpacker('../snpy/atlas/atlas_saved.txt')
 
+    print('Requesting the following from ZTF...')
     for tar in atlas_txt:
-        ra.append(float(atlas_txt[tar]['ra']))
-        dec.append(float(atlas_txt[tar]['dec']))
-        jds.append(float(atlas_txt[tar]['MJDs']))
-        jde.append(float(atlas_txt[tar]['MJDe']))
+        print('---------------------------------------')
+        ra = atlas_txt[tar]['ra']
+        dec = atlas_txt[tar]['dec']
+        jds = float(atlas_txt[tar]['MJDs'])
+        jde = float(atlas_txt[tar]['MJDe'])
 
-    ra_json, dec_json = json.dumps(ra), json.dumps(dec)
-    # jdstart, jdend = json.dumps(min(jds)), json.dumps(max(jde))
-    jdstart, jdend = 2458216.1234, 2458450.0253
+        if submit:
+            cmd = f"wget --http-user=ztffps --http-passwd=dontgocrazy! -O ../tests/log.txt \"https://ztfweb.ipac.caltech.edu/cgi-bin/requestForcedPhotometry.cgi?ra={dec}&dec={ra}&jdstart={jds}&jdend={jde}&email={'mekhidw@hawaii.edu'}&userpass={'wxdk286'}\""
+            # print(cmd)
+            results = os.system(cmd)
+            print(results)
 
-    if submit:
-        payload = {'ra': ra_json, 'dec': dec_json, 'jdstart': jdstart, 'jdend': jdend, 'email': 'mekhidw@hawaii.edu', 'userpass': 'wxdk286'}
-        r = requests.post('https://ztfweb.ipac.caltech.edu/cgi-bin/batchfp.py/submit', auth=('ztffps', 'dontgocrazy!'), data=payload)
-        print("Status_code=", r.status_code)
-        print(r.text)
+            print('RA: '+str(ra)+', DEC: '+str(dec)+', '+str(jds)+'-'+str(jde)+', Status: ')
+        break
 
 
 
@@ -32,7 +38,7 @@ def ztf_collection(submit=False):
 
 def ztf_processing():
     header_num = 54
-    path = '../data/ZTF/batchfp_req0002064117_lc.txt'
+    path = '../data/ZTF/old/batchfp_req0002064117_lc.txt'
     data = np.genfromtxt(path, delimiter=' ', skip_header=header_num, dtype=str)
 
     # Grab header
@@ -48,7 +54,11 @@ def ztf_processing():
 
     # Clean data
     negs = np.where(obj['flux'] > 0)[0]
-    extremes = np.where(obj['flux_unc'] < 200)[0]
+    extremes = np.where(obj['flux_unc'] < 150)[0]
+
+
+    fixes = np.unique(np.concatenate((negs, extremes)))
+
     for cat in ['flux', 'flux_unc', 'time']:
         obj[cat] = obj[cat][negs]
 
