@@ -2,6 +2,7 @@ import warnings
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     import snpy
+    import glob
     import time as systime
 
     import scripts.general as gen
@@ -28,20 +29,28 @@ if __name__ == '__main__':
     # ghost.ghost_host_galaxy('../snpy/atlas/atlas_saved.txt', save_loc='../tests/', keep_data=False, update_saved=True)
 
     # ztf.ztf_wget(submit=True)
-    # ztf.ztf_processing()
+    ZTFobjs = ztf.ztf_processing(paths = glob.glob('../data/ZTF/*.txt'), min_pts = 10, err_lim = 20)
+    # ztf.ztf_write_ASCII(ZTFobjs, '../snpy/ztf/ascii/', quiet=False)
+    # ztf.ztf_snpy_fitting(n_iter=0, skip_problems=False, use_saved=False, snpy_plots=True, save_plots=False)
 
     # burns_plotting([]) # Options: ['reg_hist', 'res_hist', 'zvmu']
-    #
     # atlas.atlas_plotting(['reg_hist'])
+    # ztf.ztf_plotting(ZTFobjs, choice = 'flux', zoom=0, plot_filters=['g', 'r', 'i'], sigma=1, pause_time=3)
+    ztf.ztf_plotting(ZTFobjs, choice = 'mag', zoom=0, plot_filters=['g', 'r', 'i'], sigma=1, pause_time=3)
 
     # ghost.combined_data()
 
-
-    ghost_plot_args = {'plot_size': (18, 6), 'plot_ratio': [10, 1], 'hist_bins': [40, 40, 35, 35], 'labels': True, 'raw': False, 'save': True, 'ignore_type': ['bad']}
-    ghost.ghost_plotting(['combined_residualsvmass'], **ghost_plot_args)
+    # ghost_plot_args = {'plot_size': (18, 6), 'plot_ratio': [10, 1], 'hist_bins': [40, 40, 35, 35], 'labels': True, 'raw': False, 'save': True, 'ignore_type': ['bad']}
+    # ghost.ghost_plotting(['combined_residualsvmass'], **ghost_plot_args)
 
     # snpy_fit_indv('2023cvq')
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
+
+
+
+
+
+
 
 
