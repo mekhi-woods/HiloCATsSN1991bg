@@ -14,41 +14,40 @@ SNPY_ZTF_ASCII = SNPY_ZTF+'ascii/'
 ZTF_SAVE_TXT = SNPY_ZTF+'ztf_saved.txt'
 
 def ztf_wget(submit=False):
-    atlas_txt = dict_unpacker('../snpy/atlas/atlas_saved.txt')
+    atlas_txt = np.genfromtxt('../txts/91bg_list.txt', dtype=str, skip_header=1)
 
     print('Requesting the following from ZTF...')
-    for tar in atlas_txt:
+    for i in range(len(atlas_txt[:, 0])):
         print('---------------------------------------')
-        ra = atlas_txt[tar]['ra']
-        dec = atlas_txt[tar]['dec']
-        jds = float(atlas_txt[tar]['MJDs']) + 2400000 # MJD to JD
-        jde = float(atlas_txt[tar]['MJDe']) + 2400000
+        ra = atlas_txt[i, 1]
+        dec = atlas_txt[i, 2]
+
+        # ra = atlas_txt[tar]['ra']
+        # dec = atlas_txt[tar]['dec']
+        # jds = float(atlas_txt[tar]['MJDs']) + 2400000 # MJD to JD
+        # jde = float(atlas_txt[tar]['MJDe']) + 2400000
 
         if submit:
-            cmd = f"wget --http-user=ztffps --http-passwd=dontgocrazy! -O log.txt \"https://ztfweb.ipac.caltech.edu/cgi-bin/requestForcedPhotometry.cgi?ra={ra}&dec={dec}&jdstart={jds}&jdend={jde}&email={'mekhidw@hawaii.edu'}&userpass={'wxdk286'}\""
+            # cmd = f"wget --http-user=ztffps --http-passwd=dontgocrazy! -O log.txt \"https://ztfweb.ipac.caltech.edu/cgi-bin/requestForcedPhotometry.cgi?ra={ra}&dec={dec}&jdstart={jds}&jdend={jde}&email={'mekhidw@hawaii.edu'}&userpass={'wxdk286'}\""
+            cmd = f"wget --http-user=ztffps --http-passwd=dontgocrazy! -O log.txt \"https://ztfweb.ipac.caltech.edu/cgi-bin/requestForcedPhotometry.cgi?ra={ra}&dec={dec}&email={'mekhidw@hawaii.edu'}&userpass={'wxdk286'}\""
             # print(cmd)
             results = os.system(cmd)
 
-            print('RA: '+str(ra)+', DEC: '+str(dec)+', '+str(jds)+'-'+str(jde)+', Status: '+str(results))
+            print('RA: '+str(ra)+', DEC: '+str(dec)+', '+str(results))
+
     return
-def ztf_processing(paths = glob.glob('../data/ZTF/old/*.txt'), min_pts = 10, err_lim = 20):
+def ztf_alt_processing(paths=glob.glob('../data/ZTF/old/*.txt'), min_pts=10, mag_err_max=0.75, flux_err_max=80):
+    print('[+++] Retrieving data from...', DATA_ZTF)
     header_num = 57
     ZTFobjs = {}
 
     for path in paths:
-        ztfname = path.split('/')[-1][11:-7]
-        data = np.genfromtxt(path, delimiter=' ', skip_header=header_num, dtype=str)
+        # Tracking/Cosmetics
+        ztfname = path.split('/')[-1][11:-7].split('_')[-1][3:]
+        tracker = '['+str(paths.index(path)+1)+'/'+str(len(paths))+']' # Purely cosmetic
+        print(tracker, '\n', '\t\tPulling', ztfname, 'data...')
 
-        # Remove nulls
-        obj_filters, obj_time, obj_flux, obj_flux_unc = np.array([]), np.array([]), np.array([]), np.array([])
-        for n in range(len(data[:, 0])):
-            if (data[:, 4][n] == 'null') or (data[:, 22][n] == 'null') or (data[:, 24][n] == 'null') or (data[:, 25][n] == 'null'):
-                continue
-                # print(n, data[:, 4][n], data[:, 22][n], data[:, 24][n], data[:, 25][n])
-            obj_filters = np.append(obj_filters, data[:, 4][n])
-            obj_time = np.append(obj_time, data[:, 22][n])
-            obj_flux = np.append(obj_flux, data[:, 24][n])
-            obj_flux_unc = np.append(obj_flux_unc, data[:, 25][n])
+        data = np.genfromtxt(path, delimiter=' ', skip_header=header_num, dtype=str)
 
         # Grab header
         hdr = []
@@ -60,7 +59,7 @@ def ztf_processing(paths = glob.glob('../data/ZTF/old/*.txt'), min_pts = 10, err
         name_found = False
         tns_key = np.genfromtxt('../working_data/TNS_key.txt', dtype=str, delimiter=', ', skip_header=1)
         if len(tns_key) > 0:
-            objnames, ra, dec, z = tns_key[:, 1], tns_key[:, 2].astype(float), tns_key[:, 3].astype(float), tns_key[:, 4]
+            objnames, ra, dec, z = tns_key[:, 1], tns_key[:, 2].astype(float), tns_key[:, 3].astype(float), tns_key[:,4]
             obj_ra, obj_dec = float(hdr[3].split(' ')[5]), float(hdr[4].split(' ')[5])
             for n in range(len(objnames)):
                 if abs(obj_ra - ra[n]) < 0.01:
@@ -69,37 +68,63 @@ def ztf_processing(paths = glob.glob('../data/ZTF/old/*.txt'), min_pts = 10, err
                     break
         if name_found == False:
             details = gen.TNS_details(hdr[3].split(' ')[5], hdr[4].split(' ')[5])
-            obj_name, obj_ra, obj_dec, obj_z = details['objname'], details['radeg'], details['decdeg'], details['redshift']
+            obj_name, obj_ra, obj_dec, obj_z = details['objname'], details['radeg'], details['decdeg'], details[
+                'redshift']
             with open('../working_data/TNS_key.txt', 'a') as f:
-                f.write(ztfname+', '+obj_name+', '+str(obj_ra)+', '+str(obj_dec)+', '+str(obj_z))
+                f.write(ztfname + ', ' + obj_name + ', ' + str(obj_ra) + ', ' + str(obj_dec) + ', ' + str(obj_z))
+
+        obj_filters, obj_time, obj_flux, obj_flux_unc, obj_mag, obj_mag_unc = np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
+        for i in range(len(data[:, 0])):
+            # Remove intial nulls
+            valid = True
+            for j in [4, 22, 24, 25]:
+                if data[i, j] == 'null':
+                    valid = False
+            if not valid:
+                continue
+
+            # Flux to magnitude
+            n_flux, n_flux_unc = float(data[i, 24]), float(data[i, 25])
+            n_mag = -2.5 * np.log10(n_flux) + 23.9
+            n_mag_unc = (2.5 / (n_flux * np.log(10))) * n_flux_unc
+            if np.isnan(n_mag):
+                continue
+
+            # Clean data
+            if n_flux <= 0: # Negatives
+                continue
+            if n_flux_unc > flux_err_max: # Extreme Flux
+                continue
+            if n_mag_unc > mag_err_max: # Extreme Mags
+                continue
+
+            # Commit variables
+            # print(i, n_flux, n_flux_unc, n_mag, n_mag_unc)
+            obj_filters = np.append(obj_filters, data[i, 4])
+            obj_time = np.append(obj_time, float(data[i, 22]))
+            obj_flux = np.append(obj_flux, n_flux)
+            obj_flux_unc = np.append(obj_flux_unc, n_flux_unc)
+            obj_mag = np.append(obj_mag, n_mag)
+            obj_mag_unc = np.append(obj_mag_unc, n_mag_unc)
 
         # Create Object
         # flux(forcediffimflux), flux_unc(forcediffimfluxunc)
-        obj = {'ra': obj_ra, 'dec': obj_dec, 'z': obj_z, 'filters': obj_filters.astype(str),
-               'time': obj_time.astype(float), 'flux': obj_flux.astype(float), 'flux_unc': obj_flux_unc.astype(float)}
-
-        # Clean data
-        obj['time'] = obj['time'] - 2458000 # JD to MJD+58000
-        negs = np.where(obj['flux'] > 0)[0]
-        extremes = np.where(obj['flux_unc'] < 150)[0]
-        fixes = np.unique(np.concatenate((negs, extremes)))
-        for cat in ['flux', 'flux_unc', 'time', 'filters']:
-            obj[cat] = obj[cat][negs]
-
-        # Convert flux to AB mags
-        mag = -2.5 * np.log10(obj['flux']) + 23.9
-        # mag_unc = np.log10(obj['flux']+obj['flux_unc']) # Taylor expansion)
-        mag_unc = (2.5 / (obj['flux'] * np.log(10))) * obj['flux_unc']
-
-        obj.update({'mag': mag, 'mag_unc': mag_unc})
+        obj = {'ra': obj_ra, 'dec': obj_dec, 'z': obj_z, 'filters': obj_filters, 'time': obj_time,
+               'flux': obj_flux, 'flux_unc': obj_flux_unc, 'mag': obj_mag, 'mag_unc': obj_mag_unc}
+        print('\t\tRetrived: ' + obj_name + ' | ra: '+str(obj_ra)+' \ dec: '+str(obj_dec))
 
         # Commit Object
-        if len(obj['time']) > min_pts:
-            ZTFobjs.update({obj_name : obj})
+        ZTFobjs.update({obj_name: obj})
+
+    print('[!!!]\t\tRetrieved & processed', len(ZTFobjs), 'SNe from ZTF!')
 
     return ZTFobjs
 def ztf_plotting(ZTFobjs, choice = 'flux', plot_filters=['g', 'r', 'i'], zoom = 330, sigma = 1, pause_time=3):
+    i = 0
     for obj in ZTFobjs:
+        i += 1
+        tracker = '['+str(i)+' / '+str(len(ZTFobjs))+']'
+        print(tracker, 'Ploting '+obj+'...')
         plt.figure(figsize=(12, 6))
 
         # Filter selection
@@ -193,10 +218,15 @@ def ztf_snpy_fitting(n_iter=0, skip_problems=True, use_saved=True, snpy_plots=Tr
     objs = {}
     err_i = 0
     for n in range(len(objpaths)):
+
+        # # rm after testing
+        # if n+1 != 5:
+        #     continue
+
         tracker = '['+str(n+1)+'/'+str(len(objpaths))+']' # Purely cosmetic
         objname = objpaths[n][len(SNPY_ZTF_ASCII):-9]
         print(tracker, objname)
-        temp_dict = gen.snpy_fit(objpaths[n], objname, save_loc=SNPY_ZTF, plot_save_loc=SNPY_ZTF_PLOTS, **fit_args)
+        temp_dict = gen.newer_snpy_fit(objpaths[n], objname, save_loc=SNPY_ZTF, plot_save_loc=SNPY_ZTF_PLOTS, **fit_args)
 
         if type(temp_dict) == dict:
             print('\tResults: \n',
@@ -209,6 +239,7 @@ def ztf_snpy_fitting(n_iter=0, skip_problems=True, use_saved=True, snpy_plots=Tr
         else:
             err_i += 1
             print('[!!!]\t', temp_dict, '\n')
+
     print('Finshed! Successfully fit', len(objpaths)-err_i, '/', len(objpaths), 'SNe from ZTF! ['+str(round(((len(objpaths)-err_i) / len(objpaths))*100, 2))+'%]')
 
     # Save Data

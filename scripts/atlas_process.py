@@ -205,7 +205,7 @@ def atlas_snpy_fitting(n_iter=0, skip_problems=True, use_saved=True, snpy_plots=
         tracker = '['+str(n+1)+'/'+str(len(objpaths))+']' # Purely cosmetic
         objname = objpaths[n][len(SNPY_ATLAS_ASCII):-9]
         print(tracker, objname)
-        temp_dict = gen.snpy_fit(objpaths[n], objname, save_loc=SNPY_ATLAS, plot_save_loc=SNPY_ATLAS_PLOTS, **fit_args)
+        temp_dict = gen.newer_snpy_fit(objpaths[n], objname, save_loc=SNPY_ATLAS, plot_save_loc=SNPY_ATLAS_PLOTS, **fit_args)
 
         if type(temp_dict) == dict:
             print('\tResults: \n',

@@ -13,7 +13,11 @@ from astroquery.mast import Catalogs
 
 import matplotlib.pyplot as plt
 
+import glob
+
 import scripts.general as gen
+import scripts.atlas_process as atlas
+import scripts.ztf_process as ztf
 
 COSMO_MODEL = cosmo.FlatLambdaCDM(H0=70, Om0=0.3)
 
@@ -22,8 +26,11 @@ TEST_ROOT = '../tests/'
 
 ATLAS_SAVE_TXT = '../snpy/atlas/atlas_saved.txt'
 BURNS_SAVE_TXT = '../snpy/burns/burns_saved.txt'
+ZTF_SAVE_TXT = '../snpy/ztf/ztf_saved.txt'
 COMBINED_SAVE_TXT = '../snpy/combined_saved.txt'
 DR3_SAVE_TXT = '../txts/DR3_fits.dat'
+
+TNS_KEY_TXT = '../working_data/TNS_key.txt'
 
 def ghost_host_galaxy(dict_path, save_loc=TEST_ROOT, keep_data=True, update_saved=False):
     cosmo = FlatLambdaCDM(70, 0.3) # Hubble Constant, Omega-Matter
@@ -126,6 +133,7 @@ def ghost_host_galaxy(dict_path, save_loc=TEST_ROOT, keep_data=True, update_save
 def combined_data():
     atlas_objs = gen.dict_unpacker(ATLAS_SAVE_TXT)
     burns_objs = gen.dict_unpacker(BURNS_SAVE_TXT)
+    ztf_objs = gen.dict_unpacker(ZTF_SAVE_TXT)
 
     combined_objs = {}
     for obj in burns_objs:
@@ -137,6 +145,21 @@ def combined_data():
     gen.dict_packer(combined_objs, '../snpy/combined_saved.txt')
 
     return
+
+def atlas_ztf_joint_fitting():
+    ATLASobjs = atlas.atlas_processing(err_max=1000, n_iter=0, sleep_t=5, use_TNS=True, loc_TNS=TNS_KEY_TXT)
+    ZTFobjs = ztf.ztf_alt_processing(paths=glob.glob('../data/ZTF/*.txt'), min_pts=10, mag_err_max=0.75, flux_err_max=80)
+
+    print(ZTFobjs['2020nta'].keys())
+
+    # combined_objs = ATLASobjs
+    # for obj in ZTFobjs:
+    #     if obj in combined_objs:
+    #         print(obj)
+
+
+    return
+
 def ghost_plotting(choice, plot_size = (18, 6), plot_ratio = [10, 1], hist_bins = [50, 50, 10],
                    labels = True, raw = False, save = False, ignore_type=None):
     badObjs = ['2018ame', '2018ast', '2020nta', '2021agej', '2021agnf', '2021cad', '2021mab', '2022an', '2022fjx',
