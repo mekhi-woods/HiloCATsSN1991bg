@@ -1,0 +1,4 @@
+2019ecx 0.029 139.175125 18.9650305555556
+filter g
+filter r
+filter i

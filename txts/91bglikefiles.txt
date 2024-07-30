@@ -1,1 +1,0 @@
-SN2005bl_snpy.txt, SN2005ke_snpy.txt, SN2006bd_snpy.txt, SN2006gt_snpy.txt, SN2006mr_snpy.txt, SN2007N_snpy.txt, SN2007al_snpy.txt, SN2007ax_snpy.txt, SN2007ba_snpy.txt, SN2008bd_snpy.txt, SN2008bi_snpy.txt, SN2008bt_snpy.txt, SN2009F_snpy.txt
