@@ -298,7 +298,7 @@ def data_proccesser(data_set = 'ZTF', mag_unc_max=1, quiet=False):
     sys.stdout = sys.__stdout__
 
     return data_objs
-def alt_data_proccesser(data_set = 'ZTF', mag_unc_max=1, flux_unc_max=0, quiet=False):
+def alt_data_proccesser(data_set = 'ZTF', individual='', quiet=False):
     print('[+++] Processing '+data_set+' data...')
 
     # Getting constants and paths
@@ -311,8 +311,11 @@ def alt_data_proccesser(data_set = 'ZTF', mag_unc_max=1, flux_unc_max=0, quiet=F
 
     objs = {}
     if data_set == 'CSP':
+        files = glob.glob(const['csp_data_loc'] + '*.txt')
+        if len(individual) > 0 and os.path.isfile(individual):
+            files = [individual]
+
         csp_sn1a91bg_only = True
-        files = glob.glob(const['csp_data_loc']+'*.txt')
         names91bglike = np.genfromtxt(const['csp91bglike_txt'], delimiter=', ', dtype=str)
         for file in files:
             with open(file, 'r') as f:
@@ -350,6 +353,9 @@ def alt_data_proccesser(data_set = 'ZTF', mag_unc_max=1, flux_unc_max=0, quiet=F
                         objs[objname]['dmag'] = np.append(objs[objname]['dmag'], data_line[2])
     elif data_set == 'ATLAS':
         files = glob.glob(const['atlas_data_loc']+'*.txt')
+        if len(individual) > 0 and os.path.isfile(individual):
+            files = [individual]
+
         for file in files:
             print('-----------------------------------------------------------------------------------------------')
             print('[', files.index(file) + 1, '/', len(files), ']')
@@ -376,6 +382,9 @@ def alt_data_proccesser(data_set = 'ZTF', mag_unc_max=1, flux_unc_max=0, quiet=F
                                    'mag': data[:, 3], 'dmag': data[:, 4]}})
     elif data_set == 'ZTF':
         files = glob.glob(const['ztf_data_loc']+'*.txt')
+        if len(individual) > 0 and os.path.isfile(individual):
+            files = [individual]
+
         for file in files:
             print('-----------------------------------------------------------------------------------------------')
             print('[', files.index(file) + 1, '/', len(files), ']')
@@ -423,151 +432,6 @@ def alt_data_proccesser(data_set = 'ZTF', mag_unc_max=1, flux_unc_max=0, quiet=F
         raise ValueError("Data set not recognized ['CSP'/'ATLAS'/'ZTF']")
         return
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # # Chose data set
-    # if data_set == 'ATLAS':
-    #     hdr_len = 1
-    #     data_delim, hdr_delim = ',', ','
-    #     files = glob.glob(const['atlas_data_loc']+'*.txt')
-    #     d_i = {'mag': 3, 'dmag': 4, 'filter': 6, 'zp': 7, 'time': 8, 'flux': 16, 'dflux': 17, 'uJy': 24, 'duJy': 25}
-    # elif data_set == 'ZTF':
-    #     hdr_len = 56
-    #     data_delim, hdr_delim = None, ', '
-    #     files = glob.glob(const['ztf_data_loc']+'*.txt')
-    #     d_i = {'filter': 4, 'zp': 20, 'time': 22, 'flux': 24, 'dflux': 25}
-    # else:
-    #     print('Data set not recognized')
-    #     return None
-    #
-    # # Getting data & header
-    # data_objs = {}
-    # for file in files:
-    #     print('-------------------------------------------------------------------------------------------------------')
-    #     print('[', files.index(file)+1, '/', len(files), ']')
-    #
-    #     # Retrieve Data
-    #     data = np.genfromtxt(file, dtype=str, skip_header=hdr_len, delimiter=data_delim)
-    #
-    #     # Check if file is empty
-    #     if len(data) <= 0:
-    #         print('[!!!] File empty!')
-    #         continue
-    #
-    #     # Header
-    #     with open(file, 'r') as f:
-    #         if hdr_len > 1:
-    #             for i in range(hdr_len-1):
-    #                 if data_set == 'ZTF' and i == 3:
-    #                     obj_ra = float(f.readline().split(' ')[-2])
-    #                 elif data_set == 'ZTF' and i == 4:
-    #                     obj_dec = float(f.readline().split(' ')[-2])
-    #                 else:
-    #                     f.readline()
-    #         hdr = f.readline()[1:-1].split(hdr_delim)
-    #
-    #     # RA & Dec for ATLAS
-    #     if data_set == 'ATLAS':
-    #         obj_ra, obj_dec = np.average(data[:, 1].astype(float)), np.average(data[:, 2].astype(float))
-    #
-    #     # Get name and redshift from TNS
-    #     run = True
-    #     obj_name = ''
-    #     while run:
-    #         try:
-    #             obj_name, obj_z = TNS_unpack(obj_ra, obj_dec)
-    #             if len(obj_name) > 0:
-    #                 run = False
-    #         except Exception as error:
-    #             if error == NameError:
-    #                 run = False
-    #             print('***********************************************************************************************')
-    #             print(error)
-    #             print('TNS timed out, pausing for 5 seconds...')
-    #             print('***********************************************************************************************')
-    #             systime.sleep(5)
-    #     print(obj_name, '|', file.split('/')[-1][:-4])
-    #     print('File @', file)
-    #
-    #     # Object Creation
-    #     obj_filters, obj_time, obj_flux, obj_flux_unc, obj_mag, obj_mag_unc, obj_zp = np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
-    #     for i in range(len(data[:, 0])):
-    #         # Flux to magnitude
-    #         if data_set == 'ZTF':
-    #             if data[i, d_i['flux']] == 'null':
-    #                 continue
-    #             else:
-    #                 n_flux, n_flux_unc, n_flux_zpt = float(data[i, d_i['flux']]), float(data[i, d_i['dflux']]), float(data[i, 10]),
-    #                 n_mag = -2.5 * np.log10(n_flux) + n_flux_zpt
-    #                 n_mag_unc = (2.5 / (n_flux * np.log(10))) * n_flux_unc
-    #                 if np.isnan(n_mag):
-    #                     continue
-    #
-    #         # Set variables
-    #         if data_set == 'ATLAS':
-    #             if data[i, d_i['mag']].split('>')[-1] == 'None':
-    #                 continue
-    #             else:
-    #                 n_mag = float(data[i, d_i['mag']].split('>')[-1])
-    #                 n_mag_unc = float(data[i, d_i['dmag']])
-    #             n_flux, n_flux_unc = float(data[i, d_i['flux']]), float(data[i, d_i['dflux']])
-    #             n_filter = data[i, d_i['filter']]
-    #             n_time = float(data[i, d_i['time']])
-    #
-    #         # Clean data
-    #         if n_mag <= 0:  # Negatives mags
-    #             continue
-    #         if n_mag_unc <= 0:  # Negatives mag errors
-    #             continue
-    #         if n_flux <= 0: # Negatives fluxes
-    #             continue
-    #         if n_flux_unc <= 0:  # Negatives flux errors
-    #             continue
-    #         if (mag_unc_max != 0) and (n_mag_unc > mag_unc_max):
-    #             continue
-    #
-    #         # Commit variables
-    #         obj_filters = np.append(obj_filters, data[i, d_i['filter']])
-    #         obj_time = np.append(obj_time, float(data[i, d_i['time']]))
-    #         obj_zp = np.append(obj_zp, float(data[i, d_i['zp']]))
-    #         obj_flux = np.append(obj_flux, n_flux)
-    #         obj_flux_unc = np.append(obj_flux_unc, n_flux_unc)
-    #         obj_mag = np.append(obj_mag, n_mag)
-    #         obj_mag_unc = np.append(obj_mag_unc, n_mag_unc)
-    #
-    #     # Create Object
-    #     obj = {'ra': obj_ra, 'dec': obj_dec, 'z': obj_z, 'filters': obj_filters, 'time': obj_time, 'zp': obj_zp,
-    #            'flux': obj_flux, 'dflux': obj_flux_unc, 'mag': obj_mag, 'dmag': obj_mag_unc}
-    #     print('Retrived: ' + obj_name + ' | ra: '+str(obj_ra)+' \ dec: '+str(obj_dec))
-
-        # Commit Object
-        data_objs.update({obj_name: obj})
-
     # Clean Data -- ['zp', 'filter', 'time', 'flux', 'dflux', 'mag', 'dmag']
     new_zp, new_filter, new_time, new_mag, new_mag_unc, new_flux, new_flux_unc = (
         np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([]))
@@ -578,25 +442,22 @@ def alt_data_proccesser(data_set = 'ZTF', mag_unc_max=1, flux_unc_max=0, quiet=F
                 objs[obj]['mag'][n], objs[obj]['dmag'][n], objs[obj]['flux'][n], objs[obj]['dflux'][n])
 
             # Normallize Data
-            if n_mag == 'None' or n_mag_unc == 'None' or n_flux == 'None' or n_flux_unc == 'None':
-                continue
-            if n_mag == 'null' or n_mag_unc == 'null' or n_flux == 'null' or n_flux_unc == 'null':
-                continue
+            norm_failed = False
             n_mag = str(n_mag).replace('>', '')
+            for n in [n_mag, n_mag_unc, n_flux, n_flux_unc]:
+                if str(n) == 'None' or str(n) == 'nan' or str(n) == 'null':
+                    norm_failed = True
+            if norm_failed:
+                continue
 
             # Clean Data
-            if float(n_mag) <= 0:  # Negatives mags
+            clean_failed = False
+            for n in [n_mag, n_mag_unc, n_flux, n_flux_unc]:
+                if float(n) <= 0:
+                    clean_failed = True
+            if clean_failed:
                 continue
-            if float(n_mag_unc) <= 0:  # Negatives mag errors
-                continue
-            if float(n_flux) <= 0:  # Negatives fluxes
-                continue
-            if float(n_flux_unc) <= 0:  # Negatives flux errors
-                continue
-            if (mag_unc_max != 0) and (float(n_mag_unc) > mag_unc_max):
-                continue
-            if (flux_unc_max != 0) and (float(n_flux_unc) > flux_unc_max):
-                continue
+
             # print('flux:', n_flux, '\t| dflux:', n_flux_unc, '\t| mag:', n_mag, '\t| dmag:', n_mag_unc)
 
             new_zp = np.append(new_zp, float(n_zp))
@@ -616,6 +477,47 @@ def alt_data_proccesser(data_set = 'ZTF', mag_unc_max=1, flux_unc_max=0, quiet=F
     sys.stdout = sys.__stdout__
 
     return objs
+def sample_cutter(save_loc):
+    print('[+++] Cutting sample for ' + save_loc.split('_')[0].upper() + ' data...')
+
+    path = glob.glob(get_constants()[save_loc] + '*_saved.txt')[0]
+    objs = dict_handler(choice='unpack', path=path)
+    i = 0
+    new_objs = {}
+    for obj in objs:
+        print('[' + str(list(objs.keys()).index(obj) + 1) + '/' + str(len(objs)) + '] -- ' + obj)
+        print('---------------------------------------------------------------------------------------------------')
+        resid = float(objs[obj]['mu']) - CURRENT_COSMO.distmod(float(objs[obj]['z'])).value
+        resid -= np.median(resid)
+
+        if float(objs[obj]['EBVhost']) < -0.2 or float(objs[obj]['EBVhost']) > 0.2:
+            print('[!!!] EBVhost out of range.')
+            continue
+        if float(objs[obj]['EBVhost_err']) > 0.1:
+            print('[!!!] EBVhost errors out of range.')
+            continue
+
+        if float(objs[obj]['st']) < 0.3 or float(objs[obj]['st']) > 1.0:
+            print('[!!!] Stretch out of range.')
+            continue
+        if float(objs[obj]['st_err']) > 0.1:
+            print('[!!!] Stretch error out of range.')
+            continue
+
+        if float(objs[obj]['Tmax_err']) > 1:
+            print('[!!!] Maximum time error out of range.')
+            continue
+
+        if float(objs[obj]['z']) < 0.015:
+            print('[!!!] Redshift out of range.')
+            continue
+        i = i + 1
+
+        # Save obj to new dict
+        new_objs.update({obj: objs[obj]})
+
+    dict_handler(data_dict=new_objs, choice='pack', path=get_constants()[save_loc] + save_loc.split('_')[0] + '_saved_cut.txt')
+    return
 # ==================================================================================================================== #
 def write_ASCII(objs, filter_set, save_loc):
     print('[+++] Saving data to ASCII files for SNooPy...')
@@ -961,65 +863,12 @@ def host_mass(dict_path, save_loc='../default/', keep_data=True, update_saved=Fa
         dict_handler(choice='pack', data_dict=data, path=dict_path)
     return
 # ==================================================================================================================== #
-def salt3_fit(data_set, plot_data=True, save_plot=True):
-    # # Register sample data
-    # data = sncosmo.load_example_data()
-    # print(data)
-    #
-    # # Create Model
-    # model = sncosmo.Model(source='salt2')
-    #
-    # # Fit data to model
-    # result, fitted_model = sncosmo.fit_lc(data,
-    #                                       model,
-    #                                       ['z', 't0', 'x0', 'x1', 'c'],  # parameters of model to vary
-    #                                       bounds={'z': (0.3, 0.7)})  # bounds on parameters (if any)
-    #
-    # # Print Results
-    # print("Number of chi^2 function calls:", result.ncall)
-    # print("Number of degrees of freedom in fit:", result.ndof)
-    # print("chi^2 value at minimum:", result.chisq)
-    # print("model parameters:", result.param_names)
-    # print("best-fit values:", result.parameters)
-    # print("The result contains the following attributes:\n", result.keys())
-    #
-    # # Plot data with fit
-    # sncosmo.plot_lc(data, model=fitted_model, errors=result.errors)
-    #
-    # #
-    # model.set(z=0.5)  # set the model's redshift.
-    # result, fitted_model = sncosmo.fit_lc(data, model,
-    #                                       ['t0', 'x0', 'x1', 'c'])
-    # sncosmo.plot_lc(data, model=fitted_model, errors=result.errors)
-
-    # Register sample data
-
-    # data = sncosmo.load_example_data()
-    # print(data)
+def salt3_fit(objs, plot_save_loc='../default/', plot_data=True, save_plot=True):
     print('[+++] Fitting data with SALT3...')
 
     CONSTANTS = get_constants()
     alpha, beta = float(CONSTANTS['salt_alpha']), float(CONSTANTS['salt_beta'])
     mB_const, M0 = float(CONSTANTS['salt_mB_const']), float(CONSTANTS['salt_absolute_mag'])
-
-    if data_set == 'ATLAS':
-        save_loc = get_constants()['salt_atlas_loc']
-        objs = data_proccesser(data_set='ATLAS', mag_unc_max=1, quiet=True)
-        for obj in objs:
-            objs[obj]['filters'][np.where(objs[obj]['filters'] == 'c')[0]] = 'atlasc'
-            objs[obj]['filters'][np.where(objs[obj]['filters'] == 'o')[0]] = 'atlaso'
-    elif data_set == 'ZTF':
-        save_loc = get_constants()['salt_ztf_loc']
-        objs = data_proccesser(data_set='ZTF', mag_unc_max=1, quiet=True)
-        for obj in objs:
-            if len(objs[obj]['filters']) == 0:
-                continue
-            objs[obj]['filters'][np.where(objs[obj]['filters'] == 'ZTF_g')[0]] = 'ztfg'
-            objs[obj]['filters'][np.where(objs[obj]['filters'] == 'ZTF_r')[0]] = 'ztfr'
-            objs[obj]['filters'][np.where(objs[obj]['filters'] == 'ZTF_i')[0]] = 'ztfi'
-    else:
-        raise ValueError("[!!!] Invalid data set! ['ATLAS'/ 'ZTF']")
-        return
 
     params = {}
     for obj in objs:
@@ -1027,13 +876,9 @@ def salt3_fit(data_set, plot_data=True, save_plot=True):
         print('[', list(objs.keys()).index(obj)+1, '/', len(objs), ']')
 
         try:
-            data = Table()
-            data['time'] = objs[obj]['time']
-            data['band'] = objs[obj]['filters']
-            data['flux'] = objs[obj]['flux']
-            data['fluxerr'] = objs[obj]['dflux']
-            data['zp'] = objs[obj]['zp']
-            data['zpsys'] = np.full(len(objs[obj]['time']), 'ab')
+            data = Table([objs[obj]['time'], objs[obj]['filters'], objs[obj]['flux'], objs[obj]['dflux'],
+                         objs[obj]['zp'], np.full(len(objs[obj]['time']), 'ab')],
+                         names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'))
 
             # Create Model
             model = sncosmo.Model(source='salt3')
@@ -1051,10 +896,10 @@ def salt3_fit(data_set, plot_data=True, save_plot=True):
 
             # Calculate
             pho_mB = -2.5*np.log10(params[obj]['x0']) + mB_const
-            pho_mB_err = -2.5*np.log10(params[obj]['x0_err']) # i don't think this is right
+            pho_mB_err = np.abs((-2.5*params[obj]['x0_err']) / (params[obj]['x0_err'] * np.log(10)))
 
             mu = pho_mB + (alpha*params[obj]['x1']) - (beta*params[obj]['c']) - M0
-            mu_err = abs(pho_mB_err + (alpha*params[obj]['x1_err']) - (beta*params[obj]['c_err'])) # i don't think this is right
+            mu_err = np.sqrt(pho_mB_err**2 + (np.abs(alpha)*params[obj]['x1_err'])**2 + (np.abs(alpha)*params[obj]['c_err'])**2)
 
             params[obj].update({'mu': mu, 'mu_err': mu_err})
 
@@ -1068,14 +913,14 @@ def salt3_fit(data_set, plot_data=True, save_plot=True):
             if plot_data:
                 sncosmo.plot_lc(data, model=fitted_model, errors=result.errors, yfigsize=8)
                 if save_plot:
-                    print('Saving plots to', save_loc+'plots/'+obj+'_salt3lc.png')
-                    plt.savefig(save_loc+'plots/'+obj+'_salt3lc.png')
+                    print('Saving plots to', plot_save_loc+obj+'_salt3lc.png')
+                    plt.savefig(plot_save_loc+obj+'_salt3lc.png')
                 plt.show()
 
-            # systime.sleep(3)
+            print('Pausing for 1 seconds...')
+            systime.sleep(3)
         except Exception as error:
             print(error)
-
 
     print('Successfully fit [', len(params), '/', len(objs), '] !')
 
@@ -1124,6 +969,9 @@ def lc_plot(objs, y_type = 'flux', pause_time=2, color_wheel = ['orange', 'cyan'
     return
 def lc_replot(lc_path, save_plot=False, save_loc='../default/', colors=None, spread=None, stacked=True):
     n_s = snpy.get_sn(lc_path)
+    # if colors is None:
+    #     plt_args = {'single': stacked, 'colors': colors}
+    # else:
     plt_args = {'single': stacked}
 
     if spread != None:
@@ -1132,13 +980,8 @@ def lc_replot(lc_path, save_plot=False, save_loc='../default/', colors=None, spr
         plt_args.update({'outfile': save_loc + n_s.name + '_snpylc.png'})
     n_s.plot(**plt_args)
     plt.show()
-
-
     return
 def residual_plotter(path, x_params, sigma=[1,1], labels=False, raw=False, extra_info=False, ignore_type=[], save_plot=False, save_loc='../default/'):
-    # Constants
-    COSMO_MODEL = cosmo.FlatLambdaCDM(H0=70, Om0=0.3)
-
     # Get reviewed fits
     with open(get_constants()['reviewed_fits_txt'], 'r') as f:
         reviewed_good_fits, reviewed_okay_fits, reviewed_bad_fits = [], [], []
@@ -1176,12 +1019,6 @@ def residual_plotter(path, x_params, sigma=[1,1], labels=False, raw=False, extra
                 continue
             if x_params[0] == 'host_mass' and n_x == 0:  # Remove null masses
                 continue
-            if float(objs[obj]['z']) < 0.01:
-                continue
-            if objname in ['2023dk']:
-                continue
-            # if (float(objs[obj]['EBVhost']) < -0.3) or (float(objs[obj]['EBVhost']) > 0.3):
-            #     continue
 
         # Save for histogram
         mu_res_hist.append(n_mu_res)
