@@ -115,7 +115,7 @@ def TNS_objname_z(obj_ra, obj_dec):
                 num_tries -= 1
 def dict_handler(data_dict={}, choice='', path='../default/dict.txt', delimiter=', '):
     if choice == 'unpack':
-        print('[+++] Unpacking objects from text file...')
+        print('[+++] Unpacking objects from '+path+'...')
         with open(path, 'r') as f:
             hdr = f.readline()[:-1].split(delimiter)
         data = np.genfromtxt(path, delimiter=delimiter, dtype=str, skip_header=1)
@@ -298,7 +298,7 @@ def data_proccesser(data_set = 'ZTF', mag_unc_max=1, quiet=False):
     sys.stdout = sys.__stdout__
 
     return data_objs
-def alt_data_proccesser(data_set = 'ZTF', individual='', quiet=False):
+def alt_data_proccesser(data_set = 'ZTF', individual='', mag_unc_max=100, flux_unc_max=100, quiet=False):
     print('[+++] Processing '+data_set+' data...')
 
     # Getting constants and paths
@@ -378,7 +378,7 @@ def alt_data_proccesser(data_set = 'ZTF', individual='', quiet=False):
             # Update dictionary
             objs.update({objname: {'ra': ra, 'dec': dec, 'z': z, 'zp': data[:, 7].astype(float),
                                    'filters': data[:, 6], 'time': data[:, 8],
-                                   'flux': data[:, 16], 'dflux': data[:, 16],
+                                   'flux': data[:, 16], 'dflux': data[:, 17],
                                    'mag': data[:, 3], 'dmag': data[:, 4]}})
     elif data_set == 'ZTF':
         files = glob.glob(const['ztf_data_loc']+'*.txt')
@@ -433,9 +433,9 @@ def alt_data_proccesser(data_set = 'ZTF', individual='', quiet=False):
         return
 
     # Clean Data -- ['zp', 'filter', 'time', 'flux', 'dflux', 'mag', 'dmag']
-    new_zp, new_filter, new_time, new_mag, new_mag_unc, new_flux, new_flux_unc = (
-        np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([]))
     for obj in list(objs.keys()):
+        new_zp, new_filter, new_time, new_mag, new_mag_unc, new_flux, new_flux_unc = (
+            np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([]))
         for n in range(len(objs[obj]['mag'])):
             n_zp, n_filter, n_time, n_mag, n_mag_unc, n_flux, n_flux_unc = (
                 objs[obj]['zp'][n], objs[obj]['filters'][n], objs[obj]['time'][n],
@@ -457,6 +457,10 @@ def alt_data_proccesser(data_set = 'ZTF', individual='', quiet=False):
                     clean_failed = True
             if clean_failed:
                 continue
+            if (mag_unc_max != 0) and (float(n_mag_unc) > mag_unc_max):
+                continue
+            if (flux_unc_max != 0) and (float(n_flux_unc) > flux_unc_max):
+                continue
 
             # print('flux:', n_flux, '\t| dflux:', n_flux_unc, '\t| mag:', n_mag, '\t| dmag:', n_mag_unc)
 
@@ -477,47 +481,190 @@ def alt_data_proccesser(data_set = 'ZTF', individual='', quiet=False):
     sys.stdout = sys.__stdout__
 
     return objs
-def sample_cutter(save_loc):
-    print('[+++] Cutting sample for ' + save_loc.split('_')[0].upper() + ' data...')
+def host_mass(dict_path, save_loc='../default/', keep_data=True, update_saved=False, use_mass_key=True):
+    data = dict_handler(choice='unpack', path=dict_path)
+    all_mass, all_mass_err = [], []
+    GHOST_DATA = get_constants()['ghost_data_loc']
+    print('[+++] Finding host galaxy mass using GHOST...')
 
-    path = glob.glob(get_constants()[save_loc] + '*_saved.txt')[0]
+    # Get mass key
+    mass_key = {}
+    if use_mass_key:
+        with open(get_constants()['mass_key_txt'], 'r') as f:
+            temp = f.readlines()
+            for line in temp:
+                line = line[:-1].split(', ')
+                if len(line) != 3:
+                    continue
+                mass_key.update({line[0]: {'mass': line[1], 'mass_err': line[2]}})
+
+    failed_host_masses, err_messages = [], []
+    for obj in data:
+        objname = obj
+        if obj[:2] == 'SN':
+            objname = obj[2:]
+
+        print('\n[', list(data).index(obj) + 1, '/', len(data), ']', objname, '|', data[obj]['ra'], ',', data[obj]['dec'])
+        print('-------------------------------------------------------------------------------------------------------')
+
+        if objname in mass_key:
+            print('Found object in mass key! Pulling...')
+            all_mass.append(mass_key[objname]['mass'])
+            all_mass_err.append(mass_key[objname]['mass_err'])
+            if update_saved:
+                data[obj].update({'host_mass': mass_key[objname]['mass'], 'host_mass_err': mass_key[objname]['mass_err']})
+            continue
+
+        ra, dec, z = float(data[obj]['ra']), float(data[obj]['dec']), float(data[obj]['z'])
+
+        transient_position = SkyCoord(ra, dec, unit=u.deg)
+        try:
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                host_data = getTransientHosts(transientCoord=[transient_position], transientName=[obj], verbose=False,
+                                              starcut="gentle", savepath=save_loc + 'ghost_stuff/',
+                                              GHOSTpath=GHOST_DATA)
+
+            # If GLADE can't get magnitudes -- using NED name to get SDSS data
+            print('Identified Host Galaxy:', host_data.loc[0, 'NED_name'])
+            if np.isnan(host_data.loc[0, 'gKronMag']) or np.isnan(host_data.loc[0, 'iKronMag']):
+                print('GLADE does not contain the g-mag & i-mag, searching SDSS...')
+                host_position = SkyCoord(host_data['raMean'], host_data['decMean'], unit=u.deg)
+                result = SDSS.query_crossid(host_position, photoobj_fields=['modelMag_g', 'modelMagErr_g', 'modelMag_i',
+                                                                            'modelMagErr_i'])
+
+                # If GLADE or SDSS has magnitudes -- using PanSTARRS
+                if result == None:
+                    print('GLADE & SDSS do not contain the g-mag & i-mag, searching PanSTARRS...')
+                    catalog_data = Catalogs.query_region(transient_position, radius=2 * u.arcsec, catalog="Panstarrs")
+                    # print(catalog_data['rMeanKronMag'], catalog_data['iMeanKronMag'])
+
+                    if len(catalog_data) == 0 or isinstance(catalog_data['gMeanKronMagErr'].value[0],
+                                                            np.ma.core.MaskedConstant) or isinstance(
+                            catalog_data['iMeanKronMagErr'].value[0], np.ma.core.MaskedConstant):
+                        print('[!!!!!] GLADE, SDSS, and PanSTARRS do not contain the g-mag & i-mag data...')
+                        err_messages.append('GLADE, SDSS, and PanSTARRS do not contain the g-mag & i-mag data.')
+                        gMag, iMag, iAbsMag = np.nan, np.nan, np.nan
+                        gMagErr, iMagErr, iAbsMagErr = np.nan, np.nan, np.nan
+                    else:
+                        gMag, iMag, iAbsMag = catalog_data['gMeanKronMag'].value[0], catalog_data['gMeanKronMag'].value[
+                            0], (catalog_data['iMeanKronMag'].value[0] - CURRENT_COSMO.distmod(z).value)
+                        gMagErr, iMagErr, iAbsMagErr = catalog_data['gMeanKronMagErr'].value[0], \
+                        catalog_data['iMeanKronMagErr'].value[0], catalog_data['iMeanKronMagErr'].value[0]
+                else:
+                    # SDSS Results
+                    gMag, iMag, iAbsMag = result['modelMag_g'].value[0], result['modelMag_i'].value[0], (
+                                result['modelMag_i'].value[0] - CURRENT_COSMO.distmod(z).value)
+                    gMagErr, iMagErr, iAbsMagErr = result['modelMagErr_g'].value[0], result['modelMagErr_i'].value[0], \
+                    result['modelMagErr_i'].value[0]
+            else:
+                # GLADE results
+                gMag, iMag, iAbsMag = host_data['gKronMag'].loc[0], host_data['iKronMag'].loc[0], (
+                            host_data['iKronMag'].loc[0] - CURRENT_COSMO.distmod(z).value)
+                gMagErr, iMagErr, iAbsMagErr = host_data['gKronMagErr'].loc[0], host_data['iKronMagErr'].loc[0], \
+                host_data['iKronMagErr'].loc[0]
+
+            #  Mass Calculation -- Taylor et. al. 2011 -- eq. 8
+            host_mass = (1.15 + (0.7 * (gMag - iMag)) - (0.4 * (iAbsMag)))
+
+            # Error Propogation
+            giMagErr = np.sqrt((gMagErr ** 2) + (iMagErr ** 2))
+            host_mass_err = np.sqrt(((0.7 ** 2) * (giMagErr ** 2)) + ((0.4 ** 2) * (iAbsMagErr ** 2)))
+
+        except Exception as error:
+            err_messages.append('Target does not exsist in GLADE, SDSS, or PanSTARRS.')
+            print(obj + ':', error)
+            host_mass, host_mass_err = 0.00, 0.00
+
+        if np.isnan(host_mass) == False and host_mass > 0.00:
+            print('Success!', obj, 'host galaxy has a mass of:', host_mass, '+/-', host_mass_err, 'logM_* / [Msun]')
+            all_mass.append(host_mass)
+            all_mass_err.append(all_mass_err)
+            # Update mass key
+            if use_mass_key:
+                with open(get_constants()['mass_key_txt'], 'a') as f:
+                    print('Updating mass key with '+obj+'...')
+                    f.write(objname+', '+str(host_mass)+', '+str(host_mass_err)+'\n')
+            if update_saved:
+                data[obj].update({'host_mass': host_mass, 'host_mass_err': host_mass_err})
+        else:
+            print('[!!!] Failed to find host galaxy!')
+            if update_saved:
+                data[obj].update({'host_mass': 0.00, 'host_mass_err': 0.00})
+            failed_host_masses.append([obj, ra, dec, z])
+
+    print('\nSuccessfully found mass of', len(all_mass), '/', len(data), 'host galaxies!')
+    print('Failed host mass calculations:')
+    print('[objname, ra, dec, z]')
+    for fail in failed_host_masses:
+        print(fail, '--', err_messages[failed_host_masses.index(fail)])
+
+    if not keep_data:
+        print('Removing GHOST data...')
+        shutil.rmtree(save_loc + 'ghost_stuff/')  # Clear messy data
+        os.mkdir(save_loc + 'ghost_stuff/')
+    if update_saved:
+        print('Saving data to' + dict_path + '...')
+        dict_handler(choice='pack', data_dict=data, path=dict_path)
+    return all_mass, all_mass_err
+def get_reviewed_fits(path=get_constants()['reviewed_fits_txt']):
+    reviewed_fits = {'good': [], 'okay': [], 'bad': []}
+    with open(path, 'r') as f:
+        # reviewed_good_fits, reviewed_okay_fits, reviewed_bad_fits = [], [], []
+        for container in [reviewed_fits['good'], reviewed_fits['okay'], reviewed_fits['bad']]:
+            for i in f.readline().split(', ')[1:]:
+                container.append(i[1:-1])
+            container[-1] = container[-1][:-1]
+    return reviewed_fits
+def mass_step_calc(path, cut=10, ignore_fits=[], quiet=False):
     objs = dict_handler(choice='unpack', path=path)
-    i = 0
-    new_objs = {}
+    lower_mass, upper_mass, all_resid = np.array([]), np.array([]), np.array([])
+    lower_mass_err, upper_mass_err, all_resid_err = np.array([]), np.array([]), np.array([])
+    reviewed_fits = get_reviewed_fits()
+
+    # Check quiet
+    if quiet:
+        sys.stdout = open(os.devnull, 'w')
+
     for obj in objs:
-        print('[' + str(list(objs.keys()).index(obj) + 1) + '/' + str(len(objs)) + '] -- ' + obj)
-        print('---------------------------------------------------------------------------------------------------')
+        if ('bad' in ignore_fits) and (obj in reviewed_fits['bad']):
+            continue
+        elif ('okay' in ignore_fits) and (obj in reviewed_fits['okay']):
+            continue
+        elif ('good' in ignore_fits) and (obj in reviewed_fits['good']):
+            continue
+
+        m = float(objs[obj]['host_mass'])
+        m_err = float(objs[obj]['host_mass_err'])
         resid = float(objs[obj]['mu']) - CURRENT_COSMO.distmod(float(objs[obj]['z'])).value
-        resid -= np.median(resid)
+        resid_err = float(objs[obj]['mu_err'])
 
-        if float(objs[obj]['EBVhost']) < -0.2 or float(objs[obj]['EBVhost']) > 0.2:
-            print('[!!!] EBVhost out of range.')
-            continue
-        if float(objs[obj]['EBVhost_err']) > 0.1:
-            print('[!!!] EBVhost errors out of range.')
-            continue
+        all_resid = np.append(all_resid, resid)
+        all_resid_err = np.append(all_resid_err, resid_err)
+        if m < cut:
+            lower_mass = np.append(lower_mass, m)
+            lower_mass_err = np.append(lower_mass_err, m_err)
+        else:
+            upper_mass = np.append(upper_mass, m)
+            upper_mass_err = np.append(upper_mass_err, m_err)
+    mass_step, mass_step_err = np.average(upper_mass) - np.average(lower_mass), abs(np.average(upper_mass_err) - np.average(lower_mass_err))
 
-        if float(objs[obj]['st']) < 0.3 or float(objs[obj]['st']) > 1.0:
-            print('[!!!] Stretch out of range.')
-            continue
-        if float(objs[obj]['st_err']) > 0.1:
-            print('[!!!] Stretch error out of range.')
-            continue
+    print('***********************************************************************************************************')
+    print('Mass Step (M_>'+str(cut)+' - M_<'+str(cut)+'):', mass_step, '+/-', mass_step_err)
+    print('\t----------------------')
+    print('\tLog Mass > '+str(cut)+':', round(np.average(upper_mass), 4), '+/-', abs(round(np.average(upper_mass_err), 4)))
+    print('\tLog Mass < '+str(cut)+':', round(np.average(lower_mass), 4), '+/-', abs(round(np.average(lower_mass_err), 4)))
+    print('\t----------------------')
+    print('\tScatter:', round(np.std(all_resid), 4))
+    print('\t----------------------')
+    print('\tNumber of Targets:', len(all_resid))
+    print('***********************************************************************************************************')
 
-        if float(objs[obj]['Tmax_err']) > 1:
-            print('[!!!] Maximum time error out of range.')
-            continue
+    # Restore print statements
+    sys.stdout = sys.__stdout__
 
-        if float(objs[obj]['z']) < 0.015:
-            print('[!!!] Redshift out of range.')
-            continue
-        i = i + 1
-
-        # Save obj to new dict
-        new_objs.update({obj: objs[obj]})
-
-    dict_handler(data_dict=new_objs, choice='pack', path=get_constants()[save_loc] + save_loc.split('_')[0] + '_saved_cut.txt')
-    return
+    return mass_step, mass_step_err
 # ==================================================================================================================== #
 def write_ASCII(objs, filter_set, save_loc):
     print('[+++] Saving data to ASCII files for SNooPy...')
@@ -602,6 +749,7 @@ def snpy_fit(paths, save_loc, use_saved=False, snpy_plots=True, save_plots=True,
                     if mjde < n_max:
                         mjde = n_max
 
+                n_s.k_version = '91bg'
                 n_s.fit(bands=None, dokcorr=True, k_stretch=False, reset_kcorrs=True, **{'mangle': 1, 'calibration': 0})
                 n_s.save(save_loc + 'models/' + objname + '_EBV_model2.snpy')
                 run = False
@@ -637,230 +785,50 @@ def snpy_fit(paths, save_loc, use_saved=False, snpy_plots=True, save_plots=True,
     sys.stdout = sys.__stdout__
 
     return objParams
-def old_host_mass(dict_path, save_loc='../default/', keep_data=True, update_saved=False):
-    cosmo = FlatLambdaCDM(70, 0.3) # Hubble Constant, Omega-Matter
-    data = dict_handler(choice='unpack', path=dict_path)
-    all_z, all_logstellarmass = [], []
-    GHOST_DATA = get_constants()['ghost_data_loc']
-    print('[+++] Finding host galaxy mass using GHOST...')
+def snpy_sample_cutter(save_loc):
+    print('[+++] Cutting sample for ' + save_loc.split('_')[0].upper() + ' data...')
 
+    path = glob.glob(get_constants()[save_loc] + '*_saved.txt')[0]
+    objs = dict_handler(choice='unpack', path=path)
     i = 0
-    for obj in data:
+    new_objs = {}
+    for obj in objs:
+        print('[' + str(list(objs.keys()).index(obj) + 1) + '/' + str(len(objs)) + '] -- ' + obj)
+        print('---------------------------------------------------------------------------------------------------')
+        resid = float(objs[obj]['mu']) - CURRENT_COSMO.distmod(float(objs[obj]['z'])).value
+        resid -= np.median(resid)
 
-        # i += 1
-        # if i < 1:
-        #     continue
-        # elif i > 1:
-        #     break
-
-
-        ra, dec, z = float(data[obj]['ra']), float(data[obj]['dec']), float(data[obj]['z'])
-
-        print('\n[', list(data).index(obj)+1, '/', len(data), ']', obj, '|', data[obj]['ra'], data[obj]['dec'], data[obj]['z'])
-        print('---------------------------------------------------------------------------------------------------------')
-
-        transient_position = SkyCoord(ra, dec, unit=u.deg)
-        try:
-            import warnings
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                host_data = getTransientHosts(transientCoord=[transient_position], transientName=[obj], verbose=False, starcut="gentle", savepath=save_loc+'ghost_stuff/', GHOSTpath=GHOST_DATA)
-
-            # If GLADE can't get magnitudes -- using NED name to get SDSS data
-            print('Identified Host Galaxy:', host_data.loc[0, 'NED_name'])
-            if np.isnan(host_data.loc[0, 'gKronMag']) or np.isnan(host_data.loc[0, 'iKronMag']):
-                print('GLADE does not contain the g-mag & i-mag, searching SDSS...')
-                host_position = SkyCoord(host_data['raMean'], host_data['decMean'], unit=u.deg)
-                result = SDSS.query_crossid(host_position, photoobj_fields=['modelMag_g', 'modelMagErr_g', 'modelMag_i', 'modelMagErr_i'])
-
-                # If GLADE or SDSS has magnitudes -- using PanSTARRS
-                if result == None:
-                    print('GLADE & SDSS do not contain the g-mag & i-mag, searching PanSTARRS...')
-                    catalog_data = Catalogs.query_region(transient_position, radius=2 * u.arcsec, catalog="Panstarrs")
-                    # print(catalog_data['rMeanKronMag'], catalog_data['iMeanKronMag'])
-
-                    if len(catalog_data) == 0 or isinstance(catalog_data['gMeanKronMagErr'].value[0], np.ma.core.MaskedConstant) or isinstance(catalog_data['iMeanKronMagErr'].value[0], np.ma.core.MaskedConstant):
-                        print('[!!!!!] GLADE, SDSS, and PanSTARRS do not contain the g-mag & i-mag data...')
-                        gMag, iMag, iAbsMag = np.nan, np.nan, np.nan
-                        gMagErr, iMagErr, iAbsMagErr = np.nan, np.nan, np.nan
-                    else:
-                        gMag, iMag, iAbsMag = catalog_data['gMeanKronMag'].value[0], catalog_data['gMeanKronMag'].value[0], (catalog_data['iMeanKronMag'].value[0] - cosmo.distmod(z).value)
-                        gMagErr, iMagErr, iAbsMagErr = catalog_data['gMeanKronMagErr'].value[0], catalog_data['iMeanKronMagErr'].value[0], catalog_data['iMeanKronMagErr'].value[0]
-                else:
-                    # SDSS Results
-                    gMag, iMag, iAbsMag = result['modelMag_g'].value[0], result['modelMag_i'].value[0], (result['modelMag_i'].value[0] - cosmo.distmod(z).value)
-                    gMagErr, iMagErr, iAbsMagErr = result['modelMagErr_g'].value[0], result['modelMagErr_i'].value[0], result['modelMagErr_i'].value[0]
-            else:
-                # GLADE results
-                gMag, iMag, iAbsMag = host_data['gKronMag'].loc[0], host_data['iKronMag'].loc[0], (host_data['iKronMag'].loc[0] - cosmo.distmod(z).value)
-                gMagErr, iMagErr, iAbsMagErr = host_data['gKronMagErr'].loc[0], host_data['iKronMagErr'].loc[0], host_data['iKronMagErr'].loc[0]
-
-
-
-
-            #  Mass Calculation -- Taylor et. al. 2011 -- eq. 8
-            logstellarmass = (1.15 + (0.7*(gMag - iMag)) - (0.4*(iAbsMag)))
-
-            # Error Propogation
-            giMagErr = np.sqrt((gMagErr ** 2) + (iMagErr ** 2))
-            logstellarmasserr = np.sqrt(((0.7**2)*(giMagErr**2)) + ((0.4**2)*(iAbsMagErr**2)))
-
-
-        except Exception as error:
-            print(obj+':', error)
-            logstellarmass, logstellarmasserr = 0.00, 0.00
-
-        if np.isnan(logstellarmass) == False and logstellarmass > 0.00:
-            print('Success!', obj, 'host galaxy has a mass of:', logstellarmass, '+/-', logstellarmasserr, 'logM_* / [Msun]')
-            all_z.append(z)
-            all_logstellarmass.append(logstellarmass)
-            if update_saved:
-                data[obj].update({'logstellarmass': logstellarmass, 'logstellarmasserr': logstellarmasserr})
-        else:
-            print('Failed to find host galaxy!')
-            if update_saved:
-                data[obj].update({'logstellarmass': 0.00, 'logstellarmasserr': 0.00})
-
-        # if i > 0:
-        #     break
-        # else:
-        #     i =+ 1
-
-
-    print('\nSuccessfully found mass of', len(all_z), '/', len(data), 'host galaxies!')
-    if not keep_data:
-        print('Removing GHOST data...')
-        shutil.rmtree(save_loc+'ghost_stuff/') # Clear messy data
-        os.mkdir(save_loc+'ghost_stuff/')
-    if update_saved:
-        print('Saving data to'+dict_path+'...')
-        dict_handler(choice='pack', data_dict=data, path=dict_path)
-
-    return all_z, all_logstellarmass
-def host_mass(dict_path, save_loc='../default/', keep_data=True, update_saved=False, use_mass_key=True):
-    data = dict_handler(choice='unpack', path=dict_path)
-    all_mass, all_mass_err = [], []
-    GHOST_DATA = get_constants()['ghost_data_loc']
-    print('[+++] Finding host galaxy mass using GHOST...')
-
-    # Get mass key
-    mass_key = {}
-    if use_mass_key:
-        with open(get_constants()['mass_key_txt'], 'r') as f:
-            temp = f.readlines()
-            for line in temp:
-                line = line[:-1].split(', ')
-                if len(line) != 3:
-                    continue
-                mass_key.update({line[0]: {'mass': line[1], 'mass_err': line[2]}})
-
-    failed_host_masses = []
-    for obj in data:
-        objname = obj
-        if obj[:2] == 'SN':
-            objname = obj[2:]
-
-        print('\n[', list(data).index(obj) + 1, '/', len(data), ']', objname, '|', data[obj]['ra'], ',', data[obj]['dec'])
-        print('-------------------------------------------------------------------------------------------------------')
-
-        if objname in mass_key:
-            print('Found object in mass key! Pulling...')
-            all_mass.append(mass_key[objname]['mass'])
-            all_mass_err.append(mass_key[objname]['mass_err'])
-            if update_saved:
-                data[obj].update({'host_mass': mass_key[objname]['mass'], 'host_mass_err': mass_key[objname]['mass_err']})
+        if float(objs[obj]['EBVhost']) < -0.2 or float(objs[obj]['EBVhost']) > 0.2:
+            print('[!!!] EBVhost out of range.')
+            continue
+        if float(objs[obj]['EBVhost_err']) > 0.1:
+            print('[!!!] EBVhost errors out of range.')
             continue
 
-        ra, dec, z = float(data[obj]['ra']), float(data[obj]['dec']), float(data[obj]['z'])
+        if float(objs[obj]['st']) < 0.3 or float(objs[obj]['st']) > 1.0:
+            print('[!!!] Stretch out of range.')
+            continue
+        if float(objs[obj]['st_err']) > 0.1:
+            print('[!!!] Stretch error out of range.')
+            continue
 
-        transient_position = SkyCoord(ra, dec, unit=u.deg)
-        try:
-            import warnings
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                host_data = getTransientHosts(transientCoord=[transient_position], transientName=[obj], verbose=False,
-                                              starcut="gentle", savepath=save_loc + 'ghost_stuff/',
-                                              GHOSTpath=GHOST_DATA)
+        if float(objs[obj]['Tmax_err']) > 1:
+            print('[!!!] Maximum time error out of range.')
+            continue
 
-            # If GLADE can't get magnitudes -- using NED name to get SDSS data
-            print('Identified Host Galaxy:', host_data.loc[0, 'NED_name'])
-            if np.isnan(host_data.loc[0, 'gKronMag']) or np.isnan(host_data.loc[0, 'iKronMag']):
-                print('GLADE does not contain the g-mag & i-mag, searching SDSS...')
-                host_position = SkyCoord(host_data['raMean'], host_data['decMean'], unit=u.deg)
-                result = SDSS.query_crossid(host_position, photoobj_fields=['modelMag_g', 'modelMagErr_g', 'modelMag_i',
-                                                                            'modelMagErr_i'])
+        if float(objs[obj]['z']) < 0.015:
+            print('[!!!] Redshift out of range.')
+            continue
 
-                # If GLADE or SDSS has magnitudes -- using PanSTARRS
-                if result == None:
-                    print('GLADE & SDSS do not contain the g-mag & i-mag, searching PanSTARRS...')
-                    catalog_data = Catalogs.query_region(transient_position, radius=2 * u.arcsec, catalog="Panstarrs")
-                    # print(catalog_data['rMeanKronMag'], catalog_data['iMeanKronMag'])
+        if float(objs[obj]['host_mass']) == 0.00:
+            print('[!!!] Host mass null.')
+            continue
+        i = i + 1
 
-                    if len(catalog_data) == 0 or isinstance(catalog_data['gMeanKronMagErr'].value[0],
-                                                            np.ma.core.MaskedConstant) or isinstance(
-                            catalog_data['iMeanKronMagErr'].value[0], np.ma.core.MaskedConstant):
-                        print('[!!!!!] GLADE, SDSS, and PanSTARRS do not contain the g-mag & i-mag data...')
-                        gMag, iMag, iAbsMag = np.nan, np.nan, np.nan
-                        gMagErr, iMagErr, iAbsMagErr = np.nan, np.nan, np.nan
-                    else:
-                        gMag, iMag, iAbsMag = catalog_data['gMeanKronMag'].value[0], catalog_data['gMeanKronMag'].value[
-                            0], (catalog_data['iMeanKronMag'].value[0] - CURRENT_COSMO.distmod(z).value)
-                        gMagErr, iMagErr, iAbsMagErr = catalog_data['gMeanKronMagErr'].value[0], \
-                        catalog_data['iMeanKronMagErr'].value[0], catalog_data['iMeanKronMagErr'].value[0]
-                else:
-                    # SDSS Results
-                    gMag, iMag, iAbsMag = result['modelMag_g'].value[0], result['modelMag_i'].value[0], (
-                                result['modelMag_i'].value[0] - CURRENT_COSMO.distmod(z).value)
-                    gMagErr, iMagErr, iAbsMagErr = result['modelMagErr_g'].value[0], result['modelMagErr_i'].value[0], \
-                    result['modelMagErr_i'].value[0]
-            else:
-                # GLADE results
-                gMag, iMag, iAbsMag = host_data['gKronMag'].loc[0], host_data['iKronMag'].loc[0], (
-                            host_data['iKronMag'].loc[0] - CURRENT_COSMO.distmod(z).value)
-                gMagErr, iMagErr, iAbsMagErr = host_data['gKronMagErr'].loc[0], host_data['iKronMagErr'].loc[0], \
-                host_data['iKronMagErr'].loc[0]
+        # Save obj to new dict
+        new_objs.update({obj: objs[obj]})
 
-            #  Mass Calculation -- Taylor et. al. 2011 -- eq. 8
-            host_mass = (1.15 + (0.7 * (gMag - iMag)) - (0.4 * (iAbsMag)))
-
-            # Error Propogation
-            giMagErr = np.sqrt((gMagErr ** 2) + (iMagErr ** 2))
-            host_mass_err = np.sqrt(((0.7 ** 2) * (giMagErr ** 2)) + ((0.4 ** 2) * (iAbsMagErr ** 2)))
-
-        except Exception as error:
-            print(obj + ':', error)
-            host_mass, host_mass_err = 0.00, 0.00
-
-        if np.isnan(host_mass) == False and host_mass > 0.00:
-            print('Success!', obj, 'host galaxy has a mass of:', host_mass, '+/-', host_mass_err, 'logM_* / [Msun]')
-            all_mass.append(host_mass)
-            all_mass_err.append(all_mass_err)
-            # Update mass key
-            if use_mass_key:
-                with open(get_constants()['mass_key_txt'], 'a') as f:
-                    print('Updating mass key with '+obj+'...')
-                    f.write(objname+', '+str(host_mass)+', '+str(host_mass_err)+'\n')
-            if update_saved:
-                data[obj].update({'host_mass': host_mass, 'host_mass_err': host_mass_err})
-        else:
-            print('[!!!] Failed to find host galaxy!')
-            if update_saved:
-                data[obj].update({'host_mass': 0.00, 'host_mass_err': 0.00})
-            failed_host_masses.append([obj, ra, dec, z])
-
-    print('\nSuccessfully found mass of', len(all_mass), '/', len(data), 'host galaxies!')
-    print('Failed host mass calculations:')
-    print('[objname, ra, dec, z]')
-    for fail in failed_host_masses:
-        print(fail)
-
-    if not keep_data:
-        print('Removing GHOST data...')
-        shutil.rmtree(save_loc + 'ghost_stuff/')  # Clear messy data
-        os.mkdir(save_loc + 'ghost_stuff/')
-    if update_saved:
-        print('Saving data to' + dict_path + '...')
-        dict_handler(choice='pack', data_dict=data, path=dict_path)
+    dict_handler(data_dict=new_objs, choice='pack', path=get_constants()[save_loc] + save_loc.split('_')[0] + '_saved_cut.txt')
     return
 # ==================================================================================================================== #
 def salt3_fit(objs, plot_save_loc='../default/', plot_data=True, save_plot=True):
@@ -922,6 +890,7 @@ def salt3_fit(objs, plot_save_loc='../default/', plot_data=True, save_plot=True)
         except Exception as error:
             print(error)
 
+
     print('Successfully fit [', len(params), '/', len(objs), '] !')
 
     return params
@@ -936,7 +905,7 @@ def lc_plot(objs, y_type = 'flux', pause_time=2, color_wheel = ['orange', 'cyan'
 
     for obj in objs:
         print('-------------------------------------------------------------------------------------------------------')
-        print('[', list(objs).index(obj)+1, '/', len(objs), ']')
+        print('[', list(objs).index(obj)+1, '/', len(objs), '] -', obj)
 
         plt.figure(figsize=(12, 6))
 
@@ -961,6 +930,7 @@ def lc_plot(objs, y_type = 'flux', pause_time=2, color_wheel = ['orange', 'cyan'
             plt.savefig(save_loc + obj + '_lc.png')
             print(obj, '-- Plot saved to', save_loc + obj + '_lc.png')
         plt.show()
+        plt.close()
 
 
     # Restore print statements
@@ -1056,7 +1026,7 @@ def residual_plotter(path, x_params, sigma=[1,1], labels=False, raw=False, extra
     axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
 
     if extra_info:
-        fig.suptitle("Hubble Residuals vs. " + x_params[1] + " of '"+(path.split('/')[-1][:-10]).upper()+"' 91bg-like SNe Ia\n" +  # Figure Title
+        fig.suptitle("Hubble Residuals vs. " + x_params[1] + " of '"+(path.split('/')[-1].split('_')[0]).upper()+"' 91bg-like SNe Ia\n" +  # Figure Title
                      'Dist. Sigma: ' + str(sigma[0]) + ' | ' + x_params[1] + ' Sigma: ' + str(sigma[0]) +
                      ' | Scatter: ' + str(round(np.std(mu_res_hist), 2)) + ' | # of pts: ' + str(len(mu_res_hist)), size='medium')
     else:
@@ -1069,9 +1039,7 @@ def residual_plotter(path, x_params, sigma=[1,1], labels=False, raw=False, extra
         plt.savefig(save_loc+'hubble_res_v_'+x_params[1]+'.png')
     plt.show()
     return
-def histogram_plotter(data_set='combined', raw=False, save_plot=False, save_loc='../default/', ignore_type=[], hist_bins = [40, 500, 40, 500, 80]):
-    fig, ax = plt.subplots(3, 2, figsize=(12, 8), layout='constrained')
-
+def snpy_histogram_plotter(path, raw=False, save_plot=False, save_loc='../default/', ignore_type=[], param_bins=[None, None, None, None, None]):
     # Get reviewed fits
     with open(get_constants()['reviewed_fits_txt'], 'r') as f:
         reviewed_good_fits, reviewed_okay_fits, reviewed_bad_fits = [], [], []
@@ -1081,18 +1049,12 @@ def histogram_plotter(data_set='combined', raw=False, save_plot=False, save_loc=
             container[-1] = container[-1][:-1]
 
     # Pull data
-    data = np.genfromtxt(get_constants()[data_set+'_saved_loc']+data_set+'_saved.txt', dtype=str, skip_header=1, delimiter=', ')
-    plot_titles = ['mu', 'st', 'Tmax', 'EBVhost', 'Host Mass']
-    hist_indexs = [7, 8, 9, 10, 15]
-    hist_err_indexs = [11, 12, 13, 14, 16]
-    # xlimits = [None, [2.4e6, 2.5e6], None, [-0.5, 3], None]
-    xlimits = [None, None, None, None, None]
-
-    mu_hist, st_hist, Tmax_hist, EBV_hist, mass_hist = [], [], [], [], [] # 1, 7, 8, 9, 10, 16
-    for i in range(len(data)):
+    objs = dict_handler(path=path, choice='unpack')
+    mu, st, Tmax, EBVhost, host_mass = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
+    for obj in objs:
         # Clean data
         if not raw:
-            objname = data[i, 1]
+            objname = obj
             if objname[:2] == 'SN':
                 objname = objname[2:]
             if ('good' in ignore_type) and (objname in reviewed_good_fits):
@@ -1102,52 +1064,28 @@ def histogram_plotter(data_set='combined', raw=False, save_plot=False, save_loc=
             if ('bad' in ignore_type) and (objname in reviewed_bad_fits):
                 continue
 
-        mu_hist.append(float(data[i, 7]))
-        st_hist.append(float(data[i, 8]))
-        Tmax_hist.append(float(data[i, 9]))
-        EBV_hist.append(float(data[i, 10]))
-        mass_hist.append(float(data[i, 16]))
+        mu = np.append(mu, float(objs[obj]['mu']))
+        st = np.append(st, float(objs[obj]['st']))
+        Tmax = np.append(Tmax, float(objs[obj]['Tmax']))
+        EBVhost = np.append(EBVhost, float(objs[obj]['EBVhost']))
+        host_mass = np.append(host_mass, float(objs[obj]['host_mass']))
 
+    # Plot
+    fig, ax = plt.subplots(1, 5, figsize=(16, 4), layout='constrained')
+    params = [mu, st, Tmax, EBVhost, host_mass]
+    param_names = ['mu', 'st', 'Tmax', 'EBVhost', 'host_mass']
+    param_bins = [45, 45, 45, 45, 45]
+    for i in range(len(params)):
+        ax[i].hist(params[i], bins=param_bins[i])
+        if i != 0:
+            ax[i].get_yaxis().set_visible(False)
+        ax[i].set_xlabel(param_names[i])
 
-    # for arr in [mu_hist, st_hist, Tmax_hist, EBV_hist, mass_hist]:
-    #     print(arr)
-
-    arr_ind, arrs = 0, [mu_hist, st_hist, Tmax_hist, EBV_hist, mass_hist]
-    for i in range(3):
-        for j in range(2):
-            ax[i, j].hist(arrs[arr_ind])
-            arr_ind += 1
-            print(arr_ind)
-            # plt.suptitle("Parameters for '" + data_set.upper() + "' data\n Number of Transients: " + str(len(objs[:, 0])), fontsize=20)
-            # ax[i, j].hist(objs[:, hist_indexs[order]].astype(float), bins=hist_bins[order])
-            # ax[i, j].set_title(plot_titles[order])
-            # ax[i, j].set_xlim(xlimits[order])
+    plt.suptitle("Parameters for '" + path.split('/')[-1].split('_')[0].upper()
+                 + "' data\n Number of Transients: " + str(len(objs)), fontsize=20)
+    if save_plot:
+        print('Saved figure to... ', save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
+        plt.savefig(save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
     plt.show()
-
-
-
-
-    # order = 0
-    # for j in range(size[1]):
-    #     i = 0
-    #     while i < size[0]:
-    #         plt.suptitle("Parameters for '"+data_set.upper()+"' data\n Number of Transients: " + str(len(objs[:, 0])), fontsize=20)
-    #         ax[i, j].hist(objs[:, hist_indexs[order]].astype(float), bins=hist_bins[order])
-    #         ax[i, j].set_title(plot_titles[order])
-    #         ax[i, j].set_xlim(xlimits[order])
-    #
-    #         i += 1
-    #         order += 1
-    #         if order > len(plot_titles)-2: # 2 because I havent ran ghost
-    #             break
-    # if save_plot:
-    #     plt.savefig(save_loc+'hist_'+data_set.upper()+'.png')
-    # plt.show()
-
-    # # Cleaning stretch data
-    # true_vals = np.where(objs[:, 8].astype(float)-2400000 > 0)[0]
-    # print(objs[:, 8].astype(float)[true_vals])
-    # plt.hist(objs[:, 8].astype(float)[true_vals])
-    # plt.show()
 
     return

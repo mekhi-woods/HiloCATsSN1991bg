@@ -1,0 +1,12 @@
+2005ke 0.0049 53.768125 -24.944111
+filter B
+filter H
+filter J
+filter Jrc2
+filter V
+filter Y
+filter Ydw
+filter g
+filter i
+filter r
+filter u

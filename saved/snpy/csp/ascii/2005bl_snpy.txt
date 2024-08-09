@@ -1,0 +1,12 @@
+2005bl 0.0241 181.051083 20.406889
+filter B
+filter H
+filter J
+filter Jrc2
+filter V
+filter Y
+filter Ydw
+filter g
+filter i
+filter r
+filter u
