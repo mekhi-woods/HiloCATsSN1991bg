@@ -166,139 +166,7 @@ def handle_problem_children(state, problem_c=None):
     else:
         raise Exception("Invalid state: '"+state+"' [READ/WRITE]")
 # ==================================================================================================================== #
-def data_proccesser(data_set = 'ZTF', mag_unc_max=1, quiet=False):
-    print('[+++] Processing '+data_set+' data...')
-
-    # Getting constants and paths
-    const = get_constants()
-
-    # Check quiet
-    if quiet:
-        sys.stdout = open(os.devnull, 'w')
-
-    # Chose data set
-    if data_set == 'ATLAS':
-        hdr_len = 1
-        data_delim, hdr_delim = ',', ','
-        files = glob.glob(const['atlas_data_loc']+'*.txt')
-        d_i = {'mag': 3, 'dmag': 4, 'filter': 6, 'zp': 7, 'time': 8, 'flux': 16, 'dflux': 17, 'uJy': 24, 'duJy': 25}
-    elif data_set == 'ZTF':
-        hdr_len = 56
-        data_delim, hdr_delim = None, ', '
-        files = glob.glob(const['ztf_data_loc']+'*.txt')
-        d_i = {'filter': 4, 'zp': 20, 'time': 22, 'flux': 24, 'dflux': 25}
-    else:
-        print('Data set not recognized')
-        return None
-
-    # Getting data & header
-    data_objs = {}
-    for file in files:
-        print('-------------------------------------------------------------------------------------------------------')
-        print('[', files.index(file)+1, '/', len(files), ']')
-
-        # Retrieve Data
-        data = np.genfromtxt(file, dtype=str, skip_header=hdr_len, delimiter=data_delim)
-
-        # Check if file is empty
-        if len(data) <= 0:
-            print('[!!!] File empty!')
-            continue
-
-        # Header
-        with open(file, 'r') as f:
-            if hdr_len > 1:
-                for i in range(hdr_len-1):
-                    if data_set == 'ZTF' and i == 3:
-                        obj_ra = float(f.readline().split(' ')[-2])
-                    elif data_set == 'ZTF' and i == 4:
-                        obj_dec = float(f.readline().split(' ')[-2])
-                    else:
-                        f.readline()
-            hdr = f.readline()[1:-1].split(hdr_delim)
-
-        # RA & Dec for ATLAS
-        if data_set == 'ATLAS':
-            obj_ra, obj_dec = np.average(data[:, 1].astype(float)), np.average(data[:, 2].astype(float))
-
-        # Get name and redshift from TNS
-        run = True
-        obj_name = ''
-        while run:
-            try:
-                obj_name, obj_z = TNS_unpack(obj_ra, obj_dec)
-                if len(obj_name) > 0:
-                    run = False
-            except Exception as error:
-                if error == NameError:
-                    run = False
-                print('***********************************************************************************************')
-                print(error)
-                print('TNS timed out, pausing for 5 seconds...')
-                print('***********************************************************************************************')
-                systime.sleep(5)
-        print(obj_name, '|', file.split('/')[-1][:-4])
-        print('File @', file)
-
-        # Object Creation
-        obj_filters, obj_time, obj_flux, obj_flux_unc, obj_mag, obj_mag_unc, obj_zp = np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
-        for i in range(len(data[:, 0])):
-            # Flux to magnitude
-            if data_set == 'ZTF':
-                if data[i, d_i['flux']] == 'null':
-                    continue
-                else:
-                    n_flux, n_flux_unc, n_flux_zpt = float(data[i, d_i['flux']]), float(data[i, d_i['dflux']]), float(data[i, 10]),
-                    n_mag = -2.5 * np.log10(n_flux) + n_flux_zpt
-                    n_mag_unc = (2.5 / (n_flux * np.log(10))) * n_flux_unc
-                    if np.isnan(n_mag):
-                        continue
-
-            # Set variables
-            if data_set == 'ATLAS':
-                if data[i, d_i['mag']].split('>')[-1] == 'None':
-                    continue
-                else:
-                    n_mag = float(data[i, d_i['mag']].split('>')[-1])
-                    n_mag_unc = float(data[i, d_i['dmag']])
-                n_flux, n_flux_unc = float(data[i, d_i['flux']]), float(data[i, d_i['dflux']])
-                n_filter = data[i, d_i['filter']]
-                n_time = float(data[i, d_i['time']])
-
-            # Clean data
-            if n_mag <= 0:  # Negatives mags
-                continue
-            if n_mag_unc <= 0:  # Negatives mag errors
-                continue
-            if n_flux <= 0: # Negatives fluxes
-                continue
-            if n_flux_unc <= 0:  # Negatives flux errors
-                continue
-            if (mag_unc_max != 0) and (n_mag_unc > mag_unc_max):
-                continue
-
-            # Commit variables
-            obj_filters = np.append(obj_filters, data[i, d_i['filter']])
-            obj_time = np.append(obj_time, float(data[i, d_i['time']]))
-            obj_zp = np.append(obj_zp, float(data[i, d_i['zp']]))
-            obj_flux = np.append(obj_flux, n_flux)
-            obj_flux_unc = np.append(obj_flux_unc, n_flux_unc)
-            obj_mag = np.append(obj_mag, n_mag)
-            obj_mag_unc = np.append(obj_mag_unc, n_mag_unc)
-
-        # Create Object
-        obj = {'ra': obj_ra, 'dec': obj_dec, 'z': obj_z, 'filters': obj_filters, 'time': obj_time, 'zp': obj_zp,
-               'flux': obj_flux, 'dflux': obj_flux_unc, 'mag': obj_mag, 'dmag': obj_mag_unc}
-        print('Retrived: ' + obj_name + ' | ra: '+str(obj_ra)+' \ dec: '+str(obj_dec))
-
-        # Commit Object
-        data_objs.update({obj_name: obj})
-
-    # Restore print statements
-    sys.stdout = sys.__stdout__
-
-    return data_objs
-def alt_data_proccesser(data_set = 'ZTF', individual='', mag_unc_max=100, flux_unc_max=100, quiet=False):
+def data_proccesser(data_set = 'ZTF', individual='', mag_unc_max=0, flux_unc_max=0, quiet=False):
     print('[+++] Processing '+data_set+' data...')
 
     # Getting constants and paths
@@ -595,10 +463,14 @@ def host_mass(dict_path, save_loc='../default/', keep_data=True, update_saved=Fa
             failed_host_masses.append([obj, ra, dec, z])
 
     print('\nSuccessfully found mass of', len(all_mass), '/', len(data), 'host galaxies!')
-    print('Failed host mass calculations:')
-    print('[objname, ra, dec, z]')
-    for fail in failed_host_masses:
-        print(fail, '--', err_messages[failed_host_masses.index(fail)])
+    if len(failed_host_masses) > 0:
+        print('************************************************************************************************')
+        print('[!!!] Failed host mass calculations:')
+        print('### [objname, ra, dec, z] ###')
+        for fail in failed_host_masses:
+            print(fail, '--', err_messages[failed_host_masses.index(fail)])
+        print('************************************************************************************************')
+
 
     if not keep_data:
         print('Removing GHOST data...')
@@ -898,6 +770,7 @@ def salt3_fit(objs, plot_save_loc='../default/', plot_data=True, save_plot=True)
 def lc_plot(objs, y_type = 'flux', pause_time=2, color_wheel = ['orange', 'cyan', 'violet', 'red', 'blue'],
             quiet=False, save_plots=True, save_loc='../snpy/misc_plots/'):
     print('[+++] Plotting LC data...')
+    color_wheel = [None, None, None, None, None, None, None, None, None, None, None]
 
     # Check quiet
     if quiet:

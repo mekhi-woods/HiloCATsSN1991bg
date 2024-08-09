@@ -10,7 +10,7 @@ CONSTANTS = gen.get_constants()
 def dataset_process(data_set):
     if data_set == 'CSP':
         # Set objects
-        objs = gen.alt_data_proccesser(data_set='CSP', quiet=True)
+        objs = gen.data_proccesser(data_set='CSP', quiet=True)
 
         # Creating tables for SALT3
         cspTbls = {}
@@ -50,10 +50,8 @@ def dataset_process(data_set):
     else:
         raise ValueError("Data set not supported ['CSP'/'ATLAS'/'ZTF']")
     return
-
-
 def salt3_atlas_process():
-    objs = gen.alt_data_proccesser(data_set='ATLAS', mag_unc_max=0, flux_unc_max=0, quiet=True)
+    objs = gen.data_proccesser(data_set='ATLAS', mag_unc_max=0, flux_unc_max=0, quiet=True)
     for obj in objs:
         if len(objs[obj]['filters']) == 0:
             continue
@@ -78,7 +76,7 @@ def salt3_atlas_process():
 
     return
 def salt3_ztf_process():
-    objs = gen.alt_data_proccesser(data_set='ZTF', mag_unc_max=0, flux_unc_max=0, quiet=False)
+    objs = gen.data_proccesser(data_set='ZTF', mag_unc_max=0, flux_unc_max=0, quiet=False)
     # Swap filters to SALT3 names
     for obj in objs:
         if len(objs[obj]['filters']) == 0:
