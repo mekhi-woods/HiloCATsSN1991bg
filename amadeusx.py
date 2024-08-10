@@ -84,67 +84,22 @@ def plotter(choices, plot_type, cut=False, ignore_type=[]):
                          'raw': False, 'save_plot': False, 'param_bins': [None, None, None, None, None]}
             gen.snpy_histogram_plotter(path=path, **hist_args)
     return
+def fit_SALT3():
+    salt_fit_params = {}
+    # salt_fit.dataset_process('CSP', **salt_fit_params) # 'CSP', 'ATLAS', 'ZTF'
+    return
+def fit_SNooPy():
+    snpy_fit_params = {'replot': True, 'use_saved': True, 'show_plots': True, 'save': False, 'quiet': False}
+    # snpy_fit.dataset_process(data_set='CSP', **snpy_fit_params) # 'CSP', 'ATLAS', 'ZTF'
+    snpy_fit.combined_process(**snpy_fit_params)
+    # snpy_fit.indivisual_process(SN='2018ame', data_set='ATLAS', **snpy_fit_params)
+    return
 
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-    # SNooPy Fitting
-    snpy_fit_params = {'replot': False, 'use_saved': True, 'show_plots': True, 'save': False, 'quiet': False}
-    snpy_fit.dataset_process(data_set='ATLAS', **snpy_fit_params) # 'CSP', 'ATLAS', 'ZTF'
-    # snpy_fit.combined_process(**snpy_fit_params)
-    # snpy_fit.indivisual_process(SN='2009F', source='ATLAS', **snpy_fit_params)
-
-    # SALT3 Fitting
-    salt_fit_params = {}
-    # salt_fit.dataset_process('CSP', **salt_fit_params) # 'CSP', 'ATLAS', 'ZTF'
-
-    # fit_reviewer('COMBINED')
-
-    # ignore_type = []
-    # gen.snpy_sample_cutter('csp_saved_loc')
-    # *choices* : combined/atlas/ztf/csp || *plot_type* : resid/hist
-    # plotter(['combined'], ['resid'], cut=True, ignore_type=ignore_type)
-
-# -------------------------------------------------------------------------------------------------------------------- #
-
-    # txt_file = '../saved/snpy/combined/combined_saved_cut.txt'
-    # cuts, mass_step_arr, mass_step_err_arr = np.arange(8, 11, 0.1), np.array([]), np.array([])
-    # for c in cuts:
-    #     m, m_err = gen.mass_step_calc(txt_file, cut=c, quiet=True)
-    #     mass_step_arr = np.append(mass_step_arr, m)
-    #     mass_step_err_arr = np.append(mass_step_err_arr, m_err)
-    #
-    # max_step = np.max(mass_step_arr)
-    # max_step_err = mass_step_err_arr[np.where(mass_step_arr == np.max(mass_step_arr))[0][0]]
-    # gen.mass_step_calc(txt_file, cut=max_step, quiet=False)
-    #
-    # import matplotlib.pyplot as plt
-    # plt.figure(figsize=(12, 6))
-    # plt.title('Mass Step Cuts\n' + 'Max: ' + str(round(max_step, 2)) + ' +/- ' + str(round(max_step_err, 2)))
-    # plt.errorbar(cuts, mass_step_arr, yerr=mass_step_err_arr, fmt='o')
-    # plt.xlabel('Host Mass Cutting Point'); plt.ylabel('Mass Step')
-    # plt.show()
-
-# -------------------------------------------------------------------------------------------------------------------- #
-
-    # gen.salt3_fit(data_set='ATLAS', plot_data=False, save_plot=False)
-    # gen.host_mass('../default/combined_saved.txt', save_loc='../default/', keep_data=False, update_saved=False, use_mass_key=True)
-
-    # csp_objs = gen.alt_data_proccesser(data_set='CSP', quiet=False)
-    # atlas_objs = gen.alt_data_proccesser(data_set='ATLAS', quiet=False)
-    # ztf_objs = gen.alt_data_proccesser(data_set='ZTF', quiet=False)
-
-
-
-
-    # # Review of good fits
-    # with open(CONSTANTS['reviewed_fits_txt'], 'r') as f:
-    #     paths = f.readline().split(', ')[1:]
-    #     new_paths = []
-    #     for p in paths:
-    #         new_paths.append(p.replace("'", ''))
-    # for p in new_paths:
-    #     gen.lc_replot('../saved/snpy/combined/models/'+p+'_EBV_model2.snpy', spread=[30, 30], stacked=False)
+    fit_SNooPy()
+    fit_SALT3()
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 
