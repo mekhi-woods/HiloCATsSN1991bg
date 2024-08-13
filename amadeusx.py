@@ -89,17 +89,29 @@ def fit_SALT3():
     # salt_fit.dataset_process('CSP', **salt_fit_params) # 'CSP', 'ATLAS', 'ZTF'
     return
 def fit_SNooPy():
-    snpy_fit_params = {'replot': True, 'use_saved': True, 'show_plots': True, 'save': False, 'quiet': False}
+    snpy_fit_params = {'mag_unc_max': 0, 'flux_unc_max': 0,
+                       'replot': False, 'use_saved': True, 'show_plots': True, 'save': True, 'quiet': False}
     # snpy_fit.dataset_process(data_set='CSP', **snpy_fit_params) # 'CSP', 'ATLAS', 'ZTF'
-    snpy_fit.combined_process(**snpy_fit_params)
-    # snpy_fit.indivisual_process(SN='2018ame', data_set='ATLAS', **snpy_fit_params)
+    # snpy_fit.combined_process(**snpy_fit_params)
+    snpy_fit.indivisual_process(SN='req00381099', data_set='ZTF', **snpy_fit_params)
     return
 
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-    fit_SNooPy()
-    fit_SALT3()
+    # fit_SNooPy()
+    # fit_SALT3()
+
+    # gen.full_TNS(70.72920636772062, 0.6183744592240744)
+    test = gen.dict_handler(path='../saved/snpy/atlas/atlas_saved.txt', choice='unpack')
+    i = 1
+    for obj in test:
+        o, z = gen.full_TNS(test[obj]['ra'], test[obj]['dec'])
+        # o, z = gen.TNS_objname_z(test[obj]['ra'], test[obj]['dec'])
+        print(o, '--', z)
+        if i >= 30:
+            break
+        i += 1
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 

@@ -1,0 +1,6 @@
+2008bt 0.0154 162.570333 -12.108889
+filter ATgr
+filter ATri
+filter g
+filter r
+filter i

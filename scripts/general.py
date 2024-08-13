@@ -19,6 +19,7 @@ import sncosmo
 
 from astroquery.sdss import SDSS
 from astroquery.mast import Catalogs
+import warnings
 
 CURRENT_COSMO = FlatLambdaCDM(70, 0.3)  # Hubble Constant, Omega-Matter
 
@@ -86,6 +87,48 @@ def TNS_objname_z(obj_ra, obj_dec):
                 raise RuntimeError(f'TNS completly timed out after {num_tries} tries.')
             else:
                 num_tries -= 1
+
+
+def full_TNS(obj_ra, obj_dec, attempts=10, use_keys=True):
+    print('-----------------------------------------------------------------------------------------------------------')
+    print('Searching TNS for ['+str(obj_ra)+', '+str(obj_dec)+']...')
+    tns_bot_id, tns_bot_name, tns_bot_api_key = '73181', 'YSE_Bot1', '0d771345fa6b876a5bb99cd5042ab8b5ae91fc67'
+    tns_key = dict_handler(choice='unpack', path=get_constants()['tns_key_txt'])
+    obj_name, obj_z = '', 0.00
+
+    # Check key
+    print('Checking TNS key...')
+    if use_keys and (str(obj_ra) in tns_key):
+        obj_name, obj_z = tns_key[str(obj_ra)]['objname'], tns_key[str(obj_ra)]['z']
+    else:
+        # Query TNS key
+        print('Not in TNS key, querying TNS...')
+        try:
+            # Code abridged from David's code
+            tns_bot_id, tns_bot_name, tns_bot_api_key = '73181', 'YSE_Bot1', '0d771345fa6b876a5bb99cd5042ab8b5ae91fc67'
+            headers = tns_redshifts.build_tns_header(tns_bot_id, tns_bot_name)
+            tns_api_url = f"https://www.wis-tns.org/api/get"
+            search_tns_url = tns_redshifts.build_tns_url(tns_api_url, mode="search")
+            get_tns_url = tns_redshifts.build_tns_url(tns_api_url, mode="get")
+            search_data = tns_redshifts.build_tns_search_query_data(tns_bot_api_key, obj_ra, obj_dec)
+            transients = tns_redshifts.rate_limit_query_tns(search_data, headers, search_tns_url)
+            get_data = tns_redshifts.build_tns_get_query_data(tns_bot_api_key, transients[0])
+            details = tns_redshifts.rate_limit_query_tns(get_data, headers, get_tns_url)
+            obj_name, obj_z = details['objname'], details['redshift']
+            with open(get_constants()['tns_key_txt'], 'a') as f:
+                f.write(str(obj_ra) + ', ' + str(obj_dec) + ', ' + obj_name + ', ' + str(obj_z) + '\n') # Save to key
+        except Exception as error:
+            if attempts <= 0:
+                raise RuntimeError('TNS completly timed out.')
+            print(f'{attempts} attempts remaining')
+            systime.sleep(5)
+            obj_name, obj_z = full_TNS(obj_ra, obj_dec, attempts=attempts-1, use_keys=use_keys)
+
+    return obj_name, obj_z
+
+
+
+
 def dict_handler(data_dict={}, choice='', path='../default/dict.txt', delimiter=', '):
     if choice == 'unpack':
         print('[+++] Unpacking objects from '+path+'...')
@@ -185,7 +228,8 @@ def data_proccesser(data_set, individual='', mag_unc_max=0, flux_unc_max=0, quie
             print('[', files.index(file) + 1, '/', len(files), ']')
 
             # Pull data
-            data = np.genfromtxt(file, delimiter=',', dtype=str, skip_header=1)
+            with warnings.catch_warnings():
+                data = np.genfromtxt(file, delimiter=',', dtype=str, skip_header=1)
             if len(data) == 0:
                 print('File empty!')
                 continue
@@ -206,6 +250,7 @@ def data_proccesser(data_set, individual='', mag_unc_max=0, flux_unc_max=0, quie
                                    'mag': data[:, 3], 'dmag': data[:, 4]}})
     elif data_set == 'ZTF':
         files = glob.glob(const['ztf_data_loc']+'*.txt')
+        print(individual)
         if len(individual) > 0 and os.path.isfile(individual):
             files = [individual]
 

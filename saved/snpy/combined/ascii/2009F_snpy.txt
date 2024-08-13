@@ -1,0 +1,6 @@
+2009F 0.013 74.848167 -11.130583
+filter ATgr
+filter ATri
+filter g
+filter r
+filter i

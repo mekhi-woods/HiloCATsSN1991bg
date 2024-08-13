@@ -1,0 +1,6 @@
+2006gt 0.0448 14.072083 -1.629444
+filter ATgr
+filter ATri
+filter g
+filter r
+filter i

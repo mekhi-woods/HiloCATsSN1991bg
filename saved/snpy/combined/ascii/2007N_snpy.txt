@@ -1,0 +1,6 @@
+2007N 0.0129 192.255208 -9.452833
+filter ATgr
+filter ATri
+filter g
+filter r
+filter i

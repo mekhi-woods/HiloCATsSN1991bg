@@ -1,0 +1,6 @@
+2007al 0.0122 149.827 -19.473833
+filter ATgr
+filter ATri
+filter g
+filter r
+filter i

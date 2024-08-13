@@ -8,10 +8,11 @@ import sys
 import os
 CONSTANTS = gen.get_constants()
 
-def dataset_process(data_set, use_saved=True, replot=True, show_plots=True, save=False, quiet=False):
+def dataset_process(data_set, mag_unc_max=0, flux_unc_max=0,
+                    use_saved=True, replot=True, show_plots=True, save=False, quiet=False):
     save_loc = CONSTANTS[data_set.lower() + '_saved_loc']
     save_txt = save_loc + data_set.lower() + '_saved.txt'
-    processingArgs = {'data_set': data_set, 'quiet': True}
+    processingArgs = {'data_set': data_set, 'mag_unc_max': mag_unc_max, 'flux_unc_max': flux_unc_max, 'quiet': True}
     fittingArgs = {'save_loc': save_loc, 'use_saved': use_saved, 'snpy_plots': show_plots, 'save_plots': save, 'quiet': quiet}
     plottingArgs = {'save_loc': save_loc + 'plots/', 'y_type': 'mag', 'pause_time': 2, 'quiet': quiet, 'save_plots': save}
 
@@ -36,32 +37,64 @@ def dataset_process(data_set, use_saved=True, replot=True, show_plots=True, save
     gen.host_mass(save_txt, keep_data=False, update_saved=True) # Get host masses
 
     return
-def combined_process(use_saved=True, replot=True, show_plots=True, save=False, quiet=False):
+def combined_process(mag_unc_max=0, flux_unc_max=0,
+                     use_saved=True, replot=True, show_plots=True, save=False, quiet=False):
     save_loc = CONSTANTS['combined_saved_loc']
     save_txt = save_loc + 'combined_saved.txt'
-    processingArgs = {'data_set': data_set, 'quiet': True}
+    processingArgs = {'mag_unc_max': mag_unc_max, 'flux_unc_max': flux_unc_max, 'quiet': True}
     fittingArgs = {'save_loc': save_loc, 'use_saved': False, 'snpy_plots': True, 'save_plots': save, 'quiet': quiet}
     plottingArgs = {'save_loc': save_loc + 'plots/', 'y_type': 'mag', 'pause_time': 2, 'quiet': quiet, 'save_plots': save}
     ASCIIArgs = {'filter_set': {'c': 'ATgr', 'o': 'ATri', 'ZTF_g': 'g', 'ZTF_r': 'r', 'ZTF_i': 'i'}, 'save_loc': save_loc + 'ascii/'}
 
-    objs = gen.alt_data_proccesser(**processingArgs) # Set objects
-    gen.write_ASCII(objs=objs, **ASCIIArgs) # Write ASCII files for SNooPy fitting
+    allObjs = {}
+    for ds in ['CSP', 'ATLAS', 'ZTF']:
+        objs = gen.data_proccesser(data_set=ds, **processingArgs)  # Set objects
+        for obj in objs:
+            if obj not in allObjs:
+                allObjs.update({obj: objs[obj]})
+            else:
+                for cat in ['time', 'filters', 'flux', 'dflux', 'mag', 'dmag']:
+                    if cat == 'time' and ds == 'ZTF':
+                        allObjs[obj][cat] = allObjs[obj][cat] + 2400000 # +2400000 for MJD to JD
+                    allObjs[obj][cat] = np.hstack((allObjs[obj][cat], objs[obj][cat]))
+
+    write_ASCII(objs=allObjs, **ASCIIArgs) # Write ASCII files for SNooPy fitting
     if replot:
-        gen.lc_plot(objs=objs, **plottingArgs) # Replot LCs
-    objParams = gen.snpy_fit(paths=glob.glob(save_loc + 'ascii/*.txt'), **fittingArgs) # Fit with SNooPy
+        gen.lc_plot(objs=allObjs, **plottingArgs) # Replot LCs
+    objParams = snpy_fit(paths=glob.glob(save_loc + 'ascii/*.txt'), **fittingArgs) # Fit with SNooPy
     gen.dict_handler(choice='pack', data_dict=objParams, path=save_txt) # Save parameters to file
     gen.host_mass(save_txt, keep_data=False, update_saved=True) # Get host masses
     return
-def indivisual_process(SN, data_set, use_saved=True, replot=True, show_plots=True, save=False, quiet=False):
+def indivisual_process(SN, data_set, mag_unc_max=0, flux_unc_max=0,
+                       use_saved=True, replot=True, show_plots=True, save=False, quiet=False):
+    data_loc = CONSTANTS[data_set.lower() + '_data_loc']
     save_loc = CONSTANTS[data_set.lower() + '_saved_loc']
-    save_txt = save_loc + data_set.lower() + '_'+ SN +'_saved.txt'
     processingArgs = {'data_set': data_set, 'quiet': True}
     fittingArgs = {'save_loc': save_loc, 'use_saved': use_saved, 'snpy_plots': show_plots, 'save_plots': save, 'quiet': quiet}
     plottingArgs = {'save_loc': save_loc + 'plots/', 'y_type': 'mag', 'pause_time': 2, 'quiet': quiet, 'save_plots': save}
 
-    if not os.path.exists(save_loc+'ascii/'+SN+'_snpy.txt'):
-        raise ValueError('[!!!] SN does not exsist or ASCII not made yet. ['+save_loc+'ascii/'+SN+'_snpy.txt'+']')
-    objParams = snpy_fit(paths=[save_loc + 'ascii/'+SN+'_snpy.txt'], **fittingArgs) # Fit with SNooPy
+    if data_set == 'CSP':
+        ASCIIArgs = {'filter_set': {'B': 'B', 'H': 'H', 'J': 'J', 'Jrc2': 'Jrc2', 'V': 'V', 'Y': 'Y', 'Ydw': 'Ydw',
+                                    'g': 'g', 'i': 'i', 'r': 'r', 'u': 'u'}, 'save_loc': save_loc + 'ascii/'}
+    elif data_set == 'ATLAS':
+        ASCIIArgs = {'filter_set': {'c': 'ATgr', 'o': 'ATri'},
+                     'save_loc': save_loc + 'ascii/'}
+    elif data_set == 'ZTF':
+        ASCIIArgs = {'filter_set': {'ZTF_g': 'g', 'ZTF_r': 'r', 'ZTF_i': 'i'},
+                     'save_loc': save_loc + 'ascii/'}
+    else:
+        raise ValueError("Data set not supported ['CSP'/'ATLAS'/'ZTF']")
+
+    objs = gen.data_proccesser(data_set=data_set, individual=glob.glob(data_loc+'*'+SN+'*.txt')[0]) # Set objects
+    objname = list(objs.keys())[0]
+    save_txt = save_loc + data_set.lower() + '_' + objname + '_saved.txt'
+
+    write_ASCII(objs=objs, **ASCIIArgs) # Write ASCII files for SNooPy fitting
+    if replot:
+        gen.lc_plot(objs=objs, **plottingArgs) # Replot LCs
+    objParams = snpy_fit(paths=[save_loc + 'ascii/'+objname+'_snpy.txt'], **fittingArgs) # Fit with SNooPy
+    if len(objParams) <= 0:
+        raise ValueError("[!!!] Fit Unsuccessful!")
     gen.dict_handler(choice='pack', data_dict=objParams, path=save_txt) # Save parameters to file
     gen.host_mass(save_txt, keep_data=False, update_saved=True) # Get host masses
 

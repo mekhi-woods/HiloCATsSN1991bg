@@ -1,0 +1,6 @@
+2005ke 0.0049 53.768125 -24.944111
+filter ATgr
+filter ATri
+filter g
+filter r
+filter i

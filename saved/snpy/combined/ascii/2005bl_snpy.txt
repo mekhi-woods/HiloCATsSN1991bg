@@ -1,0 +1,6 @@
+2005bl 0.0241 181.051083 20.406889
+filter ATgr
+filter ATri
+filter g
+filter r
+filter i

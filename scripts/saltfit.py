@@ -7,48 +7,33 @@ import scripts.general as gen
 
 CONSTANTS = gen.get_constants()
 
-def dataset_process(data_set):
+def dataset_process(data_set, use_saved=True, replot=True, show_plots=True, save=False, quiet=False):
+    save_loc = CONSTANTS[data_set.lower() + '_saved_loc']
+    save_txt = save_loc + data_set.lower() + '_saved.txt'
+    processingArgs = {'data_set': data_set, 'quiet': True}
+    fittingArgs = {'save_loc': save_loc, 'use_saved': use_saved, 'snpy_plots': show_plots, 'save_plots': save, 'quiet': quiet}
+    plottingArgs = {'save_loc': save_loc + 'plots/', 'y_type': 'mag', 'pause_time': 2, 'quiet': quiet, 'save_plots': save}
+
     if data_set == 'CSP':
-        # Set objects
-        objs = gen.data_proccesser(data_set='CSP', quiet=True)
-
-        # Creating tables for SALT3
-        cspTbls = {}
-        for obj in objs:
-            cspTbls.update({obj: Table([objs[obj]['time'], objs[obj]['filters'], objs[obj]['flux'],
-                                        objs[obj]['dflux'], objs[obj]['zp'],
-                                        np.full(len(objs[obj]['time']), 'ab')],
-                                        names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys')) })
-
-
-
-
-        # filter_wheel = {'B': 'B', 'H': 'H', 'J': 'J', 'Jrc2': 'Jrc2', 'V': 'V', 'Y': 'Y', 'Ydw': 'Ydw', 'g': 'g',
-        #                 'i': 'i', 'r': 'r', 'u': 'u'}
-        # gen.write_ASCII(objs=cspObjs, filter_set=filter_wheel, save_loc=CONSTANTS['csp_saved_loc']+'ascii/')
-        #
-        # # Replot
-        # if replot:
-        #     plt_args = {'color_wheel': [None, None, None, None, None, None, None, None, None, None, None],
-        #                 'save_loc': CONSTANTS['csp_saved_loc']+'plots/', 'y_type': 'mag', 'pause_time': 2,
-        #                 'quiet': quiet, 'save_plots': save}
-        #     gen.lc_plot(objs=cspObjs, **plt_args)
-        #
-        # # Fit with SNooPy
-        # fit_args = {'save_loc': CONSTANTS['csp_saved_loc'], 'use_saved': False, 'snpy_plots': True, 'save_plots': save, 'quiet': quiet}
-        # cspParams = gen.snpy_fit(paths=glob.glob(CONSTANTS['csp_saved_loc']+'ascii/*.txt'), **fit_args)
-        #
-        # # Save parameters to file
-        # gen.dict_handler(choice='pack', data_dict=cspParams, path=CONSTANTS['csp_saved_loc']+'csp_saved.txt')
-        #
-        # # Get host masses
-        # gen.host_mass(CONSTANTS['csp_saved_loc']+'csp_saved.txt', save_loc='../default/', keep_data=False, update_saved=True)
+        ASCIIArgs = {'filter_set': {'B': 'B', 'H': 'H', 'J': 'J', 'Jrc2': 'Jrc2', 'V': 'V', 'Y': 'Y', 'Ydw': 'Ydw',
+                                    'g': 'g', 'i': 'i', 'r': 'r', 'u': 'u'}, 'save_loc': save_loc + 'ascii/'}
     elif data_set == 'ATLAS':
-        x=1
+        ASCIIArgs = {'filter_set': {'c': 'ATgr', 'o': 'ATri'},
+                     'save_loc': save_loc + 'ascii/'}
     elif data_set == 'ZTF':
-        x=1
+        ASCIIArgs = {'filter_set': {'ZTF_g': 'g', 'ZTF_r': 'r', 'ZTF_i': 'i'},
+                     'save_loc': save_loc + 'ascii/'}
     else:
         raise ValueError("Data set not supported ['CSP'/'ATLAS'/'ZTF']")
+
+    objs = gen.data_proccesser(**processingArgs) # Set objects
+    write_ASCII(objs=objs, **ASCIIArgs) # Write ASCII files for SNooPy fitting
+    if replot:
+        gen.lc_plot(objs=objs, **plottingArgs) # Replot LCs
+    objParams = snpy_fit(paths=glob.glob(save_loc + 'ascii/*.txt'), **fittingArgs) # Fit with SNooPy
+    gen.dict_handler(choice='pack', data_dict=objParams, path=save_txt) # Save parameters to file
+    gen.host_mass(save_txt, keep_data=False, update_saved=True) # Get host masses
+
     return
 def salt3_atlas_process():
     objs = gen.data_proccesser(data_set='ATLAS', mag_unc_max=0, flux_unc_max=0, quiet=True)
