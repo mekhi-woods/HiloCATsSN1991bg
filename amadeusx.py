@@ -1,13 +1,13 @@
 import warnings
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
-    import numpy as np
-    import snpy
     import glob
     import time as systime
     import scripts.general as gen
     import scripts.snpyfit as snpy_fit
     import scripts.saltfit as salt_fit
+    import scripts.plotter as pltr
+
 CONSTANTS = gen.get_constants()
 
 def fit_reviewer(choice='COMBINED'):
@@ -30,8 +30,7 @@ def fit_reviewer(choice='COMBINED'):
             print('------------------------------------------------------------------------')
             print('[', models.index(model)+1, '/', len(models), '] - ', objname)
 
-            s = snpy.get_sn(model)
-            gen.lc_replot(model, spread=[30, 30], stacked=False)
+            pltr.lc_replot(model, spread=[30, 30], stacked=False)
 
             selecting = True
             while selecting:
@@ -75,18 +74,18 @@ def plotter(choices, plot_type, cut=False, ignore_type=[]):
             print("Plotting Hubble Residuals for '"+data_set+"'...")
             res_plot_args = {'path': path, 'save_loc': CONSTANTS[data_set+'_saved_loc'], 'sigma': [1, 1],
                              'labels': False, 'raw': False, 'extra_info': True, 'ignore_type': ignore_type, 'save_plot': True}
-            gen.residual_plotter(x_params=['z', 'Redshift'], **res_plot_args)
-            gen.residual_plotter(x_params=['host_mass', 'Host Mass'], **res_plot_args)
+            pltr.residual_plotter(x_params=['z', 'Redshift'], **res_plot_args)
+            pltr.residual_plotter(x_params=['host_mass', 'Host Mass'], **res_plot_args)
 
         if 'hist' in plot_type:
             print("Plotting parameter histograms for '"+data_set+"'...")
             hist_args = {'save_loc': CONSTANTS[data_set+'_saved_loc'], 'ignore_type': ignore_type,
                          'raw': False, 'save_plot': False, 'param_bins': [None, None, None, None, None]}
-            gen.snpy_histogram_plotter(path=path, **hist_args)
+            pltr.snpy_histogram_plotter(path=path, **hist_args)
     return
 def fit_SALT3():
     salt_fit_params = {}
-    # salt_fit.dataset_process('CSP', **salt_fit_params) # 'CSP', 'ATLAS', 'ZTF'
+    salt_fit.dataset_process('CSP', **salt_fit_params) # 'CSP', 'ATLAS', 'ZTF'
     return
 def fit_SNooPy():
     snpy_fit_params = {'mag_unc_max': 0, 'flux_unc_max': 0,
@@ -102,16 +101,15 @@ if __name__ == '__main__':
     # fit_SNooPy()
     # fit_SALT3()
 
-    # gen.full_TNS(70.72920636772062, 0.6183744592240744)
-    test = gen.dict_handler(path='../saved/snpy/atlas/atlas_saved.txt', choice='unpack')
-    i = 1
-    for obj in test:
-        o, z = gen.full_TNS(test[obj]['ra'], test[obj]['dec'])
-        # o, z = gen.TNS_objname_z(test[obj]['ra'], test[obj]['dec'])
-        print(o, '--', z)
-        if i >= 30:
-            break
-        i += 1
+    # obj = gen.dict_handler(choice='unpack', path='../saved/snpy/combined/combined_saved_cut.txt')
+    # obj = gen.dict_handler(choice='unpack', path='../saved/snpy/atlas/atlas_2018ame_saved.txt')
+    # print(obj.keys())
+
+    # pltr.alt_residual_plotter(CONSTANTS['atlas_saved_loc'] + 'atlas_saved_cut.txt', ['z', 'Redshift'])
+    pltr.alt_residual_plotter(CONSTANTS['combined_saved_loc'] + 'combined_saved_cut.txt', ['host_mass', 'Host Mass'])
+
+
+
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 

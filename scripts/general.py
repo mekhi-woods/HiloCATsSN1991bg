@@ -1,28 +1,22 @@
 import os
 import sys
-import snpy
 import glob
 import shutil
 import time as systime
 import numpy as np
-import matplotlib.pyplot as plt
-from zipfile import ZipFile
-from scripts import tns_redshifts
-from astropy import cosmology as cosmo
-from astropy.table import QTable, Table, Column
+from scripts import tnsAPI
 
 from astro_ghost.ghostHelperFunctions import getTransientHosts
 from astropy.coordinates import SkyCoord
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
-import sncosmo
 
 from astroquery.sdss import SDSS
 from astroquery.mast import Catalogs
 import warnings
 
-CURRENT_COSMO = FlatLambdaCDM(70, 0.3)  # Hubble Constant, Omega-Matter
-
+def current_cosmo(H0=70, O_m=0.3):
+    return FlatLambdaCDM(H0, O_m)
 def get_constants(cosntant_loc='../txts/constants.txt'):
     CONSTANTS = {}
     with open(cosntant_loc, 'r') as f:
@@ -33,63 +27,7 @@ def get_constants(cosntant_loc='../txts/constants.txt'):
                 continue
             CONSTANTS.update({line[0]: line[1]})
     return CONSTANTS
-def TNS_details(ra, dec):
-    tns_bot_id, tns_bot_name, tns_bot_api_key = '73181', 'YSE_Bot1', '0d771345fa6b876a5bb99cd5042ab8b5ae91fc67'
-
-    # Code from David
-    headers = tns_redshifts.build_tns_header(tns_bot_id, tns_bot_name)
-    tns_api_url = f"https://www.wis-tns.org/api/get"
-
-    # get the API URLs
-    search_tns_url = tns_redshifts.build_tns_url(tns_api_url, mode="search")
-    get_tns_url = tns_redshifts.build_tns_url(tns_api_url, mode="get")
-
-    search_data = tns_redshifts.build_tns_search_query_data(tns_bot_api_key, ra, dec)
-    transients = tns_redshifts.rate_limit_query_tns(search_data, headers, search_tns_url)
-
-    get_data = tns_redshifts.build_tns_get_query_data(tns_bot_api_key, transients[0])
-    transient_detail = tns_redshifts.rate_limit_query_tns(get_data, headers, get_tns_url)
-
-    return transient_detail
-def TNS_objname_z(obj_ra, obj_dec):
-    print('Searching TNS for ['+str(obj_ra)+', '+str(obj_dec)+']...')
-    tns_key = np.genfromtxt(get_constants()['tns_key_txt'], dtype=str, delimiter=', ', skip_header=1)
-
-    run, num_tries = True, 10
-    while run:
-        try:
-            obj_name, obj_z = '', 0.00
-
-            # Check TNS key
-            if len(np.shape(tns_key)) == 2:
-                print('Checking TNS key...')
-                objnames, ra, dec, z = tns_key[:, 2], tns_key[:, 0].astype(float), tns_key[:, 1].astype(float), tns_key[:, 3]
-                for n in range(len(objnames)):
-                    if abs(obj_ra - ra[n]) < 0.01:
-                        obj_name, obj_z = objnames[n], z[n]
-                        return obj_name, obj_z
-
-            # Query TNS key
-            print('Querying TNS...')
-            details = TNS_details(obj_ra, obj_dec)
-            obj_name, obj_z = details['objname'], details['redshift']
-            with open(get_constants()['tns_key_txt'], 'a') as f:
-                f.write(str(obj_ra) + ', ' + str(obj_dec) + ', ' + obj_name + ', ' + str(obj_z) + '\n') # Save to key
-            return obj_name, obj_z
-        except Exception as error:
-            print('***********************************************************************************************')
-            print(error)
-            print('TNS timed out, pausing for 5 seconds...')
-            print(num_tries, 'tries left...')
-            print('***********************************************************************************************')
-            systime.sleep(5)
-            if num_tries == 0:
-                raise RuntimeError(f'TNS completly timed out after {num_tries} tries.')
-            else:
-                num_tries -= 1
-
-
-def full_TNS(obj_ra, obj_dec, attempts=10, use_keys=True):
+def TNS_objname_z(obj_ra, obj_dec, attempts=10, use_keys=True):
     print('-----------------------------------------------------------------------------------------------------------')
     print('Searching TNS for ['+str(obj_ra)+', '+str(obj_dec)+']...')
     tns_bot_id, tns_bot_name, tns_bot_api_key = '73181', 'YSE_Bot1', '0d771345fa6b876a5bb99cd5042ab8b5ae91fc67'
@@ -106,14 +44,14 @@ def full_TNS(obj_ra, obj_dec, attempts=10, use_keys=True):
         try:
             # Code abridged from David's code
             tns_bot_id, tns_bot_name, tns_bot_api_key = '73181', 'YSE_Bot1', '0d771345fa6b876a5bb99cd5042ab8b5ae91fc67'
-            headers = tns_redshifts.build_tns_header(tns_bot_id, tns_bot_name)
+            headers = tnsAPI.build_tns_header(tns_bot_id, tns_bot_name)
             tns_api_url = f"https://www.wis-tns.org/api/get"
-            search_tns_url = tns_redshifts.build_tns_url(tns_api_url, mode="search")
-            get_tns_url = tns_redshifts.build_tns_url(tns_api_url, mode="get")
-            search_data = tns_redshifts.build_tns_search_query_data(tns_bot_api_key, obj_ra, obj_dec)
-            transients = tns_redshifts.rate_limit_query_tns(search_data, headers, search_tns_url)
-            get_data = tns_redshifts.build_tns_get_query_data(tns_bot_api_key, transients[0])
-            details = tns_redshifts.rate_limit_query_tns(get_data, headers, get_tns_url)
+            search_tns_url = tnsAPI.build_tns_url(tns_api_url, mode="search")
+            get_tns_url = tnsAPI.build_tns_url(tns_api_url, mode="get")
+            search_data = tnsAPI.build_tns_search_query_data(tns_bot_api_key, obj_ra, obj_dec)
+            transients = tnsAPI.rate_limit_query_tns(search_data, headers, search_tns_url)
+            get_data = tnsAPI.build_tns_get_query_data(tns_bot_api_key, transients[0])
+            details = tnsAPI.rate_limit_query_tns(get_data, headers, get_tns_url)
             obj_name, obj_z = details['objname'], details['redshift']
             with open(get_constants()['tns_key_txt'], 'a') as f:
                 f.write(str(obj_ra) + ', ' + str(obj_dec) + ', ' + obj_name + ', ' + str(obj_z) + '\n') # Save to key
@@ -122,13 +60,9 @@ def full_TNS(obj_ra, obj_dec, attempts=10, use_keys=True):
                 raise RuntimeError('TNS completly timed out.')
             print(f'{attempts} attempts remaining')
             systime.sleep(5)
-            obj_name, obj_z = full_TNS(obj_ra, obj_dec, attempts=attempts-1, use_keys=use_keys)
+            obj_name, obj_z = TNS_objname_z(obj_ra, obj_dec, attempts=attempts-1, use_keys=use_keys)
 
     return obj_name, obj_z
-
-
-
-
 def dict_handler(data_dict={}, choice='', path='../default/dict.txt', delimiter=', '):
     if choice == 'unpack':
         print('[+++] Unpacking objects from '+path+'...')
@@ -138,7 +72,13 @@ def dict_handler(data_dict={}, choice='', path='../default/dict.txt', delimiter=
         if len(data) == 0:
             return {}
         temp_objs = {}
-        for i in range(len(data[:, 0])):
+
+        if len(np.shape(data)) == 1:
+            iter_period = len(data[0])
+        else:
+            iter_period = len(data[:, 0])
+
+        for i in range(iter_period):
             obj = data[:, 0][i]
             temp_objs.update({obj: {}})
             for j in range(len(hdr)):
@@ -418,19 +358,19 @@ def host_mass(dict_path, save_loc='../default/', keep_data=True, update_saved=Fa
                         gMagErr, iMagErr, iAbsMagErr = np.nan, np.nan, np.nan
                     else:
                         gMag, iMag, iAbsMag = catalog_data['gMeanKronMag'].value[0], catalog_data['gMeanKronMag'].value[
-                            0], (catalog_data['iMeanKronMag'].value[0] - CURRENT_COSMO.distmod(z).value)
+                            0], (catalog_data['iMeanKronMag'].value[0] - current_cosmo().distmod(z).value)
                         gMagErr, iMagErr, iAbsMagErr = catalog_data['gMeanKronMagErr'].value[0], \
                         catalog_data['iMeanKronMagErr'].value[0], catalog_data['iMeanKronMagErr'].value[0]
                 else:
                     # SDSS Results
                     gMag, iMag, iAbsMag = result['modelMag_g'].value[0], result['modelMag_i'].value[0], (
-                                result['modelMag_i'].value[0] - CURRENT_COSMO.distmod(z).value)
+                                result['modelMag_i'].value[0] - current_cosmo().distmod(z).value)
                     gMagErr, iMagErr, iAbsMagErr = result['modelMagErr_g'].value[0], result['modelMagErr_i'].value[0], \
                     result['modelMagErr_i'].value[0]
             else:
                 # GLADE results
                 gMag, iMag, iAbsMag = host_data['gKronMag'].loc[0], host_data['iKronMag'].loc[0], (
-                            host_data['iKronMag'].loc[0] - CURRENT_COSMO.distmod(z).value)
+                            host_data['iKronMag'].loc[0] - current_cosmo().distmod(z).value)
                 gMagErr, iMagErr, iAbsMagErr = host_data['gKronMagErr'].loc[0], host_data['iKronMagErr'].loc[0], \
                 host_data['iKronMagErr'].loc[0]
 
@@ -510,7 +450,7 @@ def mass_step_calc(path, cut=10, ignore_fits=[], quiet=False):
 
         m = float(objs[obj]['host_mass'])
         m_err = float(objs[obj]['host_mass_err'])
-        resid = float(objs[obj]['mu']) - CURRENT_COSMO.distmod(float(objs[obj]['z'])).value
+        resid = float(objs[obj]['mu']) - current_cosmo().distmod(float(objs[obj]['z'])).value
         resid_err = float(objs[obj]['mu_err'])
 
         all_resid = np.append(all_resid, resid)
@@ -538,199 +478,3 @@ def mass_step_calc(path, cut=10, ignore_fits=[], quiet=False):
     sys.stdout = sys.__stdout__
 
     return mass_step, mass_step_err
-# ==================================================================================================================== #
-def lc_plot(objs, y_type = 'flux', pause_time=2, color_wheel = ['orange', 'cyan', 'violet', 'red', 'blue'],
-            quiet=False, save_plots=True, save_loc='../snpy/misc_plots/'):
-    print('[+++] Plotting LC data...')
-    color_wheel = [None, None, None, None, None, None, None, None, None, None, None]
-
-    # Check quiet
-    if quiet:
-        sys.stdout = open(os.devnull, 'w')
-
-    for obj in objs:
-        print('-------------------------------------------------------------------------------------------------------')
-        print('[', list(objs).index(obj)+1, '/', len(objs), '] -', obj)
-
-        plt.figure(figsize=(12, 6))
-
-        # Get list of all filters
-        filter_wheel = []
-        for f_w in objs[obj]['filters']:
-            if f_w not in filter_wheel:
-                filter_wheel.append(f_w)
-
-        for f_w in filter_wheel:
-            f_indexs = np.where(objs[obj]['filters'] == f_w)[0]
-            plt.errorbar(objs[obj]['time'][f_indexs], objs[obj][y_type][f_indexs], yerr=objs[obj]['d'+y_type][f_indexs],
-                        color=color_wheel[filter_wheel.index(f_w)], label=f_w, fmt='o')
-        systime.sleep(pause_time)
-
-        if y_type == 'mag':
-            plt.gca().invert_yaxis()
-        plt.title(obj)
-        plt.xlabel('JD'); plt.ylabel(y_type)
-        plt.legend()
-        if save_plots:
-            plt.savefig(save_loc + obj + '_lc.png')
-            print(obj, '-- Plot saved to', save_loc + obj + '_lc.png')
-        plt.show()
-        plt.close()
-
-
-    # Restore print statements
-    sys.stdout = sys.__stdout__
-
-    return
-def lc_replot(lc_path, save_plot=False, save_loc='../default/', colors=None, spread=None, stacked=True):
-    n_s = snpy.get_sn(lc_path)
-    # if colors is None:
-    #     plt_args = {'single': stacked, 'colors': colors}
-    # else:
-    plt_args = {'single': stacked}
-
-    if spread != None:
-        plt_args.update({'xrange': (n_s.parameters['Tmax']-spread[0], n_s.parameters['Tmax']+spread[1])})
-    if save_plot:
-        plt_args.update({'outfile': save_loc + n_s.name + '_snpylc.png'})
-    n_s.plot(**plt_args)
-    plt.show()
-    return
-def residual_plotter(path, x_params, sigma=[1,1], labels=False, raw=False, extra_info=False, ignore_type=[], save_plot=False, save_loc='../default/'):
-    # Get reviewed fits
-    with open(get_constants()['reviewed_fits_txt'], 'r') as f:
-        reviewed_good_fits, reviewed_okay_fits, reviewed_bad_fits = [], [], []
-        for container in [reviewed_good_fits, reviewed_okay_fits, reviewed_bad_fits]:
-            for i in f.readline().split(', ')[1:]:
-                container.append(i[1:-1])
-            container[-1] = container[-1][:-1]
-
-    # Pull data from saved text
-    objs = dict_handler(choice='unpack', path=path)
-
-    fig, axs = plt.subplots(1, 2, figsize=(12, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
-    atlas_key, ztf_key, csp_key = True, True, True
-    colors = {'ATLAS': 'blue', 'ZTF': 'red', 'CSP':'orange'}
-    mu_res_hist = []
-    for obj in objs:
-        if x_params[0] == 'host_mass':
-            n_x_err = float(objs[obj][x_params[0]+'_err'])
-        else:
-            n_x_err = 0.00
-        n_x = float(objs[obj][x_params[0]])
-        n_mu_res = float(objs[obj]['mu']) - CURRENT_COSMO.distmod(float(objs[obj]['z'])).value
-        n_mu_err = float(objs[obj]['mu_err'])
-
-        # Clean data
-        if not raw:
-            objname = obj
-            if objname[:2] == 'SN':
-                objname = objname[2:]
-            if ('good' in ignore_type) and (objname in reviewed_good_fits):
-                continue
-            if ('okay' in ignore_type) and (objname in reviewed_okay_fits):
-                continue
-            if ('bad' in ignore_type) and (objname in reviewed_bad_fits):
-                continue
-            if x_params[0] == 'host_mass' and n_x == 0:  # Remove null masses
-                continue
-
-        # Save for histogram
-        mu_res_hist.append(n_mu_res)
-
-        # Plot points
-        if path.split('/')[-1][:-10] == 'combined':
-            if atlas_key and (objs[obj]['origin'] == 'ATLAS'):
-                axs[0].errorbar(n_x, n_mu_res, yerr=n_mu_err * sigma[0], xerr=n_x_err * sigma[1],
-                                fmt='o', color=colors[objs[obj]['origin']], label=objs[obj]['origin'])
-                atlas_key = False
-            elif ztf_key and (objs[obj]['origin'] == 'ZTF'):
-                axs[0].errorbar(n_x, n_mu_res, yerr=n_mu_err * sigma[0], xerr=n_x_err * sigma[1],
-                                fmt='o', color=colors[objs[obj]['origin']], label=objs[obj]['origin'])
-                ztf_key = False
-            elif csp_key and (objs[obj]['origin'] == 'CSP'):
-                axs[0].errorbar(n_x, n_mu_res, yerr=n_mu_err * sigma[0], xerr=n_x_err * sigma[1],
-                                fmt='o', color=colors[objs[obj]['origin']], label=objs[obj]['origin'])
-                csp_key = False
-            else:
-                axs[0].errorbar(n_x, n_mu_res, yerr=n_mu_err * sigma[0], xerr=n_x_err * sigma[1],
-                                fmt='o', color=colors[objs[obj]['origin']])
-        else:
-            axs[0].errorbar(n_x, n_mu_res, yerr=n_mu_err * sigma[0], xerr=n_x_err * sigma[1],
-                            fmt='o')
-
-        # Labels
-        if labels:
-            axs[0].text(n_x, n_mu_res, obj, size='x-small', va='top')
-
-    # Histogram
-    axs[1].hist(mu_res_hist, bins=40, orientation="horizontal")
-
-    # Formatting
-    ylimiter = np.max(np.abs(mu_res_hist))+0.5
-    axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
-
-    if extra_info:
-        fig.suptitle("Hubble Residuals vs. " + x_params[1] + " of '"+(path.split('/')[-1].split('_')[0]).upper()+"' 91bg-like SNe Ia\n" +  # Figure Title
-                     'Dist. Sigma: ' + str(sigma[0]) + ' | ' + x_params[1] + ' Sigma: ' + str(sigma[0]) +
-                     ' | Scatter: ' + str(round(np.std(mu_res_hist), 2)) + ' | # of pts: ' + str(len(mu_res_hist)), size='medium')
-    else:
-        fig.suptitle("Hubble Residuals vs. " + x_params[1] + " of '"+(path.split('/')[-1][:-10]).upper()+"' 91bg-like SNe Ia")
-    axs[0].set(xlabel=x_params[1], ylabel='Hubble Residuals')  # Sub-plot Labels
-    axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
-    if path.split('/')[-1][:-10] == 'combined':
-        axs[0].legend()
-    if save_plot:
-        plt.savefig(save_loc+'hubble_res_v_'+x_params[1]+'.png')
-    plt.show()
-    return
-def snpy_histogram_plotter(path, raw=False, save_plot=False, save_loc='../default/', ignore_type=[], param_bins=[None, None, None, None, None]):
-    # Get reviewed fits
-    with open(get_constants()['reviewed_fits_txt'], 'r') as f:
-        reviewed_good_fits, reviewed_okay_fits, reviewed_bad_fits = [], [], []
-        for container in [reviewed_good_fits, reviewed_okay_fits, reviewed_bad_fits]:
-            for i in f.readline().split(', ')[1:]:
-                container.append(i[1:-1])
-            container[-1] = container[-1][:-1]
-
-    # Pull data
-    objs = dict_handler(path=path, choice='unpack')
-    mu, st, Tmax, EBVhost, host_mass = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
-    for obj in objs:
-        # Clean data
-        if not raw:
-            objname = obj
-            if objname[:2] == 'SN':
-                objname = objname[2:]
-            if ('good' in ignore_type) and (objname in reviewed_good_fits):
-                continue
-            if ('okay' in ignore_type) and (objname in reviewed_okay_fits):
-                continue
-            if ('bad' in ignore_type) and (objname in reviewed_bad_fits):
-                continue
-
-        mu = np.append(mu, float(objs[obj]['mu']))
-        st = np.append(st, float(objs[obj]['st']))
-        Tmax = np.append(Tmax, float(objs[obj]['Tmax']))
-        EBVhost = np.append(EBVhost, float(objs[obj]['EBVhost']))
-        host_mass = np.append(host_mass, float(objs[obj]['host_mass']))
-
-    # Plot
-    fig, ax = plt.subplots(1, 5, figsize=(16, 4), layout='constrained')
-    params = [mu, st, Tmax, EBVhost, host_mass]
-    param_names = ['mu', 'st', 'Tmax', 'EBVhost', 'host_mass']
-    param_bins = [45, 45, 45, 45, 45]
-    for i in range(len(params)):
-        ax[i].hist(params[i], bins=param_bins[i])
-        if i != 0:
-            ax[i].get_yaxis().set_visible(False)
-        ax[i].set_xlabel(param_names[i])
-
-    plt.suptitle("Parameters for '" + path.split('/')[-1].split('_')[0].upper()
-                 + "' data\n Number of Transients: " + str(len(objs)), fontsize=20)
-    if save_plot:
-        print('Saved figure to... ', save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
-        plt.savefig(save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
-    plt.show()
-
-    return

@@ -215,14 +215,14 @@ def snpy_fit(paths, save_loc, use_saved=False, snpy_plots=True, save_plots=True,
 def snpy_sample_cutter(save_loc):
     print('[+++] Cutting sample for ' + save_loc.split('_')[0].upper() + ' data...')
 
-    path = glob.glob(get_constants()[save_loc] + '*_saved.txt')[0]
-    objs = dict_handler(choice='unpack', path=path)
+    path = glob.glob(gen.get_constants()[save_loc] + '*_saved.txt')[0]
+    objs = gen.dict_handler(choice='unpack', path=path)
     i = 0
     new_objs = {}
     for obj in objs:
         print('[' + str(list(objs.keys()).index(obj) + 1) + '/' + str(len(objs)) + '] -- ' + obj)
         print('---------------------------------------------------------------------------------------------------')
-        resid = float(objs[obj]['mu']) - CURRENT_COSMO.distmod(float(objs[obj]['z'])).value
+        resid = float(objs[obj]['mu']) - gen.current_cosmo().distmod(float(objs[obj]['z'])).value
         resid -= np.median(resid)
 
         if float(objs[obj]['EBVhost']) < -0.2 or float(objs[obj]['EBVhost']) > 0.2:
@@ -255,5 +255,5 @@ def snpy_sample_cutter(save_loc):
         # Save obj to new dict
         new_objs.update({obj: objs[obj]})
 
-    dict_handler(data_dict=new_objs, choice='pack', path=get_constants()[save_loc] + save_loc.split('_')[0] + '_saved_cut.txt')
+    gen.dict_handler(data_dict=new_objs, choice='pack', path=gen.get_constants()[save_loc] + save_loc.split('_')[0] + '_saved_cut.txt')
     return
