@@ -5,6 +5,7 @@ __NOTE: This repository is currently under construction__
 
 --------------------------
 ## Recent Plots
+
 ![](saved/H0vz_present.png)
 This plot depicts the relationship between the redshift of the SN and the corresponding Hubble Residual.
 
