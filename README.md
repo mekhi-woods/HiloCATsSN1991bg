@@ -1,16 +1,23 @@
 # Mass Step of Type-1a Supernova 1991bg
-
 This repository works to analyze and calculate the mass step function of Supernovae Type Ia using forced photometry data from the ATLAS and ZTF surveys. This project is a segment of the collaboration 'Hilo Cosmology And Transients (CATs)', an initiative operative from the University of Hawaii.  
 
 __NOTE: This repository is currently under construction__
+
+--------------------------
+## Recent Plots
+![](saved/H0vz_present.png)
+This plot depicts the relationship between the redshift of the SN and the corresponding Hubble Residual.
+
+![](saved/H0vM_present.png)
+This plot depicts the relationship between the mass of the host galaxy for the SN and the corresponding Hubble Residual. 
 
 --------------------------
 ## Developers
 * Developer: [Mekhi Woods](tinyurl.com/astrokhi) (mekhidw@hawaii.edu)
 * Advisor: [David Jones](https://github.com/djones1040) (dojones@hawaii.edu)
 
-## Publications
 --------------------------
+## Publications
 Please cite the following if this repo is utilized for a scientific project:
 * Kenworthy et al. 2021. [SALT3: An Improved Type Ia Supernova Model for Measuring Cosmic Distances](https://ui.adsabs.harvard.edu/abs/2021ApJ...923..265K/abstract)
 * Krisciunas et al. 2017. [The Carnegie Supernova Project. I. Third Photometry Data Release of Low-redshift Type Ia Supernovae and Other White Dwarf Explosions](https://ui.adsabs.harvard.edu/abs/2017AJ....154..211K/abstract)
