@@ -7,18 +7,6 @@ import matplotlib.pyplot as plt
 
 import scripts.general as gen
 
-def errorfill(x, y, yerr, color=None, alpha_fill=0.3, ax=None):
-    # Code taken from: https://tonysyu.github.io/plotting-error-bars.html
-    ax = ax if ax is not None else plt.gca()
-    if color is None:
-        color = ax._get_lines.color_cycle.next()
-    if np.isscalar(yerr) or len(yerr) == len(y):
-        ymin = y - yerr
-        ymax = y + yerr
-    elif len(yerr) == 2:
-        ymin, ymax = yerr
-    ax.plot(x, y, color=color)
-    ax.fill_between(x, ymax, ymin, color=color, alpha=alpha_fill)
 def lc_plot(objs, y_type = 'flux', pause_time=2, color_wheel = ['orange', 'cyan', 'violet', 'red', 'blue'],
             quiet=False, save_plots=True, save_loc='../snpy/misc_plots/'):
     print('[+++] Plotting LC data...')
@@ -242,6 +230,39 @@ def snpy_histogram_plotter(path, raw=False, save_plot=False, save_loc='../defaul
         ax[i].hist(params[i], bins=param_bins[i])
         if i != 0:
             ax[i].get_yaxis().set_visible(False)
+        ax[i].set_xlabel(param_names[i])
+
+    plt.suptitle("Parameters for '" + path.split('/')[-1].split('_')[0].upper()
+                 + "' data\n Number of Transients: " + str(len(objs)), fontsize=20)
+    if save_plot:
+        print('Saved figure to... ', save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
+        plt.savefig(save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
+    plt.show()
+
+    return
+def salt3_histogram_plotter(path, raw=False, save_plot=False, save_loc='../default/', ignore_type=[], param_bins=[None, None, None, None, None]):
+    # Pull data
+    objs = gen.dict_handler(path=path, choice='unpack')
+    t0, x0, x1, c, mu, host_mass = np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
+    for obj in objs:
+        t0 = np.append(t0, float(objs[obj]['t0']))
+        x0 = np.append(x0, float(objs[obj]['x0']))
+        x1 = np.append(x1, float(objs[obj]['x1']))
+        c = np.append(c, float(objs[obj]['c']))
+        mu = np.append(mu, float(objs[obj]['mu']))
+        host_mass = np.append(host_mass, float(objs[obj]['host_mass']))
+
+    # Plot
+    fig, ax = plt.subplots(1, 6, figsize=(25, 5), layout='constrained')
+    params = [t0, x0, x1, c, mu, host_mass]
+    param_names = ['t0', 'x0', 'x1', 'c', 'mu', 'host_mass']
+    param_bins = [45, 45, 45, 45, 45, 45]
+    for i in range(len(params)):
+        ax[i].hist(params[i], bins=param_bins[i])
+        if i != 0:
+            ax[i].get_yaxis().set_visible(False)
+        ax[i].set_xlabel(param_names[i])
+        ax[i].set_xlabel(param_names[i])
         ax[i].set_xlabel(param_names[i])
 
     plt.suptitle("Parameters for '" + path.split('/')[-1].split('_')[0].upper()

@@ -102,8 +102,19 @@ def dict_handler(data_dict={}, choice='', path='../default/dict.txt', delimiter=
                 f.write('\n')
         print('[+++] Files packed to', path)
         return
+    elif choice == 'arrays':
+        print('[+++] Unpacking objects from '+path+' into arraies...')
+        with open(path, 'r') as f:
+            hdr = f.readline()[:-1].split(delimiter)
+        data = np.genfromtxt(path, delimiter=delimiter, dtype=str, skip_header=1)
+        if len(data) == 0:
+            return {}
+        temp_arrs = {}
+        for i in range(len(hdr)):
+            temp_arrs.update({hdr[i]: data[:, i]})
+        return temp_arrs
     else:
-        print("[!!!] Invalid packing option! ['pack'/'unpack']")
+        print("[!!!] Invalid packing option! ['arrays'/'pack'/'unpack']")
         return
 def data_proccesser(data_set, individual='', mag_unc_max=0, flux_unc_max=0, quiet=False):
     print('[+++] Processing '+data_set+' data...')
