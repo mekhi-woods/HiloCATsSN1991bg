@@ -113,7 +113,7 @@ if __name__ == '__main__':
     # fit_SALT3()
     # plot_SALT3()
 
-    objs = gen.dict_handler(choice='arrays', path=CONSTANTS['salt_atlas_loc'] + 'atlas_salt_saved.txt')
+    # objs = gen.dict_handler(choice='arrays', path=CONSTANTS['salt_atlas_loc'] + 'atlas_salt_saved.txt')
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 

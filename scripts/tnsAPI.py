@@ -5,10 +5,13 @@ from collections import OrderedDict
 import requests
 import json
 import time
+import scripts.general as gen
 
-tns_bot_id = '73181'
-tns_bot_name = 'YSE_Bot1'
-tns_bot_api_key = '0d771345fa6b876a5bb99cd5042ab8b5ae91fc67'
+APIkey = gen.get_APIkeys()
+
+tns_bot_id = APIkey['tns_bot_id']
+tns_bot_name = APIkey['tns_bot_name']
+tns_bot_api_key = APIkey['tns_bot_api_key']
 
 def build_tns_header(tns_bot_id, tns_bot_name):
     """

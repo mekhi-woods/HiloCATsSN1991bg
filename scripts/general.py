@@ -4,7 +4,6 @@ import glob
 import shutil
 import time as systime
 import numpy as np
-from scripts import tnsAPI
 
 from astro_ghost.ghostHelperFunctions import getTransientHosts
 from astropy.coordinates import SkyCoord
@@ -27,7 +26,20 @@ def get_constants(cosntant_loc='../txts/constants.txt'):
                 continue
             CONSTANTS.update({line[0]: line[1]})
     return CONSTANTS
+def get_APIkeys(apikeys_loc='../txts/APIkeys.txt'):
+    if not os.path.isfile(apikeys_loc):
+        raise FileNotFoundError('[!!!] API keys file not found!')
+    APIKEY = {}
+    with open(apikeys_loc, 'r') as f:
+        temp = f.readlines()
+        for line in temp:
+            line = line[:-1].split(', ')
+            if len(line) != 2:
+                continue
+            APIKEY.update({line[0]: line[1]})
+    return APIKEY
 def TNS_objname_z(obj_ra, obj_dec, attempts=10, use_keys=True):
+    from scripts import tnsAPI
     print('-----------------------------------------------------------------------------------------------------------')
     print('Searching TNS for ['+str(obj_ra)+', '+str(obj_dec)+']...')
     tns_bot_id, tns_bot_name, tns_bot_api_key = '73181', 'YSE_Bot1', '0d771345fa6b876a5bb99cd5042ab8b5ae91fc67'
