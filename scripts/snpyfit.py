@@ -37,7 +37,7 @@ def dataset_process(data_set, mag_unc_max=0, flux_unc_max=0,
     gen.host_mass(save_txt, keep_data=False, update_saved=True) # Get host masses
 
     return
-def combined_process(mag_unc_max=0, flux_unc_max=0,
+def combined_process(mag_unc_max=0, flux_unc_max=0, processes = ['mass'],
                      use_saved=True, replot=True, show_plots=True, save=False, quiet=False):
     save_loc = CONSTANTS['combined_saved_loc']
     save_txt = save_loc + 'combined_saved.txt'
@@ -59,13 +59,14 @@ def combined_process(mag_unc_max=0, flux_unc_max=0,
                     allObjs[obj][cat] = np.hstack((allObjs[obj][cat], objs[obj][cat]))
 
     write_ASCII(objs=allObjs, **ASCIIArgs) # Write ASCII files for SNooPy fitting
-    if replot:
+    if 'replot' in processes:
         gen.lc_plot(objs=allObjs, **plottingArgs) # Replot LCs
     objParams = snpy_fit(paths=glob.glob(save_loc + 'ascii/*.txt'), **fittingArgs) # Fit with SNooPy
     gen.dict_handler(choice='pack', data_dict=objParams, path=save_txt) # Save parameters to file
-    gen.host_mass(save_txt, keep_data=False, update_saved=True) # Get host masses
+    if 'mass' in processes:
+        gen.host_mass(save_txt, keep_data=False, update_saved=True) # Get host masses
     return
-def indivisual_process(SN, data_set, mag_unc_max=0, flux_unc_max=0,
+def indivisual_process(SN, data_set, mag_unc_max=0, flux_unc_max=0, processes = ['mass'],
                        use_saved=True, replot=True, show_plots=True, save=False, quiet=False):
     data_loc = CONSTANTS[data_set.lower() + '_data_loc']
     save_loc = CONSTANTS[data_set.lower() + '_saved_loc']
@@ -90,13 +91,14 @@ def indivisual_process(SN, data_set, mag_unc_max=0, flux_unc_max=0,
     save_txt = save_loc + data_set.lower() + '_' + objname + '_saved.txt'
 
     write_ASCII(objs=objs, **ASCIIArgs) # Write ASCII files for SNooPy fitting
-    if replot:
+    if 'replot' in processes:
         gen.lc_plot(objs=objs, **plottingArgs) # Replot LCs
     objParams = snpy_fit(paths=[save_loc + 'ascii/'+objname+'_snpy.txt'], **fittingArgs) # Fit with SNooPy
     if len(objParams) <= 0:
         raise ValueError("[!!!] Fit Unsuccessful!")
     gen.dict_handler(choice='pack', data_dict=objParams, path=save_txt) # Save parameters to file
-    gen.host_mass(save_txt, keep_data=False, update_saved=True) # Get host masses
+    if 'mass' in processes:
+        gen.host_mass(save_txt, keep_data=False, update_saved=True) # Get host masses
 
     return
 def write_ASCII(objs, filter_set, save_loc):
