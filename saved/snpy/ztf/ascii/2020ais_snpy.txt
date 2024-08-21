@@ -1,4 +1,0 @@
-2020ais 0.02 176.118879166667 10.78335
-filter g
-filter r
-filter i

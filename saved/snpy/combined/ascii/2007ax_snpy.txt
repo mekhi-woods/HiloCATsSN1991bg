@@ -1,6 +1,0 @@
-2007ax 0.0069 125.68025 22.554694
-filter ATgr
-filter ATri
-filter g
-filter r
-filter i

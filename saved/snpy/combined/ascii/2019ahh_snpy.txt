@@ -1,6 +1,0 @@
-2019ahh 0.0225 210.563370833333 9.78331944444444
-filter ATgr
-filter ATri
-filter g
-filter r
-filter i

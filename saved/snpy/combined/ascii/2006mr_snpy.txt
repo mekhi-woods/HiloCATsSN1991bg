@@ -1,6 +1,0 @@
-2006mr 0.0059 50.679333 -37.208222
-filter ATgr
-filter ATri
-filter g
-filter r
-filter i

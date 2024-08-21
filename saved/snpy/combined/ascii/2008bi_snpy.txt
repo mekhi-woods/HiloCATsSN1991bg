@@ -1,6 +1,0 @@
-2008bi 0.0134 128.972458 0.706417
-filter ATgr
-filter ATri
-filter g
-filter r
-filter i

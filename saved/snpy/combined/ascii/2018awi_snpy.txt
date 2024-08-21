@@ -1,6 +1,0 @@
-2018awi 0.059 155.045458333333 -7.84686111111111
-filter ATgr
-filter ATri
-filter g
-filter r
-filter i
