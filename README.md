@@ -6,11 +6,11 @@ __NOTE: This repository is currently under construction__
 --------------------------
 ## Recent Plots
 
-![](saved/H0vz_present.png)
+![ ](saved/H0vz_present.png)
 This plot depicts the relationship between the redshift of the SN and the corresponding Hubble Residual.
 --------------------------
 
-![](saved/H0vM_present.png)
+![ ](saved/H0vM_present.png)
 This plot depicts the relationship between the mass of the host galaxy for the SN and the corresponding Hubble Residual. 
 
 --------------------------
