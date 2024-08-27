@@ -307,10 +307,8 @@ class sn91bg():
             print('[!!!] Failed to load ASCII file')
             return
         n_s.k_version = '91bg'
-        # n_s.choose_model('EBV_model2', stype='st')
         n_s.choose_model('EBV_model2', stype='st', RVhost=2.5)
         n_s.set_restbands()  # Auto pick appropriate rest-bands
-
 
         # Remove empty filters -- fix for 'ValueError: attempt to get argmin of an empty sequence'
         for filter in list(n_s.data.keys()):
@@ -613,7 +611,8 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
             print('[!!!] File [' + path + '] empty!')
             return None
         with (open(path, 'r') as f):
-            ztf_spread = 200
+            # ztf_spread = 200
+            ztf_spread = float(CONSTANTS['ztf_spread'])
 
             hdr = f.readlines()
             ra, dec = float(hdr[3].split(' ')[-2]), float(hdr[4].split(' ')[-2])
@@ -692,7 +691,7 @@ def combined_fit(algo='snpy', cut=False):
         if name in altas_ztf_list:
             new_zp = np.hstack((ATLAS_SNe[name].zp, ZTF_SNe[name].zp))
             new_filters = np.hstack((ATLAS_SNe[name].filters, ZTF_SNe[name].filters))
-            new_time = np.hstack((ATLAS_SNe[name].time, ZTF_SNe[name].time-2400000.5)) # Put ZTF into MJD
+            new_time = np.hstack((ATLAS_SNe[name].time, ZTF_SNe[name].time))
             new_flux = np.hstack((ATLAS_SNe[name].flux, ZTF_SNe[name].flux))
             new_dflux = np.hstack((ATLAS_SNe[name].dflux, ZTF_SNe[name].dflux))
             new_mag = np.hstack((ATLAS_SNe[name].mag, ZTF_SNe[name].mag))
@@ -979,21 +978,46 @@ if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
     # data_set, path = 'CSP', '../data/CSP/SN2006mr_snpy.txt'
-    data_set, path = 'ATLAS', '../data/ATLAS/1012958111192621400.txt'
+    # data_set, path = 'ATLAS', '../data/ATLAS/1012958111192621400.txt'
     # data_set, path = 'ZTF', '../data/ZTF/forcedphotometry_req00381165_lc.txt'
-    SN = indvisual_fit(data_set, path, algo='snpy')
+    # SN = indvisual_fit(data_set, path, algo='snpy')
 
-    # SNe = combined_fit(algo='salt', cut=False)
+    # SNe = combined_fit(algo='snpy', cut=False)
     # SNe = batch_fit('CSP', algo='salt', cut=False)
     # SNe = batch_fit('ATLAS', algo='snpy', cut=False)
     # SNe = batch_fit('ZTF', algo='snpy', cut=False)
 
     # SN = indivisual_load('../saved/snpy/combined/classes/2018lph_class.txt')
-    # SNe = batch_load(data_set='ZTF', algo='snpy') # CSP, ATLAS, ZTF, COMBINED
+    # SNe = batch_load(data_set='COMBINED', algo='snpy') # CSP, ATLAS, ZTF, COMBINED
 
     # SNe_cut = sample_cutter(SNe, 'snpy')
 
     # residual_plotter('../saved/snpy/combined/combined_params.txt', x_params='Redshift', labels=False)
     # histogram_plotter(path='../saved/salt/atlas/atlas_params.txt', param_bins=[5, 5, 5, 5, 5]) # path='../saved/snpy/csp/csp_params.txt', param_bins=[5, 5, 5, 5, 5]
+
+    data = np.genfromtxt(CONSTANTS['combined_saved_loc']+'combined_params.txt')
+
+
+    # plt.figure(figsize=(10, 5))
+    # val_cut, err_cut = 0.2, 0.1
+    # resid_arr = np.array([])
+    # for SN in SNe:
+    #     name = SN.objname
+    #     n_resid = SN.params['mu']['value'] - gen.current_cosmo().distmod(SN.z).value
+    #     n_resid_err = SN.params['mu']['err']
+    #     n_EBVhost = SN.params['EBVhost']['value']
+    #     n_EBVhost_err = SN.params['EBVhost']['err']
+    #
+    #     if n_EBVhost > val_cut or n_EBVhost < -val_cut or n_EBVhost_err > err_cut:
+    #         continue
+    #
+    #     resid_arr = np.append(resid_arr, n_resid)
+    #     plt.errorbar(n_EBVhost, n_resid, xerr=n_EBVhost_err, yerr=n_resid_err, fmt='o')
+    #     plt.text(n_EBVhost, n_resid, name, size='x-small', va='top')
+    #
+    # plt.ylabel('Residual'); plt.xlabel('EBVhost')
+    # plt.title('EBVhost v. Residual | RVhost = 2.5 | # = '+str(len(resid_arr))+' | Residual Scater = '+str(round(np.std(resid_arr), 4))+'\n'+
+    # str(val_cut) + ' < EBVhost < ' + str(val_cut) + ' | EBVhosterr < ' + str(err_cut))
+    # plt.show()
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
