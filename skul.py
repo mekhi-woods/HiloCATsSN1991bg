@@ -9,7 +9,7 @@ import sncosmo
 import numpy as np
 import time as systime
 import matplotlib.pyplot as plt
-from astro_ghost.ghostHelperFunctions import getTransientHosts
+# from astro_ghost.ghostHelperFunctions import getTransientHosts
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy import units as u
@@ -102,7 +102,7 @@ class sn91bg():
         plt.ylabel(y_type)
         plt.legend()
         if len(save_loc) > 0:
-            plt.savefig(save_loc + obj + '_lc.png')
+            plt.savefig(save_loc + self.objname + '_lc.png')
             print(self.objname, '-- Plot saved to', save_loc + self.objname + '_lc.png')
         plt.show()
         systime.sleep(2)
@@ -169,7 +169,7 @@ class sn91bg():
             plt.xlabel('MJD'); plt.legend() # plt.ylabel(y_type);
         plt.suptitle('Lightcurve -- '+self.objname+' | '+self.originalname+' -- '+y_type)
         if len(save_loc) > 0:
-            plt.savefig(save_loc + obj + '_lc.png')
+            plt.savefig(save_loc + self.objname + '_lc.png')
             print(self.objname, '-- Plot saved to', save_loc + self.objname + '_lc.png')
         plt.show()
         systime.sleep(2)
@@ -274,7 +274,7 @@ class sn91bg():
         self.period = (np.min(self.time), np.max(self.time))
 
         return
-    def write_snpy_ASCII(self, save_loc='../default/'):
+    def write_snpy_ASCII(self, save_loc='default/'):
         print('[+++] '+self.objname+' -- Saving data to ASCII files for SNooPy...')
         filter_dict = {'o': 'ATri', 'c': 'ATgr',
                        'ZTF_g': 'g', 'ZTF_r': 'r', 'ZTF_i': 'i',
@@ -452,10 +452,10 @@ class sn91bg():
             import warnings
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                host_data = getTransientHosts(transientCoord=[transient_position], transientName=[self.objname],
-                                              verbose=False,
-                                              starcut="gentle", savepath= '../default/ghost_stuff/',
-                                              GHOSTpath=GHOST_DATA)
+                host_data = gen.getTransientHosts(transientCoord=[transient_position], transientName=[self.objname],
+                                                  verbose=False,
+                                                  starcut="gentle", savepath= 'default/ghost_stuff/',
+                                                  GHOSTpath=GHOST_DATA)
 
             # If GLADE can't get magnitudes -- using NED name to get SDSS data
             print('Identified Host Galaxy:', host_data.loc[0, 'NED_name'])
@@ -537,8 +537,8 @@ class sn91bg():
         #         print('[!!!] Failed to find host galaxy!\n', err_message)
 
         print('      Removing GHOST data...')
-        shutil.rmtree('../default/ghost_stuff/')  # Clear messy data
-        os.mkdir('../default/ghost_stuff/')
+        shutil.rmtree('default/ghost_stuff/')  # Clear messy data
+        os.mkdir('default/ghost_stuff/')
         return
 
 def save_params_to_file(save_loc, SNe):
@@ -654,19 +654,19 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
 # ------------------------------------------------------------------------------------------------------------------- #
 def combined_fit(algo='snpy', cut=False):
     sys.stdout = open(os.devnull,'w') # Lots of unecessary output
-    csp_files = glob.glob('../data/CSP/*.txt')
+    csp_files = glob.glob('data/CSP/*.txt')
     CSP_SNe = {}
     for file in csp_files:
         tempSN = class_creation('CSP', file)
         if tempSN is not None:
             CSP_SNe.update({tempSN.objname: tempSN})
-    atlas_files = glob.glob('../data/ATLAS/*.txt')
+    atlas_files = glob.glob('data/ATLAS/*.txt')
     ATLAS_SNe, atlas_names = {}, []
     for file in atlas_files:
         tempSN = class_creation('ATLAS', file)
         if tempSN is not None:
             ATLAS_SNe.update({tempSN.objname: tempSN})
-    ztf_files = glob.glob('../data/ZTF/*.txt')
+    ztf_files = glob.glob('data/ZTF/*.txt')
     ZTF_SNe = {}
     for file in ztf_files:
         tempSN = class_creation('ZTF', file)
@@ -743,7 +743,7 @@ def combined_fit(algo='snpy', cut=False):
 
     return fit_combined_SNe
 def batch_fit(data_set, algo='snpy', cut=False, dmag_max=0, dflux_max=0):
-    SNe, files = [], glob.glob('../data/' + data_set + '/*.txt')
+    SNe, files = [], glob.glob('data/' + data_set + '/*.txt')
     for path in files:
         print('[', files.index(path) + 1, '/', len(files), ']')
         print('-----------------------------------------------------------------------------------------------')
@@ -797,7 +797,7 @@ def indivisual_load(path):
     return tempSN
 def batch_load(data_set, algo='snpy'):
     SNe = []
-    for path in glob.glob('../saved/' + algo + '/' + data_set.lower() + '/classes/*_class.txt'):
+    for path in glob.glob('saved/' + algo + '/' + data_set.lower() + '/classes/*_class.txt'):
         SNe.append(indivisual_load(path))
     return SNe
 def sample_cutter(SNe, data_set, algo='snpy', save=True):
@@ -954,8 +954,8 @@ def histogram_plotter(path, param_bins=[45, 45, 45, 45, 45]):
 
     plt.suptitle("Parameters for '" + path.split('/')[-1].split('_')[0].upper()
                  + "' data\n Number of Transients: " + str(len(data)), fontsize=20)
-    print('Saved figure to... ', save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
-    plt.savefig(save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
+    print(path[:-len(path.split('/')[-1])]+data_set.lower()+'_hist.png')
+    plt.savefig(path[:-len(path.split('/')[-1])]+data_set.lower()+'_hist.png')
     plt.show()
     return
 # ------------------------------------------------------------------------------------------------------------------- #
@@ -968,7 +968,7 @@ def all_fit(plot=True):
     if plot:
         for algo_sel in ['snpy', 'salt']:
             for source in ['csp', 'atlas', 'ztf', 'combined']:
-                n_path = '../saved/'+algo_sel+'/'+source+'/'+source+'_params.txt'
+                n_path = 'saved/'+algo_sel+'/'+source+'/'+source+'_params.txt'
                 residual_plotter(path=n_path, x_params='Redshift', labels=False)
                 residual_plotter(path=n_path, x_params='Host Mass', labels=False)
                 histogram_plotter(path=n_path, param_bins=[5, 5, 5, 5, 5])
@@ -977,9 +977,9 @@ def all_fit(plot=True):
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
-    # data_set, path = 'CSP', '../data/CSP/SN2006mr_snpy.txt'
-    # data_set, path = 'ATLAS', '../data/ATLAS/1012958111192621400.txt'
-    # data_set, path = 'ZTF', '../data/ZTF/forcedphotometry_req00381165_lc.txt'
+    # data_set, path = 'CSP', 'data/CSP/SN2006mr_snpy.txt'
+    # data_set, path = 'ATLAS', 'data/ATLAS/1012958111192621400.txt'
+    # data_set, path = 'ZTF', 'data/ZTF/forcedphotometry_req00381165_lc.txt'
     # SN = indvisual_fit(data_set, path, algo='snpy')
 
     # SNe = combined_fit(algo='snpy', cut=False)
@@ -987,15 +987,15 @@ if __name__ == '__main__':
     # SNe = batch_fit('ATLAS', algo='snpy', cut=False)
     # SNe = batch_fit('ZTF', algo='snpy', cut=False)
 
-    # SN = indivisual_load('../saved/snpy/combined/classes/2018lph_class.txt')
+    # SN = indivisual_load('saved/snpy/combined/classes/2018lph_class.txt')
     # SNe = batch_load(data_set='COMBINED', algo='snpy') # CSP, ATLAS, ZTF, COMBINED
 
     # SNe_cut = sample_cutter(SNe, 'snpy')
 
-    # residual_plotter('../saved/snpy/combined/combined_params.txt', x_params='Redshift', labels=False)
-    # histogram_plotter(path='../saved/salt/atlas/atlas_params.txt', param_bins=[5, 5, 5, 5, 5]) # path='../saved/snpy/csp/csp_params.txt', param_bins=[5, 5, 5, 5, 5]
+    residual_plotter('saved/snpy/combined/combined_params.txt', x_params='Redshift', labels=False)
+    # histogram_plotter(path='saved/salt/atlas/atlas_params.txt', param_bins=[5, 5, 5, 5, 5]) # path='saved/snpy/csp/csp_params.txt', param_bins=[5, 5, 5, 5, 5]
 
-    data = np.genfromtxt(CONSTANTS['combined_saved_loc']+'combined_params.txt')
+    # data = np.genfromtxt(CONSTANTS['combined_saved_loc']+'combined_params.txt')
 
 
     # plt.figure(figsize=(10, 5))
