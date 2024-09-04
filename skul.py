@@ -10,6 +10,7 @@ import numpy as np
 import time as systime
 import matplotlib.pyplot as plt
 from astro_ghost.ghostHelperFunctions import getTransientHosts
+from astropy.cosmology import FlatLambdaCDM
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy import units as u
@@ -17,6 +18,7 @@ from astroquery.sdss import SDSS
 from astroquery.mast import Catalogs
 import scripts.general as gen
 CONSTANTS = gen.get_constants()
+CURRENT_COSMO = FlatLambdaCDM(70, 0.3)
 
 class sn91bg():
     def __init__(self, objname=None, originalname=None, coords=(0.00, 0.00), z=0.00, origin=None):
@@ -104,6 +106,7 @@ class sn91bg():
         if len(save_loc) > 0:
             plt.savefig(save_loc + obj + '_lc.png')
             print(self.objname, '-- Plot saved to', save_loc + self.objname + '_lc.png')
+        # plt.xlim(59400, 59620)
         plt.show()
         systime.sleep(2)
 
@@ -336,6 +339,8 @@ class sn91bg():
 
                 param_names = ['mu', 'st', 'Tmax', 'EBVhost']
                 snpy_param_names = ['DM', 'st', 'Tmax', 'EBVhost']
+                self.params.update({'chi2': {'value': n_s.model.chisquare,
+                                             'err': n_s.model.rchisquare}})
                 for i in range(len(param_names)):
                     self.params.update({param_names[i]: {'value': n_s.parameters[snpy_param_names[i]],
                                                          'err': n_s.errors[snpy_param_names[i]]}})
@@ -483,20 +488,20 @@ class sn91bg():
                     else:
                         gMag, iMag, iAbsMag = catalog_data['gMeanKronMag'].value[0], \
                         catalog_data['gMeanKronMag'].value[
-                            0], (catalog_data['iMeanKronMag'].value[0] - gen.current_cosmo().distmod(self.z).value)
+                            0], (catalog_data['iMeanKronMag'].value[0] - CURRENT_COSMO.distmod(self.z).value)
                         gMagErr, iMagErr, iAbsMagErr = catalog_data['gMeanKronMagErr'].value[0], \
                             catalog_data['iMeanKronMagErr'].value[0], catalog_data['iMeanKronMagErr'].value[0]
                 else:
                     # SDSS Results
                     gMag, iMag, iAbsMag = result['modelMag_g'].value[0], result['modelMag_i'].value[0], (
-                            result['modelMag_i'].value[0] - gen.current_cosmo().distmod(self.z).value)
+                            result['modelMag_i'].value[0] - CURRENT_COSMO.distmod(self.z).value)
                     gMagErr, iMagErr, iAbsMagErr = result['modelMagErr_g'].value[0], \
                     result['modelMagErr_i'].value[0], \
                         result['modelMagErr_i'].value[0]
             else:
                 # GLADE results
                 gMag, iMag, iAbsMag = host_data['gKronMag'].loc[0], host_data['iKronMag'].loc[0], (
-                        host_data['iKronMag'].loc[0] - gen.current_cosmo().distmod(self.z).value)
+                        host_data['iKronMag'].loc[0] - CURRENT_COSMO.distmod(self.z).value)
                 gMagErr, iMagErr, iAbsMagErr = host_data['gKronMagErr'].loc[0], host_data['iKronMagErr'].loc[0], \
                     host_data['iKronMagErr'].loc[0]
 
@@ -576,12 +581,9 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
                     n_time, n_mag, n_dmag = float(data_line[0]), float(data_line[1]), float(data_line[2])
                     zp = float(CONSTANTS['csp_zpts_' + filter])
 
-                    # Calculate Magnitude
-                    # n_flux = 10 ** ((n_mag - zp) / -2.5)
-                    # n_dflux = 10 ** (n_mag / -2.5)
-
                     n_flux = 10 ** ((n_mag - zp) / -2.5)
                     n_dflux = np.abs(n_flux)*np.log(10)*((1/2.5)*n_dmag)
+                    n_time = n_time + 53000 # MJD-53000 to MJD
 
                     tempSN.zp = np.append(tempSN.zp, zp)
                     tempSN.filters = np.append(tempSN.filters, filter)
@@ -611,8 +613,8 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
             print('[!!!] File [' + path + '] empty!')
             return None
         with (open(path, 'r') as f):
-            # ztf_spread = 200
-            ztf_spread = float(CONSTANTS['ztf_spread'])
+            ztf_spread = 1000
+            # ztf_spread = float(CONSTANTS['ztf_spread'])
 
             hdr = f.readlines()
             ra, dec = float(hdr[3].split(' ')[-2]), float(hdr[4].split(' ')[-2])
@@ -625,8 +627,15 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
             valid_ints = np.unique(np.hstack((np.where(flux != 'null')[0], np.where(dflux != 'null')[0])))
             time, zp, filters = time[valid_ints].astype(float), zp[valid_ints].astype(float), filters[valid_ints]
             flux, dflux = flux[valid_ints].astype(float), dflux[valid_ints].astype(float)
+            mag, dmag = (-2.5*np.log10(flux)) + zp, np.abs((-2.5/np.log(10)) * (dflux/flux))
+            flux = flux*10**(-0.4*(zp-23.9)) # Fix flux, do i fix dflux too?
             time = time - 2400000.5 # JD to MJD
-            mag, dmag = ((-2.5 * np.log10(flux)) + zp), (2.5 * np.log10(dflux))
+
+            # # Guess inital tmax
+            # good_indexes, percent_cut = np.array([]), 0.01
+            # for n in np.sort(flux)[len(flux) - int(len(flux)*percent_cut):len(flux)]:
+            #     good_indexes = np.append(good_indexes, np.where(flux == n)[0][0])
+            # best_t0_max = time[int(np.average(good_indexes))]
 
             # Adjusting around tmax
             if ztf_spread != 0 and len(time) != 0:
@@ -645,104 +654,73 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
             return None
 
         tempSN = sn91bg(objname, originalname, (ra, dec), z, 'ZTF')
-        tempSN.set_data(zp=zp, filters=filters, time=time,
-                        flux=flux, dflux=dflux, mag=mag, dmag=dmag)
+        tempSN.set_data(zp=zp, filters=filters, time=time, flux=flux, dflux=dflux, mag=mag, dmag=dmag)
         tempSN.clean_data(dmag_max, dflux_max)
+
     else:
         raise ValueError("Data set '" + data_set + "' not recognized")
     return tempSN
 # ------------------------------------------------------------------------------------------------------------------- #
-def combined_fit(algo='snpy', cut=False):
-    sys.stdout = open(os.devnull,'w') # Lots of unecessary output
-    csp_files = glob.glob('../data/CSP/*.txt')
-    CSP_SNe = {}
-    for file in csp_files:
-        tempSN = class_creation('CSP', file)
-        if tempSN is not None:
-            CSP_SNe.update({tempSN.objname: tempSN})
-    atlas_files = glob.glob('../data/ATLAS/*.txt')
-    ATLAS_SNe, atlas_names = {}, []
-    for file in atlas_files:
-        tempSN = class_creation('ATLAS', file)
-        if tempSN is not None:
-            ATLAS_SNe.update({tempSN.objname: tempSN})
-    ztf_files = glob.glob('../data/ZTF/*.txt')
-    ZTF_SNe = {}
-    for file in ztf_files:
-        tempSN = class_creation('ZTF', file)
-        if tempSN is not None:
-            ZTF_SNe.update({tempSN.objname: tempSN})
-
-    sys.stdout = sys.__stdout__
-
-    # List of overlapp
-    altas_ztf_list = []
-    for element in list(ATLAS_SNe.keys()):
-        if element in list(ZTF_SNe.keys()):
-            altas_ztf_list.append(element)
-
-    # List of all uniuqe SNe
-    combined_list = np.unique(np.hstack((np.hstack((list(CSP_SNe.keys()), list(ATLAS_SNe.keys()))),
-                                         list(ZTF_SNe.keys()))))
-
-    # Combine filters and data
-    combined_SNe = []
-    for name in combined_list:
-        if name in altas_ztf_list:
-            new_zp = np.hstack((ATLAS_SNe[name].zp, ZTF_SNe[name].zp))
-            new_filters = np.hstack((ATLAS_SNe[name].filters, ZTF_SNe[name].filters))
-            new_time = np.hstack((ATLAS_SNe[name].time, ZTF_SNe[name].time))
-            new_flux = np.hstack((ATLAS_SNe[name].flux, ZTF_SNe[name].flux))
-            new_dflux = np.hstack((ATLAS_SNe[name].dflux, ZTF_SNe[name].dflux))
-            new_mag = np.hstack((ATLAS_SNe[name].mag, ZTF_SNe[name].mag))
-            new_dmag = np.hstack((ATLAS_SNe[name].dmag, ZTF_SNe[name].dmag))
-
-            ATLAS_SNe[name].origin = 'ATLAS-ZTF'
-            ATLAS_SNe[name].set_data(new_zp, new_filters, new_time, new_flux, new_dflux, new_mag, new_dmag)
-            combined_SNe.append(ATLAS_SNe[name])
-        elif name in list(CSP_SNe.keys()):
-            combined_SNe.append(CSP_SNe[name])
-        elif name in list(ATLAS_SNe.keys()):
-            combined_SNe.append(ATLAS_SNe[name])
-        elif name in list(ZTF_SNe.keys()):
-            combined_SNe.append(ZTF_SNe[name])
+def combined_fit(algo='snpy', cut=False, save=True, dmag_max=0, dflux_max=0):
+    # Create classes
+    SNe = {}
+    for d_set in ['CSP', 'ATLAS', 'ZTF']:
+        files = glob.glob('../data/'+d_set+'/*.txt')
+        for file in files:
+            sys.stdout = open(os.devnull, 'w')  # Lots of unecessary output
+            tempSN = class_creation(data_set=d_set, path=file, dmag_max=dmag_max, dflux_max=dflux_max)
+            sys.stdout = sys.__stdout__ # Turn output back on
+            if tempSN != None: # Seeds out failed loads
+                if tempSN.objname in SNe:
+                    # Combine filters and data
+                    # print('Combining ATLAS-'+tempSN.objname, 'with ZTF-'+tempSN.objname+'...')
+                    new_zp = np.hstack((SNe[tempSN.objname].zp, tempSN.zp))
+                    new_filters = np.hstack((SNe[tempSN.objname].filters, tempSN.filters))
+                    new_time = np.hstack((SNe[tempSN.objname].time, tempSN.time))
+                    new_flux = np.hstack((SNe[tempSN.objname].flux, tempSN.flux))
+                    new_dflux = np.hstack((SNe[tempSN.objname].dflux, tempSN.dflux))
+                    new_mag = np.hstack((SNe[tempSN.objname].mag, tempSN.mag))
+                    new_dmag = np.hstack((SNe[tempSN.objname].dmag, tempSN.dmag))
+                    SNe[tempSN.objname].origin = 'ATLAS-ZTF'
+                    SNe[tempSN.objname].set_data(new_zp, new_filters, new_time, new_flux, new_dflux, new_mag, new_dmag)
+                else:
+                    # Add SN to list of all SNe
+                    SNe.update({tempSN.objname: tempSN})
 
     # Fitting data
-    fit_combined_SNe = []
-    if algo == 'snpy':
-        for SN in combined_SNe:
-            print('[', combined_SNe.index(SN)+1, '/', len(combined_SNe), '] Fitting data with SNooPy for '+SN.objname+'...')
-            print('-----------------------------------------------------------------------------------------------')
-            SN.write_snpy_ASCII(save_loc=CONSTANTS['combined_saved_loc'] + 'ascii/')
-            SN.snpy_fit(save_loc=CONSTANTS['combined_saved_loc'])
-            if SN.params['mu']['value'] <= 0.00:
-                continue
-            SN.get_host_mass()
-            SN.save_class(CONSTANTS['combined_saved_loc'])
-            if 'hostMass' in list(SN.params.keys()):
-                fit_combined_SNe.append(SN)
-    elif algo == 'salt':
-        for SN in combined_SNe:
-            print('[', combined_SNe.index(SN)+1, '/', len(combined_SNe), '] Fitting data with SALT3 for '+SN.objname+'...')
-            print('-----------------------------------------------------------------------------------------------')
-            SN.salt_fit(save_loc=CONSTANTS['salt_combined_loc'])
-            if SN.params['mu']['value'] <= 0.00:
-                return None
-            SN.get_host_mass()
-            SN.save_class(CONSTANTS['salt_combined_loc'])
-            if 'hostMass' in list(tempSN.params.keys()):
-                fit_combined_SNe.append(SN)
-    else:
-        raise ValueError("[!!!] Invalid algorithm selected ['snpy'/'salt']")
-    print('Sucessfully fit [', len(fit_combined_SNe), '/', len(combined_SNe), ']!')
+    fit_SNe = []
+    for SN in SNe:
+        print('[', list(SNe.keys()).index(SN)+1, '/', len(SNe), '] Fitting data with SNooPy for '+SNe[SN].objname+'...')
+        print('-----------------------------------------------------------------------------------------------')
+        if algo == 'snpy':
+            save_loc = CONSTANTS['combined_saved_loc']
+            SNe[SN].write_snpy_ASCII(save_loc=save_loc + 'ascii/')
+            SNe[SN].snpy_fit(save_loc=save_loc)
+        elif algo == 'salt':
+            save_loc = CONSTANTS['combined_saved_loc']
+            SNe[SN].salt_fit(save_loc=save_loc)
 
-    if algo == 'snpy':
-        save_params_to_file(CONSTANTS['combined_saved_loc']+'combined_params.txt', fit_combined_SNe)
-    elif algo == 'salt':
-        save_params_to_file(CONSTANTS['salt_combined_loc']+'combined_params.txt', fit_combined_SNe)
+        if SNe[SN].params['mu']['value'] <= 0.00:
+            continue
+        SNe[SN].get_host_mass()
+        if 'hostMass' in list(SNe[SN].params.keys()):
+            fit_SNe.append(SNe[SN])
+            tempSN.save_class(save_loc) # Only saves if it has a mass and mu
 
-    return fit_combined_SNe
-def batch_fit(data_set, algo='snpy', cut=False, dmag_max=0, dflux_max=0):
+    # Save params to file
+    if save:
+        if algo == 'snpy':
+            save_params_to_file(CONSTANTS['combined_saved_loc'] + 'combined_params.txt',
+                                fit_SNe)
+        if algo == 'salt':
+            save_params_to_file(CONSTANTS['salt_combined_loc'] + 'combined_params.txt',
+                                fit_SNe)
+    # Apply cuts
+    if cut:
+        fit_SNe = sample_cutter(fit_SNe, 'COMBINED', algo=algo, save=True)
+
+    return fit_SNe
+def batch_fit(data_set, algo='snpy', cut=False, dmag_max=0, dflux_max=0, save=True):
     SNe, files = [], glob.glob('../data/' + data_set + '/*.txt')
     for path in files:
         print('[', files.index(path) + 1, '/', len(files), ']')
@@ -754,15 +732,15 @@ def batch_fit(data_set, algo='snpy', cut=False, dmag_max=0, dflux_max=0):
 
     # Cut sample
     if cut:
-        SNe = sample_cutter(SNe, data_set, algo=algo)
+        SNe = sample_cutter(SNe, data_set,
+                            algo=algo)
 
     # Save params to file
-    if algo == 'snpy':
-        save_params_to_file(CONSTANTS[data_set.lower() + '_saved_loc'] + data_set.lower() + '_params.txt',
-                            SNe)
-    if algo == 'salt':
-        save_params_to_file(CONSTANTS['salt_'+data_set.lower()+'_loc'] + data_set.lower() + '_params.txt',
-                            SNe)
+    if save:
+        if algo == 'snpy':
+            save_params_to_file(CONSTANTS[data_set.lower() + '_saved_loc'] + data_set.lower() + '_params.txt', SNe)
+        if algo == 'salt':
+            save_params_to_file(CONSTANTS['salt_'+data_set.lower()+'_loc'] + data_set.lower() + '_params.txt', SNe)
     return SNe
 def indvisual_fit(data_set, path, algo='snpy', dmag_max=0, dflux_max=0):
     print(path)
@@ -808,10 +786,10 @@ def sample_cutter(SNe, data_set, algo='snpy', save=True):
         for SN in SNe:
             print('[' + str(SNe.index(SN) + 1) + '/' + str(len(SNe)) + '] -- ' + SN.objname)
             print('---------------------------------------------------------------------------------------------------')
-            resid = float(SN.params['mu']['value']) - gen.current_cosmo().distmod(float(SN.z)).value
+            resid = float(SN.params['mu']['value']) - CURRENT_COSMO.distmod(float(SN.z)).value
             resid -= np.median(resid)
 
-            if float(SN.params['EBVhost']['value']) < -0.2 or float(SN.params['EBVhost']['value']) > 0.2:
+            if float(SN.params['EBVhost']['value']) < -1 or float(SN.params['EBVhost']['value']) > 1:
                 print('[!!!] EBVhost out of range.')
                 continue
             if float(SN.params['EBVhost']['err']) > 0.1:
@@ -829,6 +807,10 @@ def sample_cutter(SNe, data_set, algo='snpy', save=True):
                 print('[!!!] Maximum time error out of range.')
                 continue
 
+            if float(SN.params['chi2']['err']) > 2:
+                print('[!!!] Chi2 error to larger.')
+                continue
+
             if float(SN.z) < 0.015:
                 print('[!!!] Redshift out of range.')
                 continue
@@ -836,6 +818,7 @@ def sample_cutter(SNe, data_set, algo='snpy', save=True):
             if float(SN.params['hostMass']['value']) <= 0.00:
                 print('[!!!] Host mass null.')
                 continue
+
 
             new_SNe.append(SN)
 
@@ -872,31 +855,92 @@ def sample_cutter(SNe, data_set, algo='snpy', save=True):
     if save:
         if algo == 'snpy':
             save_params_to_file(CONSTANTS[data_set.lower() + '_saved_loc'] + data_set.lower() + '_cut_params.txt',
-                                SNe)
+                                new_SNe)
         elif algo == 'salt':
             save_params_to_file(CONSTANTS['salt_'+data_set.lower()+'_loc'] + data_set.lower() + '_cut_params.txt',
-                                SNe)
+                                new_SNe)
 
     return new_SNe
+def file_sample_cutter(path, algo, save=True):
+    print('[+++] Cutting sample from file...')
+
+    valid_lines = []
+    chi2 = []
+    with open(path, 'r') as f:
+        hdr = f.readline().split(', ')
+        hdr[-1] = hdr[-1][:-1]
+        data = f.readlines()
+        uncut_num = len(data)
+        for line in data:
+            n_line = line.split(', ')
+            if algo == 'snpy':
+                if float(n_line[hdr.index('EBVhost')]) < -0.2 or float(n_line[hdr.index('EBVhost')]) > 0.2:
+                    continue
+                if float(n_line[hdr.index('EBVhost_err')]) > 0.1:
+                    continue
+                if float(n_line[hdr.index('st')]) < 0.3 or float(n_line[hdr.index('EBVhost')]) > 1.0:
+                    continue
+                if float(n_line[hdr.index('st_err')]) > 0.1:
+                    continue
+                if float(n_line[hdr.index('Tmax_err')]) > 1:
+                    continue
+                if float(n_line[hdr.index('chi2_err')]) > 2:
+                    continue
+            elif algo == 'salt':
+                if float(n_line[hdr.index('x1')]) < -3 or float(n_line[hdr.index('x1')]) > 3:
+                    continue
+                if float(n_line[hdr.index('x1_err')]) > 1:
+                    continue
+                if float(n_line[hdr.index('c')]) < -0.3 or float(n_line[hdr.index('c')]) > 0.3:
+                    continue
+                if float(n_line[hdr.index('c_err')]) > 0.1:
+                    continue
+                if float(n_line[hdr.index('t0')]) > 2:
+                    continue
+
+            if float(n_line[hdr.index('z')]) < 0.015:
+                continue
+            if float(n_line[hdr.index('hostMass')]) <= 0:
+                continue
+            valid_lines.append(line)
+    print('Successfully cut data [', len(valid_lines), '/', uncut_num, '] !')
+
+    # Save params to file
+    if save:
+        print('Saving to... ', path[:-16]+path[-14:])
+        with open(path[:-16]+path[-14:], 'w') as f:
+            f_hdr = hdr[0]
+            for n in range(1, len(hdr)):
+                f_hdr += ', ' + hdr[n]
+            f_hdr += '\n'
+            f.write(f_hdr)
+            for line in valid_lines:
+                f.write(line)
+    return
 # ------------------------------------------------------------------------------------------------------------------- #
 def residual_plotter(path, x_params='Redshift', labels=False):
     # Pull data from saved text
     data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
     data_set = path.split('/')[-1].split('_')[0].upper()
-    algo = path.split('/')[-3].upper()
+    algo = path.split('/')[-1].split('_')[2].upper()
 
     fig, axs = plt.subplots(1, 2, figsize=(12, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
     color_wheel = {'ZTF': '#81ADC8', 'ATLAS': '#EEDFAA', 'CSP': '#CD4631', 'ATLAS-ZTF': '#DEA47E'}
-    key = {'ZTF': True, 'ATLAS': True, 'CSP': True, 'ATLAS-ZTF': True}
+
+    # Get index of mu & hostMass
+    with open(path, 'r') as f:
+        hdr = f.readline().split(', ')
+        mu_index = hdr.index('mu')
+        hostMass_index = hdr.index('hostMass')
 
     # Plot points
     for origin in np.unique(data[:, 6]):
         indexs = np.where(data[:, 6] == origin)[0]
-        resid_mu = data[:, 7].astype(float)[indexs] - gen.current_cosmo().distmod(data[:, 3].astype(float)[indexs]).value
-        resid_mu_err = data[:, 8].astype(float)[indexs]
+        resid_mu = data[:, mu_index].astype(float)[indexs] - CURRENT_COSMO.distmod(data[:, 3].astype(float)[indexs]).value
+        resid_mu_err = data[:, mu_index+1].astype(float)[indexs]
 
         if x_params == 'Host Mass':
-            x_axis, x_axis_err = data[:, 15].astype(float)[indexs], data[:, 16].astype(float)[indexs]
+            x_axis, x_axis_err = data[:, hostMass_index].astype(float)[indexs], data[:, hostMass_index+1].astype(float)[indexs]
         elif x_params == 'Redshift':
             x_axis, x_axis_err = data[:, 3].astype(float)[indexs], None
         else:
@@ -909,16 +953,17 @@ def residual_plotter(path, x_params='Redshift', labels=False):
                 axs[0].text(x_axis[i], resid_mu[i], str(data[:, 0][indexs][i]), size='x-small', va='top')
 
     # Plot histogram
-    all_resid_mu = data[:, 7].astype(float) - gen.current_cosmo().distmod(data[:, 3].astype(float)).value
+    all_resid_mu = data[:, mu_index].astype(float) - CURRENT_COSMO.distmod(data[:, 3].astype(float)).value
     axs[1].hist(all_resid_mu, bins=40, orientation="horizontal", color='#9E6240')
 
     # Formatting
-    ylimiter = np.max(np.abs(resid_mu))+0.5
+    all_resid_mu = all_resid_mu[np.where(~np.isnan(all_resid_mu))]
+    ylimiter = np.max(np.abs(all_resid_mu))+0.5
     axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
-    fig.suptitle("Hubble Residuals vs. " + x_params + " of '"+data_set+"' 91bg-like SNe Ia -- "+algo, fontsize=15)
-
-    fig.suptitle("Hubble Residuals vs. " + x_params + " of '"+data_set+"' 91bg-like SNe Ia\n" +  # Figure Title
-             ' | Scatter: ' + str(round(np.std(all_resid_mu), 2)) + ' | # of pts: ' + str(len(all_resid_mu)), size='medium')
+    fig.suptitle("Hubble Residuals vs. " + x_params + " of '"+data_set+"' 91bg-like SNe Ia -- "+algo+"\n" +  # Figure Title
+                 str(round(np.min(all_resid_mu), 2)) + ' < resid < ' + str(round(np.max(all_resid_mu), 2)) +
+                 ' | Scatter: ' + str(round(np.std(all_resid_mu), 2)) +
+                 ' | # of pts: ' + str(len(all_resid_mu)), size='medium')
 
     axs[0].set(xlabel=x_params, ylabel='Hubble Residuals')  # Sub-plot Labels
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
@@ -927,36 +972,130 @@ def residual_plotter(path, x_params='Redshift', labels=False):
     plt.savefig(path[:-len(path.split('/')[-1])]+data_set.lower()+'_resid_v_'+x_params.lower()+'.png')
     plt.show()
     return
-def histogram_plotter(path, param_bins=[45, 45, 45, 45, 45]):
+def histogram_plotter(path, param_bins=[45, 45, 45, 45, 45, 45]):
     # Pull data from saved text
     data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
     data_set = path.split('/')[-1].split('_')[0].upper()
-    algo = path.split('/')[-3].upper()
+    algo = path.split('/')[-1].split('_')[2].upper()
+    cut = path.split('/')[-1].split('_')[3].upper()
 
     # Pull data
     if algo == 'SNPY':
-        mu, st, Tmax, EBVhost, hostMass = (data[:, 7].astype(float), data[:, 9].astype(float), data[:, 11].astype(float),
-                                            data[:, 13].astype(float), data[:, 15].astype(float))
-        params = [mu, st, Tmax, EBVhost, hostMass]
+        chi2, mu, st, Tmax, EBVhost, hostMass = (data[:, 8].astype(float), data[:, 9].astype(float),
+                                                 data[:, 11].astype(float), data[:, 13].astype(float),
+                                                 data[:, 15].astype(float), data[:, 17].astype(float))
+        params = [chi2, mu, st, Tmax, EBVhost, hostMass]
+        param_names = ['chi2', 'mu', 'st', 'Tmax', 'EBVhost', 'hostMass']
     elif algo == 'SALT':
         t0, x0, x1, c, mu, hostMass = (data[:, 7].astype(float), data[:, 9].astype(float), data[:, 11].astype(float),
                                        data[:, 13].astype(float), data[:, 15].astype(float), data[:, 17].astype(float))
         params = [t0, x0, x1, c, mu, hostMass]
+        param_names = ['t0', 'x0', 'x1', 'c', 'mu', 'hostMass']
 
     # Plot
-    fig, ax = plt.subplots(1, 5, figsize=(16, 4), layout='constrained')
-    param_names = ['mu', 'st', 'Tmax', 'EBVhost', 'host_mass']
+    fig, ax = plt.subplots(1, len(params), figsize=(16, 4), layout='constrained')
     for i in range(len(params)):
         ax[i].hist(params[i], bins=param_bins[i])
         if i != 0:
             ax[i].get_yaxis().set_visible(False)
         ax[i].set_xlabel(param_names[i])
 
-    plt.suptitle("Parameters for '" + path.split('/')[-1].split('_')[0].upper()
-                 + "' data\n Number of Transients: " + str(len(data)), fontsize=20)
-    print('Saved figure to... ', save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
-    plt.savefig(save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
+    plt.suptitle("Parameters for '" + data_set + '-' + cut + "' "+
+                 "data\n Number of Transients: " + str(len(data)), fontsize=20)
+    print('Saved figure to... ', '..'+path.split('.')[-2]+'_hist.png')
+    plt.savefig('..'+path.split('.')[-2]+'_hist.png')
     plt.show()
+    return
+def residual_v_EBVhost(data_loc, val_cut = 0.2, err_cut = 0.1):
+    data = np.genfromtxt(data_loc, dtype=str, skip_header=1, delimiter=', ')
+    names, origins = data[:, 0], data[:, 6]
+    redshifts, mus, mu_errs = data[:, 3].astype(float), data[:, 7].astype(float), data[:, 8].astype(float)
+    EBVhosts, EBVhost_errs = data[:, 13].astype(float), data[:, 14].astype(float)
+    color_wheel = {'ZTF': '#81ADC8', 'ATLAS': '#EEDFAA', 'CSP': '#CD4631', 'ATLAS-ZTF': '#DEA47E'}
+
+    plt.figure(figsize=(10, 6))
+    resid_arr = np.array([])
+    for i in range(len(mus)):
+        name = names[i]
+        origin = origins[i]
+        n_resid = mus[i] - CURRENT_COSMO.distmod(redshifts[i]).value
+        n_resid_err = mu_errs[i]
+        n_EBVhost = EBVhosts[i]
+        n_EBVhost_err = EBVhost_errs[i]
+
+        if n_EBVhost_err > 5:
+            continue
+
+        if val_cut != 0 and err_cut != 0:
+            if n_EBVhost > val_cut or n_EBVhost < -val_cut or n_EBVhost_err > err_cut:
+                continue
+
+        resid_arr = np.append(resid_arr, n_resid)
+        plt.errorbar(n_EBVhost, n_resid, xerr=n_EBVhost_err, yerr=n_resid_err, fmt='o',
+                     elinewidth=1, color=color_wheel[origin])
+        # plt.text(n_EBVhost, n_resid, name, size='x-small', va='top')
+
+    plt.xlabel('EBVhost'); plt.ylabel('Residual')
+    title = 'EBVhost v. Residual \n'
+    title += data_loc.split('/')[-1].split('_')[-2]
+    title += ' | # = ' + str(len(resid_arr)) + ' | Residual Scater = ' + str(round(np.std(resid_arr), 4))
+    if val_cut != 0 and err_cut != 0:
+        title += '\n' + str(val_cut) + ' < EBVhost < ' + str(val_cut) + ' | EBVhosterr < ' + str(err_cut)
+    # plt.xlim(-0.2, 0.2); plt.ylim(-1, 1)
+    plt.title(title)
+    plt.show()
+    return
+def snpy_v_salt_mu():
+    for d_set in ['csp', 'atlas', 'ztf']:
+        snpy_data = np.genfromtxt('../output/batch_'+d_set+'_snpy_uncut_params.txt', skip_header=1, dtype=str, delimiter=', ')
+        snpy_names, snpy_mu = snpy_data[:, 0], snpy_data[:, 7].astype(float)
+        salt_data = np.genfromtxt('../output/batch_'+d_set+'_salt_uncut_params.txt', skip_header=1, dtype=str, delimiter=', ')
+        salt_names, salt_mu = salt_data[:, 0], salt_data[:, 15].astype(float)
+
+        all_mu = {}
+        all_salt_mu, all_snpy_mu, resid = np.array([]), np.array([]), np.array([])
+        for name in snpy_names:
+            if name in salt_names:
+                all_mu.update({name: {'salt_mu': salt_mu[np.where(salt_names == name)[0][0]],
+                                      'snpy_mu': snpy_mu[np.where(snpy_names == name)[0][0]]}})
+                all_snpy_mu = np.append(all_snpy_mu, snpy_mu[np.where(snpy_names == name)[0][0]])
+                all_salt_mu = np.append(all_salt_mu, salt_mu[np.where(salt_names == name)[0][0]])
+                resid = np.append(resid, snpy_mu[np.where(snpy_names == name)[0][0]] - salt_mu[np.where(salt_names == name)[0][0]])
+        plt.title(d_set)
+        plt.hist(resid)
+        plt.xlim(-max(abs(resid)), max(abs(resid)))
+        plt.show()
+    return
+def param_compare():
+    dr3_data = np.genfromtxt('../txts/DR3_fits.dat', dtype=str, skip_header=1)
+    data = np.genfromtxt('../output/COMBINED_combined_snpy_uncut_rv25_params.txt', dtype=str, skip_header=1, delimiter=', ')
+
+    overlapped_st_dr3, overlapped_ebv_dr3 = np.array([]), np.array([])
+    overlapped_st, overlapped_ebv = np.array([]), np.array([])
+    for i in range(len(data[:, 0])):
+        if 'SN'+data[i, 0] in dr3_data[:, 0]:
+            overlapped_st_dr3 = np.append(overlapped_st_dr3, float(dr3_data[np.where(dr3_data[:, 0] == 'SN'+data[i, 0])[0][0], 2]))
+            overlapped_ebv_dr3 = np.append(overlapped_ebv_dr3, float(dr3_data[np.where(dr3_data[:, 0] == 'SN'+data[i, 0])[0][0], 25]))
+            overlapped_st = np.append(overlapped_st, float(data[i, 9]))
+            overlapped_ebv = np.append(overlapped_ebv, float(data[i, 13]))
+            # print('SN'+data[i, 0], dr3_data[np.where(dr3_data[:, 0] == 'SN'+data[i, 0])[0][0], 0])
+
+    # # ST Hist
+    # plt.figure(figsize=(12, 7))
+    # plt.hist(overlapped_st, bins=10, color='r', label='SNPY')
+    # plt.hist(overlapped_st_dr3, bins=10, color='b', label='DR3')
+    # plt.title('SNPY v. DR3 Params -- st')
+    # plt.legend()
+    # plt.show()
+
+    # EBVhost Hist
+    plt.figure(figsize=(12, 7))
+    plt.hist(overlapped_ebv, bins=30, color='r', label='SNPY')
+    plt.hist(overlapped_ebv_dr3, bins=30, color='b', label='DR3')
+    plt.title('SNPY v. DR3 Params -- EBVhost')
+    plt.legend()
+    plt.show()
+
     return
 # ------------------------------------------------------------------------------------------------------------------- #
 def all_fit(plot=True):
@@ -973,51 +1112,57 @@ def all_fit(plot=True):
                 residual_plotter(path=n_path, x_params='Host Mass', labels=False)
                 histogram_plotter(path=n_path, param_bins=[5, 5, 5, 5, 5])
     return
+def output(fit_type, data_set, algo, cut=False, path=None, special_text=''):
+    if fit_type == 'indv':
+        SNe = [indvisual_fit(data_set, path, algo=algo)]
+        if SNe[0] == None:
+            print('[!!!] Fit failed!')
+            return [None]
+    elif fit_type == 'batch':
+        SNe = batch_fit(data_set, algo=algo, save=False, dmag_max=1)
+    elif fit_type == 'COMBINED':
+        SNe = combined_fit(algo=algo, save=False, dmag_max=1)
+    else:
+        raise ValueError("Invalid type selected ['indv'/'batch'/'COMBINED']")
+    # Saving
+    save_params_to_file('../output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_uncut_'+special_text+'params.txt', SNe)
+    if cut:
+        SNe = sample_cutter(SNe, data_set, algo=algo, save=False)
+        save_params_to_file('../output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_cut_'+special_text+'params.txt', SNe)
+    return SNe
 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
-    # data_set, path = 'CSP', '../data/CSP/SN2006mr_snpy.txt'
-    # data_set, path = 'ATLAS', '../data/ATLAS/1012958111192621400.txt'
-    # data_set, path = 'ZTF', '../data/ZTF/forcedphotometry_req00381165_lc.txt'
-    # SN = indvisual_fit(data_set, path, algo='snpy')
-
-    # SNe = combined_fit(algo='snpy', cut=False)
-    # SNe = batch_fit('CSP', algo='salt', cut=False)
-    # SNe = batch_fit('ATLAS', algo='snpy', cut=False)
-    # SNe = batch_fit('ZTF', algo='snpy', cut=False)
-
-    # SN = indivisual_load('../saved/snpy/combined/classes/2018lph_class.txt')
+    # SN = indivisual_load('../saved/snpy/ztf/classes/2019luv_class.txt')
     # SNe = batch_load(data_set='COMBINED', algo='snpy') # CSP, ATLAS, ZTF, COMBINED
 
-    # SNe_cut = sample_cutter(SNe, 'snpy')
+    # SNe = output('batch', 'ATLAS', 'snpy', cut=True)
+    # SNe = output('COMBINED', 'COMBINED', 'salt', cut=True)
+    # SNe = output('COMBINED', 'COMBINED', 'salt ', cut=True)
+    # SN = output('indv', 'ATLAS', 'snpy', path='../data/ATLAS/1011108430135639500.txt')
 
-    # residual_plotter('../saved/snpy/combined/combined_params.txt', x_params='Redshift', labels=False)
-    # histogram_plotter(path='../saved/salt/atlas/atlas_params.txt', param_bins=[5, 5, 5, 5, 5]) # path='../saved/snpy/csp/csp_params.txt', param_bins=[5, 5, 5, 5, 5]
+    # file_sample_cutter('../output/batch_atlas_snpy_uncut_params.txt', 'snpy')
 
-    data = np.genfromtxt(CONSTANTS['combined_saved_loc']+'combined_params.txt')
+    # residual_plotter('../output/COMBINED_combined_salt_cut_params.txt', x_params='Redshift', labels=False)
+    # residual_plotter('../output/COMBINED_combined_salt_cut_params.txt', x_params='Host Mass', labels=False)
+    # histogram_plotter(path='../output/COMBINED_combined_snpy_uncut_params.txt')
+    # histogram_plotter(path='../output/COMBINED_combined_snpy_cut_params.txt')
+    # residual_v_EBVhost('../output/COMBINED_combined_snpy_cut_rv1518_params.txt', 0, 0)
+    # residual_v_EBVhost('../output/COMBINED_combined_snpy_cut_rv25_params.txt', 0, 0)
+    # snpy_v_salt_mu()
+    # param_compare()
 
-
-    # plt.figure(figsize=(10, 5))
-    # val_cut, err_cut = 0.2, 0.1
-    # resid_arr = np.array([])
-    # for SN in SNe:
-    #     name = SN.objname
-    #     n_resid = SN.params['mu']['value'] - gen.current_cosmo().distmod(SN.z).value
-    #     n_resid_err = SN.params['mu']['err']
-    #     n_EBVhost = SN.params['EBVhost']['value']
-    #     n_EBVhost_err = SN.params['EBVhost']['err']
-    #
-    #     if n_EBVhost > val_cut or n_EBVhost < -val_cut or n_EBVhost_err > err_cut:
-    #         continue
-    #
-    #     resid_arr = np.append(resid_arr, n_resid)
-    #     plt.errorbar(n_EBVhost, n_resid, xerr=n_EBVhost_err, yerr=n_resid_err, fmt='o')
-    #     plt.text(n_EBVhost, n_resid, name, size='x-small', va='top')
-    #
-    # plt.ylabel('Residual'); plt.xlabel('EBVhost')
-    # plt.title('EBVhost v. Residual | RVhost = 2.5 | # = '+str(len(resid_arr))+' | Residual Scater = '+str(round(np.std(resid_arr), 4))+'\n'+
-    # str(val_cut) + ' < EBVhost < ' + str(val_cut) + ' | EBVhosterr < ' + str(err_cut))
-    # plt.show()
+    snpy_cut = '../output/COMBINED_combined_snpy_cut_params.txt'
+    snpy_uncut = '../output/COMBINED_combined_snpy_uncut_params.txt'
+    salt_cut = '../output/COMBINED_combined_salt_cut_params.txt'
+    salt_uncut = '../output/COMBINED_combined_salt_uncut_params.txt'
+    overlap = {}
+    for file in [snpy_cut, snpy_uncut, salt_cut, salt_uncut]:
+        data = gen.dict_handler(choice='unpack', path=file)
+        for obj in data:
+            if obj not in overlap:
+                print(obj)
+        break
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
