@@ -5,7 +5,7 @@ import shutil
 import time as systime
 import numpy as np
 
-from astro_ghost.ghostHelperFunctions import getTransientHosts
+# from astro_ghost.ghostHelperFunctions import getTransientHosts
 from astropy.coordinates import SkyCoord
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
@@ -16,7 +16,7 @@ import warnings
 
 def current_cosmo(H0=70, O_m=0.3):
     return FlatLambdaCDM(H0, O_m)
-def get_constants(cosntant_loc='../txts/constants.txt'):
+def get_constants(cosntant_loc='txts/constants.txt'):
     CONSTANTS = {}
     with open(cosntant_loc, 'r') as f:
         temp = f.readlines()
@@ -26,7 +26,7 @@ def get_constants(cosntant_loc='../txts/constants.txt'):
                 continue
             CONSTANTS.update({line[0]: line[1]})
     return CONSTANTS
-def get_APIkeys(apikeys_loc='../txts/APIkeys.txt'):
+def get_APIkeys(apikeys_loc='txts/APIkeys.txt'):
     if not os.path.isfile(apikeys_loc):
         raise FileNotFoundError('[!!!] API keys file not found!')
     APIKEY = {}
@@ -42,7 +42,7 @@ def TNS_objname_z(obj_ra, obj_dec, attempts=10, use_keys=True):
     from scripts import tnsAPI
     print('-----------------------------------------------------------------------------------------------------------')
     print('Searching TNS for ['+str(obj_ra)+', '+str(obj_dec)+']...')
-    with open('../txts/APIkeys.txt', 'r') as f:
+    with open('txts/APIkeys.txt', 'r') as f:
         tns_bot_id = f.readline().split(', ')[-1][:-1]
         tns_bot_name = f.readline().split(', ')[-1][:-1]
         tns_bot_api_key = f.readline().split(', ')[-1][:-1]
@@ -78,7 +78,7 @@ def TNS_objname_z(obj_ra, obj_dec, attempts=10, use_keys=True):
             obj_name, obj_z = TNS_objname_z(obj_ra, obj_dec, attempts=attempts-1, use_keys=use_keys)
 
     return obj_name, obj_z
-def dict_handler(data_dict={}, choice='', path='../default/dict.txt', delimiter=', '):
+def dict_handler(data_dict={}, choice='', path='default/dict.txt', delimiter=', '):
     if choice == 'unpack':
         print('[+++] Unpacking objects from '+path+'...')
         with open(path, 'r') as f:
@@ -316,7 +316,7 @@ def data_proccesser(data_set, individual='', mag_unc_max=0, flux_unc_max=0, quie
     sys.stdout = sys.__stdout__
 
     return objs
-def host_mass(dict_path, save_loc='../default/', keep_data=True, update_saved=False, use_mass_key=True):
+def host_mass(dict_path, save_loc='default/', keep_data=True, update_saved=False, use_mass_key=True):
     data = dict_handler(choice='unpack', path=dict_path)
     all_mass, all_mass_err = [], []
     GHOST_DATA = get_constants()['ghost_data_loc']
