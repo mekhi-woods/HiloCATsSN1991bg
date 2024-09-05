@@ -274,7 +274,7 @@ class sn91bg():
         self.period = (np.min(self.time), np.max(self.time))
 
         return
-    def write_snpy_ASCII(self, save_loc='../default/'):
+    def write_snpy_ASCII(self, save_loc='default/'):
         print('[+++] '+self.objname+' -- Saving data to ASCII files for SNooPy...')
         filter_dict = {'o': 'ATri', 'c': 'ATgr',
                        'ZTF_g': 'g', 'ZTF_r': 'r', 'ZTF_i': 'i',
@@ -454,7 +454,7 @@ class sn91bg():
                 warnings.simplefilter("ignore")
                 host_data = getTransientHosts(transientCoord=[transient_position], transientName=[self.objname],
                                               verbose=False,
-                                              starcut="gentle", savepath= '../default/ghost_stuff/',
+                                              starcut="gentle", savepath= 'default/ghost_stuff/',
                                               GHOSTpath=GHOST_DATA)
 
             # If GLADE can't get magnitudes -- using NED name to get SDSS data
@@ -537,8 +537,8 @@ class sn91bg():
         #         print('[!!!] Failed to find host galaxy!\n', err_message)
 
         print('      Removing GHOST data...')
-        shutil.rmtree('../default/ghost_stuff/')  # Clear messy data
-        os.mkdir('../default/ghost_stuff/')
+        shutil.rmtree('default/ghost_stuff/')  # Clear messy data
+        os.mkdir('default/ghost_stuff/')
         return
 
 def save_params_to_file(save_loc, SNe):
@@ -654,19 +654,19 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
 # ------------------------------------------------------------------------------------------------------------------- #
 def combined_fit(algo='snpy', cut=False):
     sys.stdout = open(os.devnull,'w') # Lots of unecessary output
-    csp_files = glob.glob('../data/CSP/*.txt')
+    csp_files = glob.glob('data/CSP/*.txt')
     CSP_SNe = {}
     for file in csp_files:
         tempSN = class_creation('CSP', file)
         if tempSN is not None:
             CSP_SNe.update({tempSN.objname: tempSN})
-    atlas_files = glob.glob('../data/ATLAS/*.txt')
+    atlas_files = glob.glob('data/ATLAS/*.txt')
     ATLAS_SNe, atlas_names = {}, []
     for file in atlas_files:
         tempSN = class_creation('ATLAS', file)
         if tempSN is not None:
             ATLAS_SNe.update({tempSN.objname: tempSN})
-    ztf_files = glob.glob('../data/ZTF/*.txt')
+    ztf_files = glob.glob('data/ZTF/*.txt')
     ZTF_SNe = {}
     for file in ztf_files:
         tempSN = class_creation('ZTF', file)
@@ -743,7 +743,7 @@ def combined_fit(algo='snpy', cut=False):
 
     return fit_combined_SNe
 def batch_fit(data_set, algo='snpy', cut=False, dmag_max=0, dflux_max=0):
-    SNe, files = [], glob.glob('../data/' + data_set + '/*.txt')
+    SNe, files = [], glob.glob('data/' + data_set + '/*.txt')
     for path in files:
         print('[', files.index(path) + 1, '/', len(files), ']')
         print('-----------------------------------------------------------------------------------------------')
@@ -797,7 +797,7 @@ def indivisual_load(path):
     return tempSN
 def batch_load(data_set, algo='snpy'):
     SNe = []
-    for path in glob.glob('../saved/' + algo + '/' + data_set.lower() + '/classes/*_class.txt'):
+    for path in glob.glob('saved/' + algo + '/' + data_set.lower() + '/classes/*_class.txt'):
         SNe.append(indivisual_load(path))
     return SNe
 def sample_cutter(SNe, data_set, algo='snpy', save=True):
@@ -878,6 +878,62 @@ def sample_cutter(SNe, data_set, algo='snpy', save=True):
                                 SNe)
 
     return new_SNe
+def file_sample_cutter(path, algo, save=True):
+    print('[+++] Cutting sample from file...')
+
+    valid_lines = []
+    chi2 = []
+    with open(path, 'r') as f:
+        hdr = f.readline().split(', ')
+        hdr[-1] = hdr[-1][:-1]
+        data = f.readlines()
+        uncut_num = len(data)
+        for line in data:
+            n_line = line.split(', ')
+            if algo == 'snpy':
+                if float(n_line[hdr.index('EBVhost')]) < -0.2 or float(n_line[hdr.index('EBVhost')]) > 0.2:
+                    continue
+                if float(n_line[hdr.index('EBVhost_err')]) > 0.1:
+                    continue
+                if float(n_line[hdr.index('st')]) < 0.3 or float(n_line[hdr.index('EBVhost')]) > 1.0:
+                    continue
+                if float(n_line[hdr.index('st_err')]) > 0.1:
+                    continue
+                if float(n_line[hdr.index('Tmax_err')]) > 1:
+                    continue
+                if float(n_line[hdr.index('chi2_err')]) > 2:
+                    continue
+            elif algo == 'salt':
+                if float(n_line[hdr.index('x1')]) < -3 or float(n_line[hdr.index('x1')]) > 3:
+                    continue
+                if float(n_line[hdr.index('x1_err')]) > 1:
+                    continue
+                if float(n_line[hdr.index('c')]) < -0.3 or float(n_line[hdr.index('c')]) > 0.3:
+                    continue
+                if float(n_line[hdr.index('c_err')]) > 0.1:
+                    continue
+                if float(n_line[hdr.index('t0')]) > 2:
+                    continue
+
+            if float(n_line[hdr.index('z')]) < 0.015:
+                continue
+            if float(n_line[hdr.index('hostMass')]) <= 0:
+                continue
+            valid_lines.append(line)
+    print('Successfully cut data [', len(valid_lines), '/', uncut_num, '] !')
+
+    # Save params to file
+    if save:
+        print('Saving to... ', path[:-16]+path[-14:])
+        with open(path[:-16]+path[-14:], 'w') as f:
+            f_hdr = hdr[0]
+            for n in range(1, len(hdr)):
+                f_hdr += ', ' + hdr[n]
+            f_hdr += '\n'
+            f.write(f_hdr)
+            for line in valid_lines:
+                f.write(line)
+    return
 # ------------------------------------------------------------------------------------------------------------------- #
 def residual_plotter(path, x_params='Redshift', labels=False):
     # Pull data from saved text
@@ -968,56 +1024,136 @@ def all_fit(plot=True):
     if plot:
         for algo_sel in ['snpy', 'salt']:
             for source in ['csp', 'atlas', 'ztf', 'combined']:
-                n_path = '../saved/'+algo_sel+'/'+source+'/'+source+'_params.txt'
+                n_path = 'saved/'+algo_sel+'/'+source+'/'+source+'_params.txt'
                 residual_plotter(path=n_path, x_params='Redshift', labels=False)
                 residual_plotter(path=n_path, x_params='Host Mass', labels=False)
                 histogram_plotter(path=n_path, param_bins=[5, 5, 5, 5, 5])
+    return
+def residual_v_EBVhost(data_loc, val_cut = 0.2, err_cut = 0.1):
+    data = np.genfromtxt(data_loc, dtype=str, skip_header=1, delimiter=', ')
+    names, origins = data[:, 0], data[:, 6]
+    redshifts, mus, mu_errs = data[:, 3].astype(float), data[:, 7].astype(float), data[:, 8].astype(float)
+    EBVhosts, EBVhost_errs = data[:, 13].astype(float), data[:, 14].astype(float)
+    color_wheel = {'ZTF': '#81ADC8', 'ATLAS': '#EEDFAA', 'CSP': '#CD4631', 'ATLAS-ZTF': '#DEA47E'}
+
+    plt.figure(figsize=(10, 6))
+    resid_arr = np.array([])
+    for i in range(len(mus)):
+        name = names[i]
+        origin = origins[i]
+        n_resid = mus[i] - CURRENT_COSMO.distmod(redshifts[i]).value
+        n_resid_err = mu_errs[i]
+        n_EBVhost = EBVhosts[i]
+        n_EBVhost_err = EBVhost_errs[i]
+
+        if n_EBVhost_err > 5:
+            continue
+
+        if val_cut != 0 and err_cut != 0:
+            if n_EBVhost > val_cut or n_EBVhost < -val_cut or n_EBVhost_err > err_cut:
+                continue
+
+        resid_arr = np.append(resid_arr, n_resid)
+        plt.errorbar(n_EBVhost, n_resid, xerr=n_EBVhost_err, yerr=n_resid_err, fmt='o',
+                     elinewidth=1, color=color_wheel[origin])
+        # plt.text(n_EBVhost, n_resid, name, size='x-small', va='top')
+
+    plt.xlabel('EBVhost'); plt.ylabel('Residual')
+    title = 'EBVhost v. Residual \n'
+    title += data_loc.split('/')[-1].split('_')[-2]
+    title += ' | # = ' + str(len(resid_arr)) + ' | Residual Scater = ' + str(round(np.std(resid_arr), 4))
+    if val_cut != 0 and err_cut != 0:
+        title += '\n' + str(val_cut) + ' < EBVhost < ' + str(val_cut) + ' | EBVhosterr < ' + str(err_cut)
+    # plt.xlim(-0.2, 0.2); plt.ylim(-1, 1)
+    plt.title(title)
+    plt.show()
+    return
+def snpy_v_salt_mu():
+    for d_set in ['csp', 'atlas', 'ztf']:
+        snpy_data = np.genfromtxt('../output/batch_'+d_set+'_snpy_uncut_params.txt', skip_header=1, dtype=str, delimiter=', ')
+        snpy_names, snpy_mu = snpy_data[:, 0], snpy_data[:, 7].astype(float)
+        salt_data = np.genfromtxt('../output/batch_'+d_set+'_salt_uncut_params.txt', skip_header=1, dtype=str, delimiter=', ')
+        salt_names, salt_mu = salt_data[:, 0], salt_data[:, 15].astype(float)
+
+        all_mu = {}
+        all_salt_mu, all_snpy_mu, resid = np.array([]), np.array([]), np.array([])
+        for name in snpy_names:
+            if name in salt_names:
+                all_mu.update({name: {'salt_mu': salt_mu[np.where(salt_names == name)[0][0]],
+                                      'snpy_mu': snpy_mu[np.where(snpy_names == name)[0][0]]}})
+                all_snpy_mu = np.append(all_snpy_mu, snpy_mu[np.where(snpy_names == name)[0][0]])
+                all_salt_mu = np.append(all_salt_mu, salt_mu[np.where(salt_names == name)[0][0]])
+                resid = np.append(resid, snpy_mu[np.where(snpy_names == name)[0][0]] - salt_mu[np.where(salt_names == name)[0][0]])
+        plt.title(d_set)
+        plt.hist(resid)
+        plt.xlim(-max(abs(resid)), max(abs(resid)))
+        plt.show()
+    return
+def param_compare():
+    dr3_data = np.genfromtxt('../txts/DR3_fits.dat', dtype=str, skip_header=1)
+    data = np.genfromtxt('../output/COMBINED_combined_snpy_uncut_rv25_params.txt', dtype=str, skip_header=1, delimiter=', ')
+
+    overlapped_st_dr3, overlapped_ebv_dr3 = np.array([]), np.array([])
+    overlapped_st, overlapped_ebv = np.array([]), np.array([])
+    for i in range(len(data[:, 0])):
+        if 'SN'+data[i, 0] in dr3_data[:, 0]:
+            overlapped_st_dr3 = np.append(overlapped_st_dr3, float(dr3_data[np.where(dr3_data[:, 0] == 'SN'+data[i, 0])[0][0], 2]))
+            overlapped_ebv_dr3 = np.append(overlapped_ebv_dr3, float(dr3_data[np.where(dr3_data[:, 0] == 'SN'+data[i, 0])[0][0], 25]))
+            overlapped_st = np.append(overlapped_st, float(data[i, 9]))
+            overlapped_ebv = np.append(overlapped_ebv, float(data[i, 13]))
+            # print('SN'+data[i, 0], dr3_data[np.where(dr3_data[:, 0] == 'SN'+data[i, 0])[0][0], 0])
+
+    # # ST Hist
+    # plt.figure(figsize=(12, 7))
+    # plt.hist(overlapped_st, bins=10, color='r', label='SNPY')
+    # plt.hist(overlapped_st_dr3, bins=10, color='b', label='DR3')
+    # plt.title('SNPY v. DR3 Params -- st')
+    # plt.legend()
+    # plt.show()
+
+    # EBVhost Hist
+    plt.figure(figsize=(12, 7))
+    plt.hist(overlapped_ebv, bins=30, color='r', label='SNPY')
+    plt.hist(overlapped_ebv_dr3, bins=30, color='b', label='DR3')
+    plt.title('SNPY v. DR3 Params -- EBVhost')
+    plt.legend()
+    plt.show()
+
+    return
+def param_hist_compare(set1, set2, bin_width, xrange=None, title=''):
+    plt.figure(figsize=(9, 4))
+    plt.title(title)
+    plt.hist(set1, color='#62BEC1', label=title.split(' ')[0], alpha=0.75,
+             bins=int((np.max(set1) - np.min(set1)) / bin_width))
+    plt.hist(set2, color='#5AD2F4', label=title.split(' ')[2], alpha=0.75,
+             bins=int((np.max(set2) - np.min(set2)) / bin_width))
+    plt.xlim(xrange)
+    plt.legend()
+    plt.show()
     return
 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
-    # data_set, path = 'CSP', '../data/CSP/SN2006mr_snpy.txt'
-    # data_set, path = 'ATLAS', '../data/ATLAS/1012958111192621400.txt'
-    # data_set, path = 'ZTF', '../data/ZTF/forcedphotometry_req00381165_lc.txt'
-    # SN = indvisual_fit(data_set, path, algo='snpy')
+    data_set, algo, cut = 'ATLAS', 'salt', False
+    path = 'data/ATLAS/1012958111192621400.txt' # 'data/CSP/SN2006mr_snpy.txt' # 'data/ATLAS/1012958111192621400.txt'
+    SN = class_creation(data_set, path)
+    SN.plot('flux')
+    # SN = indvisual_fit(data_set, path, algo, dmag_max=1 )
+    # # SNe = batch_fit(data_set, algo, False) # 'ATLAS' 'ZTF'
+    # # SNe = combined_fit(algo, cut)
 
-    # SNe = combined_fit(algo='snpy', cut=False)
-    # SNe = batch_fit('CSP', algo='salt', cut=False)
-    # SNe = batch_fit('ATLAS', algo='snpy', cut=False)
-    # SNe = batch_fit('ZTF', algo='snpy', cut=False)
-
-    # SN = indivisual_load('../saved/snpy/combined/classes/2018lph_class.txt')
+    # SN = indivisual_load('saved/snpy/combined/classes/2018lph_class.txt')
     # SNe = batch_load(data_set='COMBINED', algo='snpy') # CSP, ATLAS, ZTF, COMBINED
 
-    # SNe_cut = sample_cutter(SNe, 'snpy')
+    # residual_plotter('saved/snpy/combined/combined_params.txt', x_params='Redshift', labels=False)
+    # histogram_plotter(path='saved/salt/atlas/atlas_params.txt', param_bins=[5, 5, 5, 5, 5]) # path='saved/snpy/csp/csp_params.txt', param_bins=[5, 5, 5, 5, 5]
 
-    # residual_plotter('../saved/snpy/combined/combined_params.txt', x_params='Redshift', labels=False)
-    # histogram_plotter(path='../saved/salt/atlas/atlas_params.txt', param_bins=[5, 5, 5, 5, 5]) # path='../saved/snpy/csp/csp_params.txt', param_bins=[5, 5, 5, 5, 5]
-
-    data = np.genfromtxt(CONSTANTS['combined_saved_loc']+'combined_params.txt')
-
-
-    # plt.figure(figsize=(10, 5))
-    # val_cut, err_cut = 0.2, 0.1
-    # resid_arr = np.array([])
-    # for SN in SNe:
-    #     name = SN.objname
-    #     n_resid = SN.params['mu']['value'] - gen.current_cosmo().distmod(SN.z).value
-    #     n_resid_err = SN.params['mu']['err']
-    #     n_EBVhost = SN.params['EBVhost']['value']
-    #     n_EBVhost_err = SN.params['EBVhost']['err']
-    #
-    #     if n_EBVhost > val_cut or n_EBVhost < -val_cut or n_EBVhost_err > err_cut:
-    #         continue
-    #
-    #     resid_arr = np.append(resid_arr, n_resid)
-    #     plt.errorbar(n_EBVhost, n_resid, xerr=n_EBVhost_err, yerr=n_resid_err, fmt='o')
-    #     plt.text(n_EBVhost, n_resid, name, size='x-small', va='top')
-    #
-    # plt.ylabel('Residual'); plt.xlabel('EBVhost')
-    # plt.title('EBVhost v. Residual | RVhost = 2.5 | # = '+str(len(resid_arr))+' | Residual Scater = '+str(round(np.std(resid_arr), 4))+'\n'+
-    # str(val_cut) + ' < EBVhost < ' + str(val_cut) + ' | EBVhosterr < ' + str(err_cut))
-    # plt.show()
+    # data = np.genfromtxt('output/COMBINED_combined_snpy_cut_params.txt', dtype=str, delimiter=', ', skip_header=1)
+    # dr3 = np.genfromtxt('txts/DR3_fits.dat', dtype=str, skip_header=1)
+    # param_hist_compare(data[:, 15].astype(float), dr3[:, 25].astype(float),
+    #                    0.1, title='91bg vs. DR3 -- EBVhost')
+    # param_hist_compare(data[:,11].astype(float), dr3[:, 1].astype(float),
+    #                    0.05, title='91bg vs. DR3 -- Stretch')
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
