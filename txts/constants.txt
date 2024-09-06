@@ -66,3 +66,12 @@ csp_zpts_Ydw, 13.770
 csp_zpts_J, 13.866
 csp_zpts_H, 13.502
 csp_zpts_Ks, 11.968
+
+### CMB CONSTANTS ##
+# ================================================ #
+cmb_c, 299792.458
+cmb_beta, 0.43
+cmb_beta_err, 0.105
+cmb_v_helio, 371.0
+cmb_l_h, 263.85
+cmb_b_h, 48.25
