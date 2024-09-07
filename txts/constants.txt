@@ -46,7 +46,7 @@ mass_key_txt, txts/mass_key.txt
 reviewed_fits_txt, txts/reviewed_fits.txt
 sne1a91bglike_txt, txts/91bg_list.txt
 csp91bglike_txt, txts/csp_91bg.txt
-ztf_spread, 0
+ztf_spread, 300
 
 ### CSP ZPTS ##
 # ================================================ #

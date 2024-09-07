@@ -87,6 +87,9 @@ class sn91bg():
             elif 't0' in list(self.params.keys()):
                 plt.axvline(x=self.params['t0']['value'], color='maroon', ls='--', label='Tmax')
 
+        details = gen.TNS_details(self.coords[0], self.coords[1])
+        plt.axvline(x=float(details[-1]))
+
         # Format
         if y_type == 'mag':
             plt.gca().invert_yaxis()
@@ -579,7 +582,7 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
             print('[!!!] File [' + path + '] empty!')
             return None
         ra, dec = np.average(data[:, 1].astype(float)), np.average(data[:, 2].astype(float))
-        objname, z = gen.TNS_objname_z(ra, dec)
+        objname, z, discdate = gen.TNS_details(ra, dec)
         originalname = path.split('/')[-1].split('.')[0]
         z = np.nan if z == 'None' else float(z)
         tempSN = sn91bg(objname, originalname, (ra, dec), z, 'ATLAS')
@@ -592,12 +595,11 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
             print('[!!!] File [' + path + '] empty!')
             return None
         with (open(path, 'r') as f):
-            # ztf_spread = 200
             ztf_spread = float(CONSTANTS['ztf_spread'])
 
             hdr = f.readlines()
             ra, dec = float(hdr[3].split(' ')[-2]), float(hdr[4].split(' ')[-2])
-            objname, z = gen.TNS_objname_z(ra, dec)
+            objname, z, discdate = gen.TNS_details(ra, dec)
             originalname = path.split('/')[-1].split('.')[0].split('_')[1]
             z = np.nan if z == 'None' else float(z)
 
@@ -611,8 +613,10 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
 
             # Adjusting around tmax
             if ztf_spread != 0 and len(time) != 0:
-                t_max_guess = time[np.where(flux == np.max(flux))[0][0]]
-                zoom_indexes = np.where(time[np.where(time > t_max_guess - ztf_spread)[0]] < t_max_guess + ztf_spread)[0]
+                t_max_guess = float(discdate)
+                zoom_indexes = np.where(time < t_max_guess + ztf_spread)
+                zoom_indexes = np.where(time[zoom_indexes] > t_max_guess - ztf_spread)
+
                 time = time[zoom_indexes]
                 flux = flux[zoom_indexes]
                 dflux = dflux[zoom_indexes]
@@ -1149,8 +1153,8 @@ if __name__ == '__main__':
 
     # output('COMBINED', 'COMBINED', 'snpy', cut=True) # path='data/ATLAS/1041641640121059200.txt'
 
-    residual_plotter('output/COMBINED_combined_snpy_uncut_params.txt', x_params='Redshift', labels=False)
-    residual_plotter('output/COMBINED_combined_snpy_uncut_params.txt', x_params='Host Mass', labels=False)
+    # residual_plotter('output/COMBINED_combined_snpy_uncut_params.txt', x_params='Redshift', labels=False)
+    # residual_plotter('output/COMBINED_combined_snpy_uncut_params.txt', x_params='Host Mass', labels=False)
     # histogram_plotter(path='saved/salt/atlas/atlas_params.txt', param_bins=[5, 5, 5, 5, 5]) # path='saved/snpy/csp/csp_params.txt', param_bins=[5, 5, 5, 5, 5]
 
     # data = np.genfromtxt('output/COMBINED_combined_snpy_cut_params.txt', dtype=str, delimiter=', ', skip_header=1)

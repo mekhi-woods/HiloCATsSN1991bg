@@ -9,6 +9,7 @@ import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
+from astropy.time import Time as astrotime
 
 from astroquery.sdss import SDSS
 from astroquery.mast import Catalogs
@@ -38,7 +39,7 @@ def get_APIkeys(apikeys_loc='txts/APIkeys.txt'):
                 continue
             APIKEY.update({line[0]: line[1]})
     return APIKEY
-def TNS_objname_z(obj_ra, obj_dec, attempts=10, use_keys=True):
+def TNS_details(obj_ra, obj_dec, attempts=10, use_keys=True):
     from scripts import tnsAPI
     print('-----------------------------------------------------------------------------------------------------------')
     print('Searching TNS for ['+str(obj_ra)+', '+str(obj_dec)+']...')
@@ -47,12 +48,12 @@ def TNS_objname_z(obj_ra, obj_dec, attempts=10, use_keys=True):
         tns_bot_name = f.readline().split(', ')[-1][:-1]
         tns_bot_api_key = f.readline().split(', ')[-1][:-1]
     tns_key = dict_handler(choice='unpack', path=get_constants()['tns_key_txt'])
-    obj_name, obj_z = '', 0.00
+    obj_name, obj_z, obj_discdate = '', 0.00, ''
 
     # Check key
     print('Checking TNS key...')
     if use_keys and (str(obj_ra) in tns_key):
-        obj_name, obj_z = tns_key[str(obj_ra)]['objname'], tns_key[str(obj_ra)]['z']
+        obj_name, obj_z, obj_discdate = tns_key[str(obj_ra)]['objname'], tns_key[str(obj_ra)]['z'], tns_key[str(obj_ra)]['discoverydate']
     else:
         # Query TNS key
         print('Not in TNS key, querying TNS...')
@@ -68,16 +69,19 @@ def TNS_objname_z(obj_ra, obj_dec, attempts=10, use_keys=True):
             get_data = tnsAPI.build_tns_get_query_data(tns_bot_api_key, transients[0])
             details = tnsAPI.rate_limit_query_tns(get_data, headers, get_tns_url)
             obj_name, obj_z = details['objname'], details['redshift']
-            with open(get_constants()['tns_key_txt'], 'a') as f:
-                f.write(str(obj_ra) + ', ' + str(obj_dec) + ', ' + obj_name + ', ' + str(obj_z) + '\n') # Save to key
+            obj_discdate = float(astrotime(details['discoverydate'], format='iso').jd) - 2400000.5 # JD to MJD
+            if use_keys:
+                with open(get_constants()['tns_key_txt'], 'a') as f:
+                    f.write(str(obj_ra) + ', ' + str(obj_dec) + ', ' + obj_name + ', ' + str(obj_z) +
+                            ', ' + str(obj_discdate) + '\n') # Save to key
         except Exception as error:
             if attempts <= 0:
                 raise RuntimeError('TNS completly timed out.')
             print(f'{attempts} attempts remaining')
             systime.sleep(5)
-            obj_name, obj_z = TNS_objname_z(obj_ra, obj_dec, attempts=attempts-1, use_keys=use_keys)
+            obj_name, obj_z, obj_discdate = TNS_details(obj_ra, obj_dec, attempts=attempts - 1, use_keys=use_keys)
 
-    return obj_name, obj_z
+    return obj_name, obj_z, obj_discdate
 def dict_handler(data_dict={}, choice='', path='default/dict.txt', delimiter=', '):
     if choice == 'unpack':
         print('[+++] Unpacking objects from '+path+'...')
@@ -202,7 +206,7 @@ def data_proccesser(data_set, individual='', mag_unc_max=0, flux_unc_max=0, quie
 
             # Get details
             ra, dec = np.average(data[:, 1].astype(float)), np.average(data[:, 2].astype(float))
-            objname, z = TNS_objname_z(ra, dec)
+            objname, z = TNS_details(ra, dec)
             if z == 'None':
                 z = np.nan
             else:
@@ -242,7 +246,7 @@ def data_proccesser(data_set, individual='', mag_unc_max=0, flux_unc_max=0, quie
                 hdr = f.readline()[1:-1].split(', ')
 
             # Get details
-            objname, z = TNS_objname_z(ra, dec)
+            objname, z = TNS_details(ra, dec)
             print('['+str(ra)+', '+str(dec)+']', '--', objname, '|', z)
 
             # Get magnitudes m = -2.5log(F) + zp
@@ -504,3 +508,5 @@ def mass_step_calc(path, cut=10, ignore_fits=[], quiet=False):
     sys.stdout = sys.__stdout__
 
     return mass_step, mass_step_err
+
+
