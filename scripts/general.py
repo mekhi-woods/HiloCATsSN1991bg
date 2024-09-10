@@ -59,7 +59,6 @@ def TNS_details(obj_ra, obj_dec, attempts=10, use_keys=True):
         print('Not in TNS key, querying TNS...')
         try:
             # Code abridged from David's code
-            tns_bot_id, tns_bot_name, tns_bot_api_key = '73181', 'YSE_Bot1', '0d771345fa6b876a5bb99cd5042ab8b5ae91fc67'
             headers = tnsAPI.build_tns_header(tns_bot_id, tns_bot_name)
             tns_api_url = f"https://www.wis-tns.org/api/get"
             search_tns_url = tnsAPI.build_tns_url(tns_api_url, mode="search")

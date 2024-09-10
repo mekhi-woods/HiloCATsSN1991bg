@@ -27,7 +27,7 @@ class sn91bg():
         self.z_cmb = np.nan
         self.origin = origin
 
-        self.period = (999999.9, 999999.9)
+        self.period = None
         self.params = {}
 
         self.zp = np.array([])
@@ -279,7 +279,8 @@ class sn91bg():
         self.flux = np.copy(new_flux)
         self.dflux = np.copy(new_dflux)
 
-        self.period = (np.min(self.time), np.max(self.time))
+        if len(self.time) > 0:
+            self.period = (np.min(self.time), np.max(self.time))
 
         return
     def write_snpy_ASCII(self, save_loc='default/'):
@@ -314,7 +315,7 @@ class sn91bg():
             self.params.update({'mu': {'value': 0.00, 'err': 0.00}})
             print('[!!!] Failed to load ASCII file')
             return
-        n_s.k_version = '91bg'
+        # n_s.k_version = '91bg'
         n_s.choose_model('EBV_model2', stype='st', RVhost=2.5)
         n_s.set_restbands()  # Auto pick appropriate rest-bands
 
@@ -625,9 +626,9 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
                 zp = zp[zoom_indexes]
                 filters = filters[zoom_indexes]
 
-        if len(time) == 0:
-            print('[!!!] File has no valid values!')
-            return None
+        # if len(time) == 0:
+        #     print('[!!!] File has no valid values!')
+        #     return None
 
         tempSN = sn91bg(objname, originalname, (ra, dec), z, 'ZTF')
         tempSN.set_data(zp=zp, filters=filters, time=time,
@@ -635,7 +636,12 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
         tempSN.clean_data(dmag_max, dflux_max)
     else:
         raise ValueError("Data set '" + data_set + "' not recognized")
-    return tempSN
+
+    if tempSN.period == None:
+        print('[!!!] No valid points found in file!')
+        return None
+    else:
+        return tempSN
 # ------------------------------------------------------------------------------------------------------------------- #
 def combined_fit(algo='snpy', cut=False, dmag_max=0, dflux_max=0):
     sys.stdout = open(os.devnull,'w') # Lots of unecessary output
@@ -1119,12 +1125,14 @@ def param_compare():
 def param_hist_compare(set1, set2, bin_width, xrange=None, title=''):
     plt.figure(figsize=(9, 4))
     plt.title(title)
-    plt.hist(set1, color='#62BEC1', label=title.split(' ')[0], alpha=0.75,
+    plt.hist(set1, color='#62BEC1', label=title.split(' ')[0], alpha=1,
              bins=int((np.max(set1) - np.min(set1)) / bin_width))
-    plt.hist(set2, color='#5AD2F4', label=title.split(' ')[2], alpha=0.75,
+    plt.hist(set2, color='#5AD2F4', label=title.split(' ')[2], alpha=0.825,
              bins=int((np.max(set2) - np.min(set2)) / bin_width))
     plt.xlim(xrange)
     plt.legend()
+    plt.savefig('saved/HiCATvDR3_'+title.split(' ')[-3].lower()+'_'+title.split(' ')[-1].lower()+'.png')
+    print('Saved to...', 'saved/HiCATvDR3_'+title.split(' ')[-3].lower()+'_'+title.split(' ')[-1].lower()+'.png')
     plt.show()
     return
 # ------------------------------------------------------------------------------------------------------------------- #
@@ -1135,7 +1143,7 @@ def output(fit_type, data_set, algo, cut=False, path=None, special_text=''):
             print('[!!!] Fit failed!')
             return [None]
     elif fit_type == 'batch':
-        SNe = batch_fit(data_set, algo=algo, dmag_max=1)
+        SNe = batch_fit(data_set, algo=algo)
     elif fit_type == 'COMBINED':
         SNe = combined_fit(algo=algo)
     else:
@@ -1147,15 +1155,74 @@ def output(fit_type, data_set, algo, cut=False, path=None, special_text=''):
         if len(SNe) > 0:
             save_params_to_file('output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_cut_'+special_text+'params.txt', SNe)
     return SNe
+# ------------------------------------------------------------------------------------------------------------------- #
+def dr3_run():
+    SNe, files = [], glob.glob('data/CSPdata/*.txt')
+    for path in files:
+        print('[', files.index(path) + 1, '/', len(files), ']')
+        print('-----------------------------------------------------------------------------------------------')
+        tempSN = indvisual_fit('CSP', path, 'snpy')
+        if tempSN is not None and 'hostMass' in list(tempSN.params.keys()):
+            SNe.append(tempSN)
+
+    print('Sucessfully fit [', len(SNe), '/', len(files), ']!')
+
+    # Cut sample
+    SNe = sample_cutter(SNe, 'CSP', algo='snpy', save=True)
+
+    # Save params to file
+    save_params_to_file(CONSTANTS['csp_saved_loc'] + 'csp_cut_params.txt', SNe)
+
+    return
 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
-    # output('COMBINED', 'COMBINED', 'snpy', cut=True) # path='data/ATLAS/1041641640121059200.txt'
+    # SNe = batch_load('COMBINED', 'snpy')
+    # print(SNe[0])
+
+    # path, tar = 'output/COMBINED_combined_snpy_cut_params.txt', 13
+    # with open(path, 'r') as f:
+    #     hdr = f.readline().split(', ')
+    #
+    # data = np.genfromtxt(path, delimiter=', ', dtype=str, skip_header=1)
+    # cat = data[:, tar].astype(float)
+    # std = np.std(cat)
+    # avg = np.average(cat)
+    # zscore = (cat - std) / avg
+    #
+    # plt.figure(figsize=(12,6))
+    # plt.title(hdr[tar])
+    # plt.hist(zscore, bins=30)
+    # plt.show()
+    #
+    # bad, bad_names = [], []
+    # for n in range(len(zscore)):
+    #     if zscore[n] > 3:
+    #         bad.append(cat[n])
+    #         bad_names.append(data[n, 0])
+    #
+    # print('Good cut:', hdr[tar], '<', round(np.min(bad), 3))
+    # print('3-sigma: ', std*3)
+    # print('# pts to remove:', len(bad))
+    # print(bad_names)
+
+
+    # set1 = np.genfromtxt('output/COMBINED_combined_snpy_uncut_params.txt', delimiter=', ', skip_header=1, dtype=str)
+    # set2 = np.genfromtxt('saved/snpy/csp/csp_uncut_params.txt', delimiter=', ', skip_header=1, dtype=str)
+    # param_hist_compare(set1[:, 10].astype(float), set2[:, 10].astype(float), 0.02, xrange=None, title='HiCAT v. DR3 -- Stretch -- Uncut')
+    # param_hist_compare(set1[:, 14].astype(float), set2[:, 14].astype(float), 0.03, xrange=None, title='HiCAT v. DR3 -- EBVhost -- Uncut')
+
+    # dr3_run()
+    #
+
+    # SN = indvisual_fit('ZTF', 'data/ZTF/forcedphotometry_req00381096_lc.txt', algo='snpy')
+    # SN = class_creation('ZTF', 'data/ZTF/forcedphotometry_req00381165_lc.txt')
+    output('batch', 'ZTF', 'snpy', cut=True)
 
     # residual_plotter('output/COMBINED_combined_snpy_uncut_params.txt', x_params='Redshift', labels=False)
     # residual_plotter('output/COMBINED_combined_snpy_uncut_params.txt', x_params='Host Mass', labels=False)
-    # histogram_plotter(path='saved/salt/atlas/atlas_params.txt', param_bins=[5, 5, 5, 5, 5]) # path='saved/snpy/csp/csp_params.txt', param_bins=[5, 5, 5, 5, 5]
+    # histogram_plotter(path='saved/salt/atlas/atlas_params.txt', param_bins=[5, 5, 5, 5, 5]) # path='saved/snpy/csp/csp_cut_params.txt', param_bins=[5, 5, 5, 5, 5]
 
     # data = np.genfromtxt('output/COMBINED_combined_snpy_cut_params.txt', dtype=str, delimiter=', ', skip_header=1)
     # dr3 = np.genfromtxt('txts/DR3_fits.dat', dtype=str, skip_header=1)
