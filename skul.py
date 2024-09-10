@@ -15,7 +15,7 @@ from astropy.table import Table
 from astropy import units as u
 from astroquery.sdss import SDSS
 from astroquery.mast import Catalogs
-import scripts.general as gen
+import general as gen
 CONSTANTS = gen.get_constants()
 
 class sn91bg():
@@ -524,6 +524,54 @@ class sn91bg():
         shutil.rmtree('default/ghost_stuff/')  # Clear messy data
         os.mkdir('default/ghost_stuff/')
         return
+    # def mass_step_calc(self, path, cut=10, ignore_fits=[], quiet=False):
+    #     objs = dict_handler(choice='unpack', path=path)
+    #     lower_mass, upper_mass, all_resid = np.array([]), np.array([]), np.array([])
+    #     lower_mass_err, upper_mass_err, all_resid_err = np.array([]), np.array([]), np.array([])
+    #     reviewed_fits = get_reviewed_fits()
+    #
+    #     # Check quiet
+    #     if quiet:
+    #         sys.stdout = open(os.devnull, 'w')
+    #
+    #     for obj in objs:
+    #         if ('bad' in ignore_fits) and (obj in reviewed_fits['bad']):
+    #             continue
+    #         elif ('okay' in ignore_fits) and (obj in reviewed_fits['okay']):
+    #             continue
+    #         elif ('good' in ignore_fits) and (obj in reviewed_fits['good']):
+    #             continue
+    #
+    #         m = float(objs[obj]['host_mass'])
+    #         m_err = float(objs[obj]['host_mass_err'])
+    #         resid = float(objs[obj]['mu']) - current_cosmo().distmod(float(objs[obj]['z'])).value
+    #         resid_err = float(objs[obj]['mu_err'])
+    #
+    #         all_resid = np.append(all_resid, resid)
+    #         all_resid_err = np.append(all_resid_err, resid_err)
+    #         if m < cut:
+    #             lower_mass = np.append(lower_mass, m)
+    #             lower_mass_err = np.append(lower_mass_err, m_err)
+    #         else:
+    #             upper_mass = np.append(upper_mass, m)
+    #             upper_mass_err = np.append(upper_mass_err, m_err)
+    #     mass_step, mass_step_err = np.average(upper_mass) - np.average(lower_mass), abs(np.average(upper_mass_err) - np.average(lower_mass_err))
+    #
+    #     print('***********************************************************************************************************')
+    #     print('Mass Step (M_>'+str(cut)+' - M_<'+str(cut)+'):', mass_step, '+/-', mass_step_err)
+    #     print('\t----------------------')
+    #     print('\tLog Mass > '+str(cut)+':', round(np.average(upper_mass), 4), '+/-', abs(round(np.average(upper_mass_err), 4)))
+    #     print('\tLog Mass < '+str(cut)+':', round(np.average(lower_mass), 4), '+/-', abs(round(np.average(lower_mass_err), 4)))
+    #     print('\t----------------------')
+    #     print('\tScatter:', round(np.std(all_resid), 4))
+    #     print('\t----------------------')
+    #     print('\tNumber of Targets:', len(all_resid))
+    #     print('***********************************************************************************************************')
+    #
+    #     # Restore print statements
+    #     sys.stdout = sys.__stdout__
+    #
+    #     return mass_step, mass_step_err
 
 def save_params_to_file(save_loc, SNe):
     print('[+++] Saving params to '+save_loc+'...')
@@ -806,7 +854,7 @@ def sample_cutter(SNe, data_set, algo='snpy', save=True):
                 readout += '-- EBVhost out of range! -- ' + str(SN.params['EBVhost']['value'])
                 print(readout)
                 continue
-            if float(SN.params['EBVhost']['err']) > 0.5:
+            if float(SN.params['EBVhost']['err']) > 0.2:
                 readout += '-- EBVhost errors out of range! -- ' + str(SN.params['EBVhost']['err'])
                 print(readout)
                 continue
@@ -1149,11 +1197,12 @@ def output(fit_type, data_set, algo, cut=False, path=None, special_text=''):
     else:
         raise ValueError("Invalid type selected ['indv'/'batch'/'COMBINED']")
     # Saving
-    save_params_to_file('output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_uncut_'+special_text+'params.txt', SNe)
-    if cut:
-        SNe = sample_cutter(SNe, data_set, algo=algo, save=False)
-        if len(SNe) > 0:
-            save_params_to_file('output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_cut_'+special_text+'params.txt', SNe)
+    if fit_type != 'indv':
+        save_params_to_file('output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_uncut_'+special_text+'params.txt', SNe)
+        if cut:
+            SNe = sample_cutter(SNe, data_set, algo=algo, save=False)
+            if len(SNe) > 0:
+                save_params_to_file('output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_cut_'+special_text+'params.txt', SNe)
     return SNe
 # ------------------------------------------------------------------------------------------------------------------- #
 def dr3_run():
@@ -1218,7 +1267,7 @@ if __name__ == '__main__':
 
     # SN = indvisual_fit('ZTF', 'data/ZTF/forcedphotometry_req00381096_lc.txt', algo='snpy')
     # SN = class_creation('ZTF', 'data/ZTF/forcedphotometry_req00381165_lc.txt')
-    output('batch', 'ZTF', 'snpy', cut=True)
+    # output('indv', 'ZTF', 'snpy', path='data/ZTF/forcedphotometry_req00381165_lc.txt')
 
     # residual_plotter('output/COMBINED_combined_snpy_uncut_params.txt', x_params='Redshift', labels=False)
     # residual_plotter('output/COMBINED_combined_snpy_uncut_params.txt', x_params='Host Mass', labels=False)
