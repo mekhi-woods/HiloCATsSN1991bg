@@ -14,7 +14,6 @@ from astropy.coordinates import SkyCoord, Galactic
 from astropy.table import Table
 from astropy import units as u
 from astroquery.sdss import SDSS
-from astroquery.mast import Catalogs
 import general as gen
 CONSTANTS = gen.get_constants()
 
@@ -58,7 +57,7 @@ class sn91bg():
                 prnt_str += ('\t'+p+' = ' + str(self.params[p]['value']) + ' +/- ' + str(self.params[p]['err']) + '\n')
             prnt_str += '---------------------------------------------------------------------------------------------'
         print(prnt_str)
-    def plot(self, y_type='mag', save_loc='', zoom=0, lines=False):
+    def plot(self, y_type='mag', save_loc='', zoom=0, lines=False, date_lines=True):
         print('[+++] Plotting LC of '+self.objname+'...')
         filter_dict = {'u': 'teal', 'g': 'green', 'r': 'red', 'i': 'indigo', 'B': 'blue',
                        'V0': 'violet', 'V1': 'purple', 'V': 'red', 'Y': 'goldenrod', 'Hdw': 'tomato', 'H': 'salmon',
@@ -80,15 +79,21 @@ class sn91bg():
                 if lines:
                     plt.plot(self.time[indexs], self.flux[indexs], color=filter_dict[self.filters[indexs][0]])
 
-        # Tmax line
-        if len(self.params) > 0:
-            if 'Tmax' in list(self.params.keys()):
-                plt.axvline(x=self.params['Tmax']['value'], color='maroon', ls='-.', label='Tmax')
-            elif 't0' in list(self.params.keys()):
-                plt.axvline(x=self.params['t0']['value'], color='maroon', ls='--', label='Tmax')
+        if date_lines:
+            # Tmax line
+            if len(self.params) > 0:
+                if 'Tmax' in list(self.params.keys()):
+                    plt.axvline(x=self.params['Tmax']['value'], label='Tmax\n'+str(round(self.params['Tmax']['value'], 5)),
+                                color='maroon', ls='-.', linewidth=3, alpha=0.5)
+                elif 't0' in list(self.params.keys()):
+                    plt.axvline(x=self.params['t0']['value'], label='Tmax\n'+str(round(self.params['Tmax']['value'], 5)),
+                                color='maroon', ls='-.', linewidth=3, alpha=0.5)
 
-        details = gen.TNS_details(self.coords[0], self.coords[1])
-        plt.axvline(x=float(details[-1]))
+            # Plot discovery date
+            if self.origin != 'CSP':
+                disc_date = float(gen.TNS_details(self.coords[0], self.coords[1])[-1])
+                plt.axvline(x=disc_date, label='Discovery Date\n'+str(round(disc_date, 5)),
+                            color='peru', ls='--', linewidth=3, alpha=0.5)
 
         # Format
         if y_type == 'mag':
@@ -103,17 +108,17 @@ class sn91bg():
                 plt.xlim(self.params['t0']['value']-zoom, self.params['t0']['value']+zoom)
 
         plt.title('Lightcurve -- '+self.objname+' | '+self.originalname+' -- '+y_type)
-        plt.xlabel('MJD');
+        plt.xlabel('MJD')
         plt.ylabel(y_type)
         plt.legend()
         if len(save_loc) > 0:
-            plt.savefig(save_loc + obj + '_lc.png')
+            plt.savefig(save_loc + self.objname + '_lc.png')
             print(self.objname, '-- Plot saved to', save_loc + self.objname + '_lc.png')
         plt.show()
         systime.sleep(2)
 
         return
-    def subplots(self, y_type='mag', save_loc='', zoom=0, ticks=5, lines=False):
+    def subplots(self, y_type='mag', save_loc='', zoom=0, ticks=5, lines=False, date_lines=True):
         print('[+++] Plotting LC of '+self.objname+'...')
         filter_dict = {'u': 'teal', 'g': 'green', 'r': 'red', 'i': 'indigo', 'B': 'blue',
                        'V0': 'violet', 'V1': 'purple', 'V': 'red', 'Y': 'goldenrod', 'Hdw': 'tomato', 'H': 'salmon',
@@ -149,12 +154,20 @@ class sn91bg():
                 plt.errorbar(self.time[indexs], self.flux[indexs], yerr=self.dflux[indexs], fmt='o', ms=4, elinewidth=0.3,
                              color=filter_dict[self.filters[indexs][0]], label=self.filters[indexs][0])
 
-            # Tmax line
-            if len(self.params) > 0:
-                if 'Tmax' in list(self.params.keys()):
-                    plt.axvline(x=self.params['Tmax']['value'], color='maroon', ls='-.', label='Tmax')
-                elif 't0' in list(self.params.keys()):
-                    plt.axvline(x=self.params['t0']['value'], color='maroon', ls='-.', label='Tmax')
+            if date_lines:
+                # Tmax line
+                if len(self.params) > 0:
+                    if 'Tmax' in list(self.params.keys()):
+                        plt.axvline(x=self.params['Tmax']['value'],
+                                    color='maroon', ls='-.', label='Tmax', linewidth=3, alpha=0.5)
+                    elif 't0' in list(self.params.keys()):
+                        plt.axvline(x=self.params['t0']['value'],
+                                    color='maroon', ls='-.', label='Tmax', linewidth=3, alpha=0.5)
+
+                # Plot discovery date
+                details = gen.TNS_details(self.coords[0], self.coords[1])
+                plt.axvline(x=float(details[-1]),
+                            color='peru', ls='--', label='Discovery Date', linewidth=3, alpha=0.5)
 
             # Format
             if y_type == 'mag':
@@ -174,7 +187,7 @@ class sn91bg():
             plt.xlabel('MJD'); plt.legend() # plt.ylabel(y_type);
         plt.suptitle('Lightcurve -- '+self.objname+' | '+self.originalname+' -- '+y_type)
         if len(save_loc) > 0:
-            plt.savefig(save_loc + obj + '_lc.png')
+            plt.savefig(save_loc + self.objname + '_lc.png')
             print(self.objname, '-- Plot saved to', save_loc + self.objname + '_lc.png')
         plt.show()
         systime.sleep(2)
@@ -315,7 +328,7 @@ class sn91bg():
             self.params.update({'mu': {'value': 0.00, 'err': 0.00}})
             print('[!!!] Failed to load ASCII file')
             return
-        # n_s.k_version = '91bg'
+        n_s.k_version = '91bg'
         n_s.choose_model('EBV_model2', stype='st', RVhost=2.5)
         n_s.set_restbands()  # Auto pick appropriate rest-bands
 
@@ -465,7 +478,7 @@ class sn91bg():
                 return
 
         # Getting host data -- checks GLADE then PANSTARRS
-        gMag = -999.00
+        gMag, iMag, iAbsMaggMagErr, iMagErr, iAbsMagErr = -999.00, -999.00, -999.00, -999.00, -999.00
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -658,7 +671,8 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
             time, zp, filters = time[valid_ints].astype(float), zp[valid_ints].astype(float), filters[valid_ints]
             flux, dflux = flux[valid_ints].astype(float), dflux[valid_ints].astype(float)
             time = time - 2400000.5 # JD to MJD
-            mag, dmag = ((-2.5 * np.log10(flux)) + zp), (2.5 * np.log10(dflux))
+            mag = (-2.5 * np.log10(flux)) + zp
+            dmag = np.abs(-1.08573620476 * (dflux / flux))
 
             # Adjusting around tmax
             if ztf_spread != 0 and len(time) != 0:
@@ -1060,8 +1074,8 @@ def histogram_plotter(path, param_bins=[45, 45, 45, 45, 45]):
 
     plt.suptitle("Parameters for '" + path.split('/')[-1].split('_')[0].upper()
                  + "' data\n Number of Transients: " + str(len(data)), fontsize=20)
-    print('Saved figure to... ', save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
-    plt.savefig(save_loc+path.split('/')[-1].split('_')[0]+'_hist.png')
+    print('Saved figure to... ', path.split('/')[-1].split('_')[0]+'_hist.png')
+    plt.savefig(path.split('/')[-1].split('_')[0]+'_hist.png')
     plt.show()
     return
 # ------------------------------------------------------------------------------------------------------------------- #
@@ -1091,7 +1105,7 @@ def residual_v_EBVhost(data_loc, val_cut = 0.2, err_cut = 0.1):
     for i in range(len(mus)):
         name = names[i]
         origin = origins[i]
-        n_resid = mus[i] - CURRENT_COSMO.distmod(redshifts[i]).value
+        n_resid = mus[i] - gen.current_cosmo()
         n_resid_err = mu_errs[i]
         n_EBVhost = EBVhosts[i]
         n_EBVhost_err = EBVhost_errs[i]
@@ -1184,16 +1198,16 @@ def param_hist_compare(set1, set2, bin_width, xrange=None, title=''):
     plt.show()
     return
 # ------------------------------------------------------------------------------------------------------------------- #
-def output(fit_type, data_set, algo, cut=False, path=None, special_text=''):
+def output(fit_type, data_set, algo, cut=False, path=None, special_text='', dmag_max=0, dflux_max=0):
     if fit_type == 'indv':
-        SNe = [indvisual_fit(data_set, path, algo=algo)]
+        SNe = [indvisual_fit(data_set, path, algo=algo, dmag_max=dmag_max, dflux_max=dflux_max)]
         if SNe[0] == None:
             print('[!!!] Fit failed!')
             return [None]
     elif fit_type == 'batch':
-        SNe = batch_fit(data_set, algo=algo)
+        SNe = batch_fit(data_set, algo=algo, dmag_max=dmag_max, dflux_max=dflux_max)
     elif fit_type == 'COMBINED':
-        SNe = combined_fit(algo=algo)
+        SNe = combined_fit(algo=algo, dmag_max=dmag_max, dflux_max=dflux_max)
     else:
         raise ValueError("Invalid type selected ['indv'/'batch'/'COMBINED']")
     # Saving
@@ -1227,7 +1241,14 @@ def dr3_run():
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
-    output('batch', 'ZTF', 'snpy', cut=True)
+    # SN = class_creation('CSP', 'data/CSP/SN2007ax_snpy.txt')
+    # SN = class_creation('ATLAS', 'data/ATLAS/1105450040072251800.txt')
+    # SN = class_creation('ZTF', 'data/ZTF/forcedphotometry_req00381123_lc.txt', dmag_max=1)
+
+    # SNe = output('COMBINED', 'COMBINED', 'snpy', dmag_max=1)
+
+    # SN = indvisual_fit('')
+
 
     # SNe = batch_load('COMBINED', 'snpy')
     # print(SNe[0])
