@@ -28,14 +28,11 @@ Please cite the following if this repo is utilized for a scientific project:
 
 --------------------------
 ## Dependencies
-* python (>=3.11.9)
+* python ( >= 3.11.9 )
 * snpy (MacOS/Linux)
-* glob
-* shutil
-* time 
-* numpy
-* matplotlib
-* astropy
 * astro_ghost
-* sncosmo
 * astroquery
+* astropy
+* sncosmo
+* ( glob /shutil / time / numpy / matplotlib )
+* 

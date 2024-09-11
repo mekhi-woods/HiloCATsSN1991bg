@@ -1227,6 +1227,8 @@ def dr3_run():
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
+    output('batch', 'ZTF', 'snpy', cut=True)
+
     # SNe = batch_load('COMBINED', 'snpy')
     # print(SNe[0])
 
@@ -1281,3 +1283,5 @@ if __name__ == '__main__':
     #                    0.05, title='91bg vs. DR3 -- Stretch')
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
+
+
