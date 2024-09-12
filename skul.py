@@ -1241,67 +1241,8 @@ def dr3_run():
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
-    # SN = class_creation('CSP', 'data/CSP/SN2007ax_snpy.txt')
-    # SN = class_creation('ATLAS', 'data/ATLAS/1105450040072251800.txt')
-    # SN = class_creation('ZTF', 'data/ZTF/forcedphotometry_req00381123_lc.txt', dmag_max=1)
-
-    # SNe = output('COMBINED', 'COMBINED', 'snpy', dmag_max=1)
-
-    # SN = indvisual_fit('')
 
 
-    # SNe = batch_load('COMBINED', 'snpy')
-    # print(SNe[0])
-
-    # path, tar = 'output/COMBINED_combined_snpy_cut_params.txt', 13
-    # with open(path, 'r') as f:
-    #     hdr = f.readline().split(', ')
-    #
-    # data = np.genfromtxt(path, delimiter=', ', dtype=str, skip_header=1)
-    # cat = data[:, tar].astype(float)
-    # std = np.std(cat)
-    # avg = np.average(cat)
-    # zscore = (cat - std) / avg
-    #
-    # plt.figure(figsize=(12,6))
-    # plt.title(hdr[tar])
-    # plt.hist(zscore, bins=30)
-    # plt.show()
-    #
-    # bad, bad_names = [], []
-    # for n in range(len(zscore)):
-    #     if zscore[n] > 3:
-    #         bad.append(cat[n])
-    #         bad_names.append(data[n, 0])
-    #
-    # print('Good cut:', hdr[tar], '<', round(np.min(bad), 3))
-    # print('3-sigma: ', std*3)
-    # print('# pts to remove:', len(bad))
-    # print(bad_names)
-
-
-    # set1 = np.genfromtxt('output/COMBINED_combined_snpy_uncut_params.txt', delimiter=', ', skip_header=1, dtype=str)
-    # set2 = np.genfromtxt('saved/snpy/csp/csp_uncut_params.txt', delimiter=', ', skip_header=1, dtype=str)
-    # param_hist_compare(set1[:, 10].astype(float), set2[:, 10].astype(float), 0.02, xrange=None, title='HiCAT v. DR3 -- Stretch -- Uncut')
-    # param_hist_compare(set1[:, 14].astype(float), set2[:, 14].astype(float), 0.03, xrange=None, title='HiCAT v. DR3 -- EBVhost -- Uncut')
-
-    # dr3_run()
-    #
-
-    # SN = indvisual_fit('ZTF', 'data/ZTF/forcedphotometry_req00381096_lc.txt', algo='snpy')
-    # SN = class_creation('ZTF', 'data/ZTF/forcedphotometry_req00381165_lc.txt')
-    # output('indv', 'ZTF', 'snpy', path='data/ZTF/forcedphotometry_req00381165_lc.txt')
-
-    # residual_plotter('output/COMBINED_combined_snpy_uncut_params.txt', x_params='Redshift', labels=False)
-    # residual_plotter('output/COMBINED_combined_snpy_uncut_params.txt', x_params='Host Mass', labels=False)
-    # histogram_plotter(path='saved/salt/atlas/atlas_params.txt', param_bins=[5, 5, 5, 5, 5]) # path='saved/snpy/csp/csp_cut_params.txt', param_bins=[5, 5, 5, 5, 5]
-
-    # data = np.genfromtxt('output/COMBINED_combined_snpy_cut_params.txt', dtype=str, delimiter=', ', skip_header=1)
-    # dr3 = np.genfromtxt('txts/DR3_fits.dat', dtype=str, skip_header=1)
-    # param_hist_compare(data[:, 15].astype(float), dr3[:, 25].astype(float),
-    #                    0.1, title='91bg vs. DR3 -- EBVhost')
-    # param_hist_compare(data[:,11].astype(float), dr3[:, 1].astype(float),
-    #                    0.05, title='91bg vs. DR3 -- Stretch')
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 
