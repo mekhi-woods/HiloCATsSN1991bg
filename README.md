@@ -5,12 +5,14 @@ __NOTE: This repository is currently under construction__
 
 --------------------------
 ## Recent Plots
-![Hubble Residual v. Redshift](./saved/H0vz_present.png "Hubble Residual v. Redshift")
+### Hubble Residual v. Redshift
 This plot depicts the relationship between the redshift of the SN and the corresponding Hubble Residual.
+![Hubble Residual v. Redshift](./saved/H0vZ_present.png "Hubble Residual v. Redshift")
 
 --------------------------
-![Hubble Residual v. Host Mass](./saved/H0vM_present.png "Hubble Residual v. Host Mass")
+### Hubble Residual v. Host Mass
 This plot depicts the relationship between the mass of the host galaxy for the SN and the corresponding Hubble Residual. 
+![Hubble Residual v. Host Mass](./saved/H0vM_present.png "Hubble Residual v. Host Mass")
 
 --------------------------
 ## Developers
