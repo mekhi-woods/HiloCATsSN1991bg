@@ -35,4 +35,5 @@ Please cite the following if this repo is utilized for a scientific project:
 * astroquery
 * astropy
 * sncosmo
+* iminuit
 * ( glob /shutil / time / numpy / matplotlib )

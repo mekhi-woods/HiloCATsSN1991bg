@@ -537,54 +537,6 @@ class sn91bg():
         shutil.rmtree('default/ghost_stuff/')  # Clear messy data
         os.mkdir('default/ghost_stuff/')
         return
-    # def mass_step_calc(self, path, cut=10, ignore_fits=[], quiet=False):
-    #     objs = dict_handler(choice='unpack', path=path)
-    #     lower_mass, upper_mass, all_resid = np.array([]), np.array([]), np.array([])
-    #     lower_mass_err, upper_mass_err, all_resid_err = np.array([]), np.array([]), np.array([])
-    #     reviewed_fits = get_reviewed_fits()
-    #
-    #     # Check quiet
-    #     if quiet:
-    #         sys.stdout = open(os.devnull, 'w')
-    #
-    #     for obj in objs:
-    #         if ('bad' in ignore_fits) and (obj in reviewed_fits['bad']):
-    #             continue
-    #         elif ('okay' in ignore_fits) and (obj in reviewed_fits['okay']):
-    #             continue
-    #         elif ('good' in ignore_fits) and (obj in reviewed_fits['good']):
-    #             continue
-    #
-    #         m = float(objs[obj]['host_mass'])
-    #         m_err = float(objs[obj]['host_mass_err'])
-    #         resid = float(objs[obj]['mu']) - current_cosmo().distmod(float(objs[obj]['z'])).value
-    #         resid_err = float(objs[obj]['mu_err'])
-    #
-    #         all_resid = np.append(all_resid, resid)
-    #         all_resid_err = np.append(all_resid_err, resid_err)
-    #         if m < cut:
-    #             lower_mass = np.append(lower_mass, m)
-    #             lower_mass_err = np.append(lower_mass_err, m_err)
-    #         else:
-    #             upper_mass = np.append(upper_mass, m)
-    #             upper_mass_err = np.append(upper_mass_err, m_err)
-    #     mass_step, mass_step_err = np.average(upper_mass) - np.average(lower_mass), abs(np.average(upper_mass_err) - np.average(lower_mass_err))
-    #
-    #     print('***********************************************************************************************************')
-    #     print('Mass Step (M_>'+str(cut)+' - M_<'+str(cut)+'):', mass_step, '+/-', mass_step_err)
-    #     print('\t----------------------')
-    #     print('\tLog Mass > '+str(cut)+':', round(np.average(upper_mass), 4), '+/-', abs(round(np.average(upper_mass_err), 4)))
-    #     print('\tLog Mass < '+str(cut)+':', round(np.average(lower_mass), 4), '+/-', abs(round(np.average(lower_mass_err), 4)))
-    #     print('\t----------------------')
-    #     print('\tScatter:', round(np.std(all_resid), 4))
-    #     print('\t----------------------')
-    #     print('\tNumber of Targets:', len(all_resid))
-    #     print('***********************************************************************************************************')
-    #
-    #     # Restore print statements
-    #     sys.stdout = sys.__stdout__
-    #
-    #     return mass_step, mass_step_err
 
 def save_params_to_file(save_loc, SNe):
     print('[+++] Saving params to '+save_loc+'...')
@@ -704,6 +656,37 @@ def class_creation(data_set, path, dmag_max=0, dflux_max=0):
         return None
     else:
         return tempSN
+def mass_step_calc(SNe, cut=10):
+        lower_mass, upper_mass, all_resid = np.array([]), np.array([]), np.array([])
+        lower_mass_err, upper_mass_err, all_resid_err = np.array([]), np.array([]), np.array([])
+
+        for SN in SNe:
+            m, m_err = SN.params['hostMass']['value'], SN.params['hostMass']['err']
+            resid = SN.params['mu']['value'] - gen.current_cosmo().distmod(SN.z_cmb).value
+            resid_err = SN.params['mu']['err']
+
+            all_resid = np.append(all_resid, resid)
+            all_resid_err = np.append(all_resid_err, resid_err)
+            if m < cut:
+                lower_mass = np.append(lower_mass, m)
+                lower_mass_err = np.append(lower_mass_err, m_err)
+            else:
+                upper_mass = np.append(upper_mass, m)
+                upper_mass_err = np.append(upper_mass_err, m_err)
+        mass_step, mass_step_err = np.average(upper_mass) - np.average(lower_mass), abs(np.average(upper_mass_err) - np.average(lower_mass_err))
+
+        print('***********************************************************************************************************')
+        print('Mass Step (M_>'+str(cut)+' - M_<'+str(cut)+'):', mass_step, '+/-', mass_step_err)
+        print('\t----------------------')
+        print('\tLog Mass > '+str(cut)+':', round(np.average(upper_mass), 4), '+/-', abs(round(np.average(upper_mass_err), 4)))
+        print('\tLog Mass < '+str(cut)+':', round(np.average(lower_mass), 4), '+/-', abs(round(np.average(lower_mass_err), 4)))
+        print('\t----------------------')
+        print('\tScatter:', round(np.std(all_resid), 4))
+        print('\t----------------------')
+        print('\tNumber of Targets:', len(all_resid))
+        print('***********************************************************************************************************')
+
+        return
 # ------------------------------------------------------------------------------------------------------------------- #
 def combined_fit(algo='snpy', cut=False, dmag_max=0, dflux_max=0):
     sys.stdout = open(os.devnull,'w') # Lots of unecessary output
@@ -828,6 +811,7 @@ def indvisual_fit(data_set, path, algo='snpy', dmag_max=0, dflux_max=0):
         if tempSN.params['mu']['value'] <= 0.00:
             return None
         tempSN.get_host_mass(use_key=True)
+        tempSN.get_mass_step()
         tempSN.save_class(CONSTANTS[data_set.lower() + '_saved_loc'])
     elif algo == 'salt':
         tempSN = class_creation(data_set, path)
@@ -858,31 +842,38 @@ def sample_cutter(SNe, data_set, algo='snpy', save=True):
     print('[+++] Cutting sample...')
     new_SNe = []
     if algo == 'snpy':
+        cuts = {'EBVhost_value': (-1, 1), 'EBVhost_err': 0.2, 'st_value': (0.3, 1.0), 'st_err': 0.1, 'T_max_err': 1}
         print('[+++] Cutting sample for SNooPy data...')
+        print('===================================================================================================')
+        for c in cuts:
+            print(c+':', cuts[c])
+        print('===================================================================================================')
         for SN in SNe:
             readout = '[' + str(SNe.index(SN) + 1) + '/' + str(len(SNe)) + '] -- ' + SN.objname + ' '
             resid = float(SN.params['mu']['value']) - gen.current_cosmo().distmod(float(SN.z)).value
             resid -= np.median(resid)
 
-            if float(SN.params['EBVhost']['value']) < -1 or float(SN.params['EBVhost']['value']) > 1:
+            if (float(SN.params['EBVhost']['value']) < cuts['EBVhost_value'][0]
+                    or float(SN.params['EBVhost']['value']) > cuts['EBVhost_value'][1]):
                 readout += '-- EBVhost out of range! -- ' + str(SN.params['EBVhost']['value'])
                 print(readout)
                 continue
-            if float(SN.params['EBVhost']['err']) > 0.2:
+            if float(SN.params['EBVhost']['err']) > cuts['EBVhost_err']:
                 readout += '-- EBVhost errors out of range! -- ' + str(SN.params['EBVhost']['err'])
                 print(readout)
                 continue
 
-            if float(SN.params['st']['value']) < 0.3 or float(SN.params['st']['value']) > 1.0:
+            if (float(SN.params['st']['value']) < cuts['st_value'][0]
+                    or float(SN.params['st']['value']) > cuts['st_value'][1]):
                 readout += '-- Stretch out of range! -- ' + str(SN.params['st']['value'])
                 print(readout)
                 continue
-            if float(SN.params['st']['err']) > 0.1:
+            if float(SN.params['st']['err']) > cuts['st_err']:
                 readout += '-- Stretch error out of range! -- ' + str(SN.params['st']['err'])
                 print(readout)
                 continue
 
-            if float(SN.params['Tmax']['err']) > 1:
+            if float(SN.params['Tmax']['err']) > cuts['T_max_err']:
                 readout += '-- Maximum time error out of range! -- ' + str(SN.params['Tmax']['err'])
                 print(readout)
                 continue
@@ -901,30 +892,37 @@ def sample_cutter(SNe, data_set, algo='snpy', save=True):
 
         print('Successfully cut data [', len(new_SNe), '/', len(SNe), '] !')
     elif algo == 'salt':
-        print('[+++] Cutting SALT3 results...')
+        cuts = {'x1_value': (-3, 3), 'x1_err': 1, 'c_value': (-0.3, 0.3), 'c_err': 0.1, 't0_err': 2}
+        print('[+++] Cutting sample for SALT data...')
+        print('===================================================================================================')
+        for c in cuts:
+            print(c+':', cuts[c])
+        print('===================================================================================================')
         for SN in SNe:
             readout = '[' + str(SNe.index(SN) + 1) + '/' + str(len(SNe)) + '] -- ' + SN.objname + ' '
 
-            if float(SN.params['x1']['value']) < -3 or float(SN.params['x1']['value']) > 3:
-                readout += '-- X1 out of range!'
+            if (float(SN.params['x1']['value']) < cuts['x1_value'][0]
+                    or float(SN.params['x1']['value']) > cuts['x1_value'][1]):
+                readout += '-- X1 out of range! -- ' + str(SN.params['x1']['value'])
                 print(readout)
                 continue
-            if float(SN.params['x1']['err']) > 1:
-                readout += '-- X1 error too large!'
-                print(readout)
-                continue
-
-            if float(SN.params['c']['value']) < -0.3 or float(SN.params['c']['value']) > 0.3:
-                readout += '-- c out of range!'
-                print(readout)
-                continue
-            if float(SN.params['c']['err']) > 0.1:
-                readout += '-- c error too large!'
+            if float(SN.params['x1']['err']) > cuts['x1_err']:
+                readout += '-- X1 error too large! -- ' + str(SN.params['x1']['err'])
                 print(readout)
                 continue
 
-            if float(SN.params['t0']['err']) > 2:
-                readout += '-- t0 error too large!'
+            if (float(SN.params['c']['value']) < cuts['c_value'][0]
+                    or float(SN.params['c']['value']) > cuts['c_value'][1]):
+                readout += '-- c out of range! -- ' + str(SN.params['c']['value'])
+                print(readout)
+                continue
+            if float(SN.params['c']['err']) > cuts['c_err']:
+                readout += '-- c error too large! -- ' + str(SN.params['c']['err'])
+                print(readout)
+                continue
+
+            if float(SN.params['t0']['err']) > cuts['t0_err']:
+                readout += '-- t0 error too large! -- '  + str(SN.params['t0']['err'])
                 print(readout)
                 continue
 
@@ -1005,6 +1003,11 @@ def residual_plotter(path, x_params='Redshift', labels=False):
     data_set = path.split('/')[-1].split('_')[0].upper()
     algo = path.split('_')[-3].upper()
 
+    # Get header
+    with open(path, 'r') as f:
+        hdr = f.readline().split(', ')
+        hdr[-1] = hdr[-1][:-1]
+
     fig, axs = plt.subplots(1, 2, figsize=(12, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
     color_wheel = {'ZTF': '#81ADC8', 'ATLAS': '#EEDFAA', 'CSP': '#CD4631', 'ATLAS-ZTF': '#DEA47E'}
     key = {'ZTF': True, 'ATLAS': True, 'CSP': True, 'ATLAS-ZTF': True}
@@ -1016,7 +1019,7 @@ def residual_plotter(path, x_params='Redshift', labels=False):
         resid_mu_err = data[:, 9].astype(float)[indexs]
 
         if x_params == 'Host Mass':
-            x_axis, x_axis_err = data[:, 15].astype(float)[indexs], data[:, 16].astype(float)[indexs]
+            x_axis, x_axis_err = data[:, 16].astype(float)[indexs], data[:, 17].astype(float)[indexs]
         elif x_params == 'Redshift':
             x_axis, x_axis_err = data[:, 4].astype(float)[indexs], None
         else:
@@ -1240,9 +1243,6 @@ def dr3_run():
 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
-
-
-
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 
