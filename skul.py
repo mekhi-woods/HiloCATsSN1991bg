@@ -997,7 +997,7 @@ def file_sample_cutter(path, algo, save=True):
                 f.write(line)
     return
 # ------------------------------------------------------------------------------------------------------------------- #
-def residual_plotter(path, x_params='Redshift', labels=False):
+def residual_plotter(path, x_params='z', labels=False):
     # Pull data from saved text
     data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
     data_set = path.split('/')[-1].split('_')[0].upper()
@@ -1012,40 +1012,51 @@ def residual_plotter(path, x_params='Redshift', labels=False):
     color_wheel = {'ZTF': '#81ADC8', 'ATLAS': '#EEDFAA', 'CSP': '#CD4631', 'ATLAS-ZTF': '#DEA47E'}
     key = {'ZTF': True, 'ATLAS': True, 'CSP': True, 'ATLAS-ZTF': True}
 
+    # Determine x-axis
+    if x_params == 'mass':
+        axs[0].set(xlabel=' Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
+        x_axis, x_axis_err = data[:, 16].astype(float), data[:, 17].astype(float)
+        title = "Hubble Residuals vs. Host Stellar Mass of '"+data_set+"' 91bg-like SNe Ia\n"
+    elif x_params == 'z':
+        axs[0].set(xlabel='Host Galaxy CMB Redshift', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
+        x_axis, x_axis_err = data[:, 4].astype(float), np.full(len(data[:, 4]), np.nan)
+        title = "Hubble Residuals vs. Redshift of '"+data_set+"' 91bg-like SNe Ia\n"
+    else:
+        raise ValueError("[!!!] Invalid x_params ['mass'/'z']")
+
+
     # Plot points
     for origin in np.unique(data[:, 7]):
         indexs = np.where(data[:, 7] == origin)[0]
         resid_mu = data[:, 8].astype(float)[indexs] - gen.current_cosmo().distmod(data[:, 4].astype(float)[indexs]).value
         resid_mu_err = data[:, 9].astype(float)[indexs]
 
-        if x_params == 'Host Mass':
-            x_axis, x_axis_err = data[:, 16].astype(float)[indexs], data[:, 17].astype(float)[indexs]
-        elif x_params == 'Redshift':
-            x_axis, x_axis_err = data[:, 4].astype(float)[indexs], None
-        else:
-            raise ValueError("[!!!] Invalid x_params ['Host Mass'/'Redshift']")
-        axs[0].errorbar(x_axis, resid_mu, xerr=x_axis_err, yerr=resid_mu_err,
+        x_axis_plt, x_axis_err_plt = x_axis[indexs], x_axis_err[indexs]
+
+        axs[0].errorbar(x_axis_plt, resid_mu, xerr=x_axis_err_plt, yerr=resid_mu_err,
                         color=color_wheel[origin], fmt='o', label=origin)
+
         # Labels
         if labels:
             for i in range(len(resid_mu)):
-                axs[0].text(x_axis[i], resid_mu[i], str(data[:, 0][indexs][i]), size='x-small', va='top')
+                axs[0].text(x_axis_plt[i], resid_mu[i], str(data[:, 0][indexs][i]), size='x-small', va='top')
 
     # Plot histogram
     all_resid_mu = data[:, 8].astype(float) - gen.current_cosmo().distmod(data[:, 4].astype(float)).value
-    axs[1].hist(all_resid_mu, bins=40, orientation="horizontal", color='#9E6240')
+    axs[1].hist(all_resid_mu, bins=15, orientation="horizontal", color='#9E6240')
+
+    # Adjusting axies presentation
+    ylimiter = np.max(np.abs(all_resid_mu))+0.3
+    axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
+    # x_bot, x_top = np.min(x_axis)-0.3, np.max(x_axis)+0.3
+    # axs[0].set_xlim(x_bot, x_top)
 
     # Formatting
-    ylimiter = np.max(np.abs(resid_mu))+0.5
-    axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
-    fig.suptitle("Hubble Residuals vs. " + x_params + " of '"+data_set+"' 91bg-like SNe Ia -- "+algo, fontsize=15)
+    fig.suptitle(title + 'Scatter: ' + str(round(np.std(all_resid_mu), 2)) + ' | # of pts: ' + str(len(all_resid_mu)), # Figure Title
+                 size='medium')
 
-    fig.suptitle("Hubble Residuals vs. " + x_params + " of '"+data_set+"' 91bg-like SNe Ia\n" +  # Figure Title
-             ' | Scatter: ' + str(round(np.std(all_resid_mu), 2)) + ' | # of pts: ' + str(len(all_resid_mu)), size='medium')
-
-    axs[0].set(xlabel=x_params, ylabel='Hubble Residuals')  # Sub-plot Labels
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
-    axs[0].legend()
+    axs[0].legend(loc='upper left')
     print('Saved figure to... ', path[:-len(path.split('/')[-1])]+data_set.lower()+'_resid_v_'+x_params.lower()+'.png')
     plt.savefig(path[:-len(path.split('/')[-1])]+data_set.lower()+'_resid_v_'+x_params.lower()+'.png')
     plt.show()
@@ -1243,6 +1254,13 @@ def dr3_run():
 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
+
+    # hiloCAT19bg_cut = np.genfromtxt('output/COMBINED_combined_snpy_cut_params.txt')
+    # hiloCAT19bg_uncut = np.genfromtxt('output/COMBINED_combined_snpy_uncut_params.txt')
+
+    residual_plotter('output/COMBINED_combined_snpy_cut_params.txt', x_params='mass', labels=False)
+    residual_plotter('output/COMBINED_combined_snpy_cut_params.txt', x_params='z', labels=False)
+
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 
