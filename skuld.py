@@ -761,11 +761,11 @@ def combined_fit(algo='snpy', cut=False, dmag_max=0, dflux_max=0):
         for SN in combined_SNe:
             print('[', combined_SNe.index(SN)+1, '/', len(combined_SNe), '] Fitting data with SALT3 for '+SN.objname+'...')
             print('-----------------------------------------------------------------------------------------------')
-            SN.salt_fit(save_loc=CONSTANTS['salt_combined_loc'])
+            SN.salt_fit(save_loc=CONSTANTS['combined_salt_saved_loc'])
             if SN.params['mu']['value'] <= 0.00:
-                return None
+                continue
             SN.get_host_mass()
-            SN.save_class(CONSTANTS['salt_combined_loc'])
+            SN.save_class(CONSTANTS['combined_salt_saved_loc'])
             if 'hostMass' in list(tempSN.params.keys()):
                 fit_combined_SNe.append(SN)
     else:
@@ -775,7 +775,7 @@ def combined_fit(algo='snpy', cut=False, dmag_max=0, dflux_max=0):
     if algo == 'snpy':
         save_params_to_file(CONSTANTS['combined_saved_loc']+'combined_params.txt', fit_combined_SNe)
     elif algo == 'salt':
-        save_params_to_file(CONSTANTS['salt_combined_loc']+'combined_params.txt', fit_combined_SNe)
+        save_params_to_file(CONSTANTS['combined_salt_saved_loc']+'combined_params.txt', fit_combined_SNe)
 
     return fit_combined_SNe
 def batch_fit(data_set, algo='snpy', cut=False, dmag_max=0, dflux_max=0):
@@ -892,7 +892,7 @@ def sample_cutter(SNe, data_set, algo='snpy', save=True):
 
         print('Successfully cut data [', len(new_SNe), '/', len(SNe), '] !')
     elif algo == 'salt':
-        cuts = {'x1_value': (-3, 3), 'x1_err': 1, 'c_value': (-0.3, 0.3), 'c_err': 0.1, 't0_err': 2}
+        cuts = {'x1_value': (-5, 5), 'x1_err': 1, 'c_value': -0.3, 'c_err': 0.1, 't0_err': 2}
         print('[+++] Cutting sample for SALT data...')
         print('===================================================================================================')
         for c in cuts:
@@ -911,8 +911,7 @@ def sample_cutter(SNe, data_set, algo='snpy', save=True):
                 print(readout)
                 continue
 
-            if (float(SN.params['c']['value']) < cuts['c_value'][0]
-                    or float(SN.params['c']['value']) > cuts['c_value'][1]):
+            if float(SN.params['c']['value']) < cuts['c_value']:
                 readout += '-- c out of range! -- ' + str(SN.params['c']['value'])
                 print(readout)
                 continue
@@ -1255,12 +1254,7 @@ def dr3_run():
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
-    # hiloCAT19bg_cut = np.genfromtxt('output/COMBINED_combined_snpy_cut_params.txt')
-    # hiloCAT19bg_uncut = np.genfromtxt('output/COMBINED_combined_snpy_uncut_params.txt')
-
-    residual_plotter('output/COMBINED_combined_snpy_cut_params.txt', x_params='mass', labels=False)
-    residual_plotter('output/COMBINED_combined_snpy_cut_params.txt', x_params='z', labels=False)
-
+    # output('COMBINED', 'combined', 'salt', cut=True, dmag_max=1)
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 
