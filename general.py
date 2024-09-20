@@ -39,7 +39,7 @@ def get_APIkeys(apikeys_loc='txts/APIkeys.txt'):
                 continue
             APIKEY.update({line[0]: line[1]})
     return APIKEY
-def TNS_details(obj_ra, obj_dec, attempts=10, use_keys=True):
+def TNS_details(obj_ra, obj_dec, attempts=10, radius=2, use_keys=True):
     import tnsAPI
     APIkey = get_APIkeys()
     print('-----------------------------------------------------------------------------------------------------------')
@@ -61,7 +61,7 @@ def TNS_details(obj_ra, obj_dec, attempts=10, use_keys=True):
             tns_api_url = f"https://www.wis-tns.org/api/get"
             search_tns_url = tnsAPI.build_tns_url(tns_api_url, mode="search")
             get_tns_url = tnsAPI.build_tns_url(tns_api_url, mode="get")
-            search_data = tnsAPI.build_tns_search_query_data(tns_bot_api_key, obj_ra, obj_dec)
+            search_data = tnsAPI.build_tns_search_query_data(tns_bot_api_key, obj_ra, obj_dec, radius=radius)
             transients = tnsAPI.rate_limit_query_tns(search_data, headers, search_tns_url)
             get_data = tnsAPI.build_tns_get_query_data(tns_bot_api_key, transients[0])
             details = tnsAPI.rate_limit_query_tns(get_data, headers, get_tns_url)
@@ -72,11 +72,12 @@ def TNS_details(obj_ra, obj_dec, attempts=10, use_keys=True):
                     f.write(str(obj_ra) + ', ' + str(obj_dec) + ', ' + obj_name + ', ' + str(obj_z) +
                             ', ' + str(obj_discdate) + '\n') # Save to key
         except Exception as error:
+            print('Error:', error)
             if attempts <= 0:
                 raise RuntimeError('TNS completly timed out.')
             print(f'{attempts} attempts remaining')
             systime.sleep(5)
-            obj_name, obj_z, obj_discdate = TNS_details(obj_ra, obj_dec, attempts=attempts - 1, use_keys=use_keys)
+            obj_name, obj_z, obj_discdate = TNS_details(obj_ra, obj_dec, attempts=attempts-1, radius=radius+1, use_keys=use_keys)
     return obj_name, obj_z, obj_discdate
 def dict_handler(data_dict={}, choice='', path='default/dict.txt', delimiter=', '):
     if choice == 'unpack':

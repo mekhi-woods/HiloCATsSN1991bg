@@ -18,13 +18,14 @@ import general as gen
 CONSTANTS = gen.get_constants()
 
 class sn91bg():
-    def __init__(self, objname=None, originalname=None, coords=(0.00, 0.00), z=0.00, origin=None):
+    def __init__(self, objname=None, originalname=None, coords=(0.00, 0.00), z=0.00, origin=None, discovery_data=None):
         self.objname = objname
         self.originalname = originalname
         self.coords = coords
         self.z = z
         self.z_cmb = np.nan
         self.origin = origin
+        self.discovery_date = discovery_data
 
         self.period = None
         self.params = {}
@@ -97,30 +98,28 @@ class sn91bg():
                 plt.errorbar(self.time[indexs], self.flux[indexs], yerr=self.dflux[indexs], fmt='o', ms=4, elinewidth=0.3,
                              color=filter_dict[self.filters[indexs][0]], label=self.filters[indexs][0])
 
-            if date_lines:
-                # Tmax line
-                if len(self.params) > 0:
-                    if 'Tmax' in list(self.params.keys()):
-                        plt.axvline(x=self.params['Tmax']['value'],
-                                    color='maroon', ls='-.', label='Tmax', linewidth=3, alpha=0.5)
-                    elif 't0' in list(self.params.keys()):
-                        plt.axvline(x=self.params['t0']['value'],
-                                    color='maroon', ls='-.', label='Tmax', linewidth=3, alpha=0.5)
-
-                # Plot discovery date
-                details = gen.TNS_details(self.coords[0], self.coords[1])
-                plt.axvline(x=float(details[-1]),
-                            color='peru', ls='--', label='Discovery Date', linewidth=3, alpha=0.5)
-
-            if zoom > 0:
-                if 'Tmax' in list(self.params.keys()):
-                    plt.xlim(self.params['Tmax']['value']-zoom, self.params['Tmax']['value']+zoom)
-                elif 't0' in list(self.params.keys()):
-                    plt.xlim(self.params['t0']['value']-zoom, self.params['t0']['value']+zoom)
-
             # Format
             if size != None and i > 0:
-                plt.gca().get_yaxis().set_visible(False) # Turn off y-axis labels
+                plt.gca().get_yaxis().set_visible(False)  # Turn off y-axis labels
+
+        if date_lines:
+            # Tmax line
+            if len(self.params) > 0:
+                if 'Tmax' in list(self.params.keys()):
+                    plt.axvline(x=self.params['Tmax']['value'],
+                                color='maroon', ls='-.', label='Tmax', linewidth=3, alpha=0.5)
+                elif 't0' in list(self.params.keys()):
+                    plt.axvline(x=self.params['t0']['value'],
+                                color='maroon', ls='-.', label='Tmax', linewidth=3, alpha=0.5)
+
+            # Plot discovery date
+            plt.axvline(x=float(self.discovery_date), color='peru', ls='--', label='Discovery Date', linewidth=3, alpha=0.5)
+
+        if zoom > 0:
+            if 'Tmax' in list(self.params.keys()):
+                plt.xlim(self.params['Tmax']['value']-zoom, self.params['Tmax']['value']+zoom)
+            elif 't0' in list(self.params.keys()):
+                plt.xlim(self.params['t0']['value']-zoom, self.params['t0']['value']+zoom)
 
             plt.xlabel('MJD'); plt.legend()
         if y_type == 'mag':
@@ -136,7 +135,7 @@ class sn91bg():
         with open(save_loc+'classes/'+self.objname+'_class.txt', 'w') as f:
             f.write(self.origin + ' ' + self.objname + ' ' + self.originalname +
                     ' ' + str(self.coords[0]) + ' ' + str(self.coords[1]) +
-                    ' ' + str(self.z) + ' ' + str(self.z_cmb) + '\n')
+                    ' ' + str(self.z) + ' ' + str(self.z_cmb) + ' ' + str(self.discovery_date) + '\n')
             f.write('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n')
 
             for p in self.params:
@@ -155,8 +154,8 @@ class sn91bg():
         print('[+++] Loading class from '+file)
         with open(file, 'r') as f:
             hdr = f.readline().split(' ')
-            self.origin, self.objname, self.originalname, self.coords, self.z, self.z_cmb = (
-                hdr[0], hdr[1], hdr[2], (float(hdr[3]), float(hdr[4])), float(hdr[5]), float(hdr[6][:-1]))
+            self.origin, self.objname, self.originalname, self.coords, self.z, self.z_cmb, self.discovery_date = (
+                hdr[0], hdr[1], hdr[2], (float(hdr[3]), float(hdr[4])), float(hdr[5]), float(hdr[6]), float(hdr[7][:-1]))
 
             skip = f.readline()
 
@@ -200,12 +199,25 @@ class sn91bg():
     def make_class(self, data_set, path, dmag_max=0, dflux_max=0):
         if data_set == 'CSP':
             print('[+++] Creating class using CSP data...')
+            print(path)
+            # Header elements
             with open(path, 'r') as f:
                 objname, z, ra, dec = f.readline().split(' ')
-                originalname = path.split('/')[-1].split('_')[0]
-            objname, ra, dec, z = objname[2:], float(ra), float(dec[:-1]), float(z)
-            tempSN = sn91bg(objname, originalname, (ra, dec), z, 'CSP')
+                objname, z, ra, dec = objname[2:], float(z), float(ra), float(dec[:-1])
+            originalname = path.split('/')[-1].split('_')[0]
 
+            # Query TNS for transient details
+            objname, z_void, discdate = gen.TNS_details(ra, dec) # Voiding the redshift from TNS, its None for some reason
+
+            # Make class
+            tempSN = sn91bg(objname=objname,
+                            originalname=originalname,
+                            coords = (ra, dec),
+                            z=z,
+                            origin = 'CSP',
+                            discovery_data=discdate)
+
+            # Set arrays
             filter = ''
             with open(path, 'r') as f:
                 hdr = f.readline()
@@ -231,6 +243,7 @@ class sn91bg():
                         tempSN.dmag = np.append(tempSN.dmag, n_dmag)
         elif data_set == 'ATLAS':
             print('[+++] Creating class using ATLAS data...')
+            print(path)
 
             # Load data
             data = np.genfromtxt(path, delimiter=',', dtype=str, skip_header=1)
@@ -249,7 +262,8 @@ class sn91bg():
                             originalname=path.split('/')[-1].split('.')[0],
                             coords = (ra, dec),
                             z=np.nan if z == 'None' else float(z),
-                            origin = 'ATLAS')
+                            origin = 'ATLAS',
+                            discovery_data=discdate)
 
             # Set arrays
             tempSN.zp = data[:, 7].astype(float)
@@ -261,6 +275,7 @@ class sn91bg():
             tempSN.dmag = data[:, 4]
         elif data_set == 'ZTF':
             print('[+++] Creating class using ZTF data...')
+            print(path)
 
             # Load data
             data = np.genfromtxt(path, delimiter=None, dtype=str, skip_header=56)
@@ -302,8 +317,14 @@ class sn91bg():
                     zp = zp[zoom_indexes]
                     filters = filters[zoom_indexes]
 
-            tempSN = sn91bg(objname, originalname, (ra, dec), z, 'ZTF')
-
+            # Make class
+            tempSN = sn91bg(objname=objname,
+                            originalname=originalname,
+                            coords = (ra, dec),
+                            z=z,
+                            origin = 'ZTF',
+                            discovery_data=discdate)
+            
             # Set arrays
             tempSN.zp = zp
             tempSN.filters = filters
@@ -499,7 +520,8 @@ class sn91bg():
             model = sncosmo.Model(source='salt3')
 
             # Fit data to model
-            model.set(z=self.z, t0=self.time[np.where(self.flux == np.max(self.flux))[0][0]])  # set the model's redshift.
+            details = gen.TNS_details(self.coords[0], self.coords[1])
+            model.set(z=self.z, t0=self.discovery_date)  # set the model's redshift.
             result, fitted_model = sncosmo.fit_lc(data, model, ['t0', 'x0', 'x1', 'c'], bounds={'x1': (-5, 5)})
 
             param_names = ['t0', 'x0', 'x1', 'c']
@@ -693,8 +715,8 @@ def combined_fit(algo='snpy', dmag_max=0, dflux_max=0):
     # Fitting data
     fit_combined_SNe = []
     for SN in combined_SNe:
-        print('[', combined_SNe.index(SN)+1, '/', len(combined_SNe), '] Fitting data for '+SN.objname+' ['+algo+']...')
         print('-----------------------------------------------------------------------------------------------')
+        print('[', combined_SNe.index(SN)+1, '/', len(combined_SNe), '] Fitting data for '+SN.objname+' ['+algo+'] ['+SN.origin+']...')
         SN.fit(algo=algo, save_loc=CONSTANTS[algo+'_combined_saved_loc'])
         # Check if fit failed
         if (SN != None and
@@ -736,17 +758,23 @@ def batch_fit(data_set, algo='snpy', dmag_max=0, dflux_max=0):
     return SNe
 def sample_cutter(path, algo='snpy'):
     data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
+    original_num = str(len(data[:, 0]))
+    if len(data) == 0:
+        print('[+++] No params to cut!')
+        return
     with open(path, 'r') as f:
         hdr = f.readline().split(', ')
         hdr[-1] = hdr[-1][:-1]
     if algo == 'snpy':
         print('[+++] Cutting sample for SNooPy data...')
-        cuts = {'EBVhost': (-1, 1), 'EBVhost_err': 0.2, 'st': (0.3, 1.0), 'st_err': 0.1, 'Tmax_err': 1}
+        # cuts = {'z': 0.015, 'EBVhost': (-1, 1), 'EBVhost_err': 0.2, 'st': (0.3, 1.0), 'st_err': 0.1, 'Tmax_err': 1} # Old
+        cuts = {'z': 0.015, 'EBVhost': (-1, 0.28), 'EBVhost_err': 0.1, 'st': (0.3, 1.0), 'st_err': 0.1, 'Tmax_err': 1} # Maximized
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
         print(f_out)
-        data = data[(data[:, hdr.index('EBVhost')].astype(float) > cuts['EBVhost'][0]) &
+        data = data[(data[:, hdr.index('z_cmb')].astype(float) > cuts['z']) &
+                    (data[:, hdr.index('EBVhost')].astype(float) > cuts['EBVhost'][0]) &
                     (data[:, hdr.index('EBVhost')].astype(float) < cuts['EBVhost'][1]) &
                     (data[:, hdr.index('EBVhost_err')].astype(float) < cuts['EBVhost_err']) &
                     (data[:, hdr.index('st')].astype(float) > cuts['st'][0]) &
@@ -755,15 +783,21 @@ def sample_cutter(path, algo='snpy'):
                     (data[:, hdr.index('Tmax_err')].astype(float) < cuts['Tmax_err'])]
     elif algo == 'salt':
         print('[+++] Cutting sample for SNooPy data...')
-        cuts = {'x1': (-5, 5), 'x1_err': 1, 'c': -0.3, 'c_err': 0.1, 't0_err': 2}
+        # cuts = {'z': 0.015, 'x0': 999, 'x0_err': 999, 'x1': (-5, 5), 'x1_err': 1, 'c': (-0.3, 999), 'c_err': 0.1, 't0_err': 2}
+        # cuts = {'z': 0.015, 'x0': 8.78, 'x0_err': 3.09, 'x1': (-5, 5), 'x1_err': 8.80, 'c': (-4.72, 4.57), 'c_err': 1.47, 't0_err': 2} # Based on <3-sigma
+        cuts = {'z': 0.015, 'x0': 1, 'x0_err': 0.1, 'x1': (-5, 5), 'x1_err': 2, 'c': (-0.3, 1), 'c_err': 0.1, 't0_err': 2} # Maximized
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
         print(f_out)
-        data = data[(data[:, hdr.index('x1')].astype(float) > cuts['x1'][0]) &
+        data = data[(data[:, hdr.index('z_cmb')].astype(float) > cuts['z']) &
+                    (data[:, hdr.index('x0')].astype(float) < cuts['x0']) &
+                    (data[:, hdr.index('x0_err')].astype(float) < cuts['x0_err']) &
+                    (data[:, hdr.index('x1')].astype(float) > cuts['x1'][0]) &
                     (data[:, hdr.index('x1')].astype(float) < cuts['x1'][1]) &
                     (data[:, hdr.index('x1_err')].astype(float) < cuts['x1_err']) &
-                    (data[:, hdr.index('c')].astype(float) > cuts['c']) &
+                    (data[:, hdr.index('c')].astype(float) > cuts['c'][0]) &
+                    (data[:, hdr.index('c')].astype(float) < cuts['c'][1]) &
                     (data[:, hdr.index('c_err')].astype(float) < cuts['c_err']) &
                     (data[:, hdr.index('t0_err')].astype(float) < cuts['t0_err'])]
 
@@ -779,7 +813,7 @@ def sample_cutter(path, algo='snpy'):
                 f_out +=  ', ' + str(item)
             f.write(f_out + '\n')
     print('      Cut file saved to...', path[:-4]+'_cut.txt')
-
+    print('      [ '+str(len(data[:, 0]))+' / '+original_num+' ]')
     return
 # ------------------------------------------------------------------------------------------------------------------- #
 def batch_load(data_set, algo='snpy'):
@@ -790,6 +824,9 @@ def batch_load(data_set, algo='snpy'):
 # ------------------------------------------------------------------------------------------------------------------- #
 def save_params_to_file(save_loc, SNe):
     print('[+++] Saving params to '+save_loc+'...')
+    if len(SNe) == 0:
+        print('[+++] No params to save!')
+        return
     with open(save_loc, 'w') as f:
         hdr = 'objname, ra, dec, z, z_cmb, MJDs, MJDe, origin'
         for params in SNe[0].params:
@@ -852,6 +889,9 @@ def residual_plotter(path, x_params='z', data_set='', algo='', labels=False):
 
     # Plot histogram
     all_resid_mu = data[:, hdr.index('mu')].astype(float) - gen.current_cosmo().distmod(data[:, hdr.index('z_cmb')].astype(float)).value
+    all_resid_mu_err = data[:, hdr.index('mu_err')].astype(float)
+    # print(np.average(all_resid_mu))
+    # print(np.std(all_resid_mu_err))
     axs[1].hist(all_resid_mu, bins=15, orientation="horizontal", color='#9E6240')
 
     # Adjusting axies presentation
@@ -859,9 +899,10 @@ def residual_plotter(path, x_params='z', data_set='', algo='', labels=False):
     axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
 
     # Formatting
-    fig.suptitle(title + 'Scatter: ' + str(round(np.std(all_resid_mu), 2)) + ' | # of pts: ' + str(len(all_resid_mu)), # Figure Title
+    fig.suptitle(title +
+                 'Scatter: ' + str(round(np.std(all_resid_mu), 2)) + ' | # of pts: ' + str(len(all_resid_mu)) +
+                 ' | SNR: ' + str(round(np.sqrt(np.abs(np.average(all_resid_mu)) / np.abs(np.std(all_resid_mu_err))), 2)),
                  size='medium')
-
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
     axs[0].legend(loc='best')
     print('Saved figure to... ', path[:-len(path.split('/')[-1])]+data_set.lower()+'_resid_v_'+x_params.lower()+'.png')
@@ -900,15 +941,19 @@ def histogram_plotter(path, param_bins=[45, 45, 45, 45, 45]):
     plt.show()
     return
 # ------------------------------------------------------------------------------------------------------------------- #
-def mass_step_calc(path, cut=10):
+def mass_step_calc(path, cut=10, quiet=False):
     data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
     with open(path, 'r') as f:
         hdr = f.readline().split(', ')
         hdr[-1] = hdr[-1][:-1]
 
+    source = path.split('/')[-1].split('.')[0].upper().replace('_', ' ')+' '+str(cut).upper()
     mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
     mass = data[:, hdr.index('hostMass')].astype(float)
     z = data[:, hdr.index('z_cmb')].astype(float)
+
+    if cut == 'median':
+        cut = round(np.median(mass), 4)
 
     all_resid = mu - gen.current_cosmo().distmod(z).value
     lower_resid, lower_resid_err = mu[mass < cut] - gen.current_cosmo().distmod(z[mass < cut]).value, mu_err[mass < cut]
@@ -917,7 +962,11 @@ def mass_step_calc(path, cut=10):
     mass_step = np.abs(np.average(lower_resid) - np.average(upper_resid))
     mass_step_err = np.abs(np.average(lower_resid_err) - np.average(upper_resid_err))
 
+    if quiet:
+        sys.stdout = open(os.devnull, 'w')
+
     print('***********************************************************************************************************')
+    print(source)
     print('Mass Step [M(<' + str(cut) + ') - M(>' + str(cut) + ')]:', round(mass_step, 4), '+/-', round(mass_step_err, 4))
     print('\t----------------------')
     print('\tScatter:', round(np.std(all_resid), 4),
@@ -927,9 +976,10 @@ def mass_step_calc(path, cut=10):
     print('\tNumber of Targets:', len(mu),
           '| M(<' + str(cut) + '):', len(mu[mass < cut]),
           '| M(>' + str(cut) + '):', len(mu[mass > cut]))
-    print('***********************************************************************************************************')
 
-    return
+    sys.stdout = sys.__stdout__
+
+    return mass_step, mass_step_err, {'cut': cut, 'scatter': np.std(all_resid), 'source': source}
 def merge_snpy_salt(snpy_path, salt_path, save_loc):
     snpy_data = np.genfromtxt(snpy_path, delimiter=', ', skip_header=1, dtype=str)
     salt_data = np.genfromtxt(salt_path, delimiter=', ', skip_header=1, dtype=str)
@@ -972,6 +1022,51 @@ def merge_snpy_salt(snpy_path, salt_path, save_loc):
     print('Saved merged param file to... ', save_loc)
 
     return
+def mass_step_scatter_comparison():
+    mass_steps, mass_step_errs, scatters = [], [], []
+    print('source, mass_step, mass_step_err, params')
+    paths = ['saved/salt/combined/combined_params_cut.txt',
+             'saved/salt/combined/combined_params.txt',
+             'saved/snpy/combined/combined_params_cut.txt',
+             'saved/snpy/combined/combined_params.txt',
+             'saved/snpy_salt_combined_params_cut.txt',
+             'saved/snpy_salt_combined_params.txt']
+    labels = ['salt_cut_10',
+              'salt_cut_median',
+              'salt_uncut_10',
+              'salt_uncut_median',
+              'snpy_cut_10',
+              'snpy_cut_median',
+              'snpy_uncut_10',
+              'snpy_uncut_median',
+              'merged_cut_10',
+              'merged_cut_median',
+              'merged_uncut_10',
+              'merged_uncut_median']
+    cut = 'median'
+    for path in paths:
+        for cut in [10, 'median']:
+            mass_step, mass_step_err, params = mass_step_calc(path, cut=cut, quiet=True)
+            # print(path.split('/')[-1].split('.')[0].upper().replace('_', ' ')+', ',
+            #       str(round(mass_step, 7))+', ', str(round(mass_step_err, 7))+', ', params)
+            mass_steps.append(mass_step)
+            mass_step_errs.append(mass_step_err)
+            scatters.append(params['scatter'])
+
+    plt.figure(figsize=(12, 6))
+    plt.title('Mass Step v. Scatter \nCut = '+str(cut)+' log $M_{*}$/$[M_{\odot}]$')
+    for i in range(len(mass_steps)):
+        plt.errorbar(mass_steps[i], scatters[i], xerr=mass_step_errs[i], fmt='o')
+        plt.text(mass_steps[i], scatters[i], labels[i], size='x-small', va='top')
+    plt.ylabel('Scatter'); plt.xlabel('Mass Step')
+    plt.show()
+
+    with open('mass_step_scatter.txt', 'w') as f:
+        f.write('source, mass_step, mass_step_err, scatter\n')
+        for i in range(len(mass_steps)):
+            f.write(str(labels[i])+', '+str(mass_steps[i])+', '+str(mass_step_errs[i])+', '+str(scatters[i])+'\n')
+
+    return
 # ------------------------------------------------------------------------------------------------------------------- #
 def smart_fit(fit_type, data_set, algo, path=None, special_text='', dmag_max=0, dflux_max=0):
     if fit_type == 'indv':
@@ -992,7 +1087,7 @@ def smart_fit(fit_type, data_set, algo, path=None, special_text='', dmag_max=0, 
             "Invalid type selected ['indv'/'batch'/'COMBINED']")
 
     # Saving
-    if fit_type != 'indv':
+    if fit_type != 'indv' and len(SNe) != 0:
         # Save params
         save_params_to_file('output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_'+special_text+'params.txt', SNe)
 
@@ -1003,18 +1098,57 @@ def smart_fit(fit_type, data_set, algo, path=None, special_text='', dmag_max=0, 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
-    # residual_plotter('saved/snpy/combined/combined_params_cut.txt', x_params='z')
+    # merge_snpy_salt('output/COMBINED_combined_snpy_params_cut.txt',
+    #                 'output/COMBINED_combined_salt_params_cut.txt',
+    #                 'mass_step_scatter.txt')
+
+    # residual_plotter('mass_step_scatter.txt', x_params='mass', data_set='dual', algo='merged', labels=False)
+
+    mass_step_calc('mass_step_scatter.txt', cut=10, quiet=False)
+    mass_step_calc('mass_step_scatter.txt', cut='median', quiet=False)
+
+    # sample_cutter('output/COMBINED_combined_salt_params.txt', algo='salt')
+    # residual_plotter('output/COMBINED_combined_salt_params_cut.txt', x_params='z', algo='snpy', labels=True)
+
+    # data = np.genfromtxt('output/COMBINED_combined_snpy_params.txt', delimiter=', ', skip_header=1, dtype=str)
+    # low_mass_data = data[data[:, 16].astype(float) < 10]
+    # for i in range(len(low_mass_data)):
+    #     print(low_mass_data[i, 0], '|', low_mass_data[i, 10], '|', low_mass_data[i, 14])
+    # print('-------')
+    # print('Stetch:', np.average(low_mass_data[:, 10].astype(float)),
+    #       np.min(low_mass_data[:, 10].astype(float)), np.max(low_mass_data[:, 10].astype(float)))
+    # print('EBVhost:', np.average(low_mass_data[:, 14].astype(float)),
+    #       np.min(low_mass_data[:, 14].astype(float)), np.max(low_mass_data[:, 14].astype(float)))
+
+
+    # SNe = []
+    # for n in ['2007ba']:
+    #     SNe.append(sn91bg().load_from_file('saved/snpy/combined/classes/'+n+'_class.txt'))
+    # for SN in SNe:
+    #     print(SN.params['EBVhost'], SN.params['st'], SN.params['Tmax'])
 
     # smart_fit('COMBINED', 'COMBINED', 'snpy', dmag_max=1)
     # smart_fit('COMBINED', 'COMBINED', 'salt', dmag_max=1)
-    # mass_step_calc('output/COMBINED_combined_snpy_cut_params.txt', cut=10)
+
+    # sample_cutter('saved/snpy/combined/combined_params.txt', algo='snpy')
+    # residual_plotter('saved/snpy/combined/combined_params_cut.txt', x_params='mass', algo='snpy', labels=True)
+
+    # SN = sn91bg().load_from_file('saved/snpy/combined/classes/2021twa_class.txt')
+    # SN.plot()
+
+    # for n_cat in ['t0_err', 'x0', 'x0_err', 'x1', 'x1_err', 'c', 'c_err']:
+    #     path = 'output/COMBINED_combined_salt_params.txt'
+    #     data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
+    #     with open(path, 'r') as f:
+    #         hdr = f.readline().split(', ')
+    #         hdr[-1] = hdr[-1][:-1]
     #
-    # merge_snpy_salt('saved/snpy/combined/combined_params.txt',
-    #                 'saved/salt/combined/combined_params.txt',
-    #                 'saved/snpy_salt_combined_params.txt')
-
-    residual_plotter('saved/salt/combined/combined_params_cut.txt', x_params='mass', labels=False, data_set='merged', algo='dual')
-
+    #     cat = data[:, hdr.index(n_cat)].astype(float)
+    #     ebv_avg, ebv_std = np.average(cat), np.std(cat)
+    #     z_scores = (cat - ebv_avg) / ebv_std
+    #
+    #     print(n_cat, np.min(cat[z_scores < 3]), '< x <', np.max(cat[z_scores < 3]))
+    #     # break
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 

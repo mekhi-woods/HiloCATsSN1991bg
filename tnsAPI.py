@@ -100,7 +100,7 @@ def build_tns_query_data(tns_bot_api_key, data_obj):
     return {"api_key": tns_bot_api_key, "data": json.dumps(data_obj)}
 
 
-def build_tns_search_query_data(tns_bot_api_key, ra, dec):
+def build_tns_search_query_data(tns_bot_api_key, ra, dec, radius=2):
     """
     Build the the search query to find tns transients with a public timestamp
     after time after.
@@ -116,7 +116,7 @@ def build_tns_search_query_data(tns_bot_api_key, ra, dec):
     search_obj = [
         ("ra", ra),
         ("dec", dec),
-        ("radius", "2"),
+        ("radius", str(radius)),
         ("units", "arcsec"),
         ("objname", ""),
         ("objname_exact_match", 0),
