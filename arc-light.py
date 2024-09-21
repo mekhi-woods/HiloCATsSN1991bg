@@ -230,6 +230,7 @@ class sn91bg():
                             data_line = data_line[1:]
                         n_time, n_mag, n_dmag = float(data_line[0]), float(data_line[1]), float(data_line[2])
                         zp = float(CONSTANTS['csp_zpts_' + filter])
+                        n_time = n_time + 53000  # JD to MJD
 
                         n_flux = 10 ** ((n_mag - zp) / -2.5)
                         n_dflux = np.abs(n_flux) * np.log(10) * ((1 / 2.5) * n_dmag)
@@ -324,7 +325,7 @@ class sn91bg():
                             z=z,
                             origin = 'ZTF',
                             discovery_data=discdate)
-            
+
             # Set arrays
             tempSN.zp = zp
             tempSN.filters = filters
@@ -608,7 +609,6 @@ class sn91bg():
                                            host_data['iKronMag'].loc[0] - gen.current_cosmo().distmod(self.z).value)
                     gMagErr, iMagErr, iAbsMagErr = (host_data['gKronMagErr'].loc[0],
                                                     host_data['iKronMagErr'].loc[0], host_data['iKronMagErr'].loc[0])
-                    print(host_data['l'].loc[0], host_data['b'].loc[0])
         except Exception as error:
             print('Unknown GHOST error:', error)
 
@@ -782,10 +782,11 @@ def sample_cutter(path, algo='snpy'):
                     (data[:, hdr.index('st_err')].astype(float) < cuts['st_err']) &
                     (data[:, hdr.index('Tmax_err')].astype(float) < cuts['Tmax_err'])]
     elif algo == 'salt':
-        print('[+++] Cutting sample for SNooPy data...')
+        print('[+++] Cutting sample for SALT data...')
         # cuts = {'z': 0.015, 'x0': 999, 'x0_err': 999, 'x1': (-5, 5), 'x1_err': 1, 'c': (-0.3, 999), 'c_err': 0.1, 't0_err': 2}
         # cuts = {'z': 0.015, 'x0': 8.78, 'x0_err': 3.09, 'x1': (-5, 5), 'x1_err': 8.80, 'c': (-4.72, 4.57), 'c_err': 1.47, 't0_err': 2} # Based on <3-sigma
-        cuts = {'z': 0.015, 'x0': 1, 'x0_err': 0.1, 'x1': (-5, 5), 'x1_err': 2, 'c': (-0.3, 1), 'c_err': 0.1, 't0_err': 2} # Maximized
+        # cuts = {'z': 0.015, 'x0': 1, 'x0_err': 0.1, 'x1': (-5, 5), 'x1_err': 2, 'c': (-0.3, 1), 'c_err': 0.1, 't0_err': 2} # Maximized
+        cuts = {'z': 0.015, 'x0': 999, 'x0_err': 999, 'x1': (-5, 5), 'x1_err': 8, 'c': (-1, 1), 'c_err': 999, 't0_err': 1}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
@@ -841,13 +842,15 @@ def save_params_to_file(save_loc, SNe):
             f.write(line + '\n')
     return
 # ------------------------------------------------------------------------------------------------------------------- #
-def residual_plotter(path, x_params='z', data_set='', algo='', labels=False):
+def residual_plotter(path, x_params='z', data_set='', algo='', labels=False, save_loc=None):
     # Pull data from saved text
     data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
     if len(data_set) == 0:
         data_set = path.split('/')[-1].split('_')[0].upper()
     if len(algo) == 0:
         algo = path.split('/')[-3].upper()
+    if save_loc is None:
+        save_loc = path[:-len(path.split('/')[-1])]+data_set.lower()+'_resid_v_'+x_params.lower()+'.png'
 
     # Get header
     with open(path, 'r') as f:
@@ -862,10 +865,12 @@ def residual_plotter(path, x_params='z', data_set='', algo='', labels=False):
     # Determine x-axis
     if x_params == 'mass':
         axs[0].set(xlabel=' Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
+        axs[0].set_xlim(7.5, 12); axs[0].set_ylim(-3.0, 3.0); axs[1].set_ylim(-3.0, 3.0)
         x_axis, x_axis_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
         title = "Hubble Residuals vs. Host Stellar Mass of '"+data_set+"' 91bg-like SNe Ia\n"
     elif x_params == 'z':
         axs[0].set(xlabel='Host Galaxy CMB Redshift', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
+        axs[0].set_xlim(0.01, 0.08); axs[0].set_ylim(-4.0, 4.0); axs[1].set_ylim(-4.0, 4.0)
         x_axis, x_axis_err = data[:, hdr.index('z_cmb')].astype(float), np.full(len(data[:, hdr.index('z_cmb')]), np.nan)
         title = "Hubble Residuals vs. Redshift of '"+data_set+"' 91bg-like SNe Ia\n"
     else:
@@ -890,8 +895,6 @@ def residual_plotter(path, x_params='z', data_set='', algo='', labels=False):
     # Plot histogram
     all_resid_mu = data[:, hdr.index('mu')].astype(float) - gen.current_cosmo().distmod(data[:, hdr.index('z_cmb')].astype(float)).value
     all_resid_mu_err = data[:, hdr.index('mu_err')].astype(float)
-    # print(np.average(all_resid_mu))
-    # print(np.std(all_resid_mu_err))
     axs[1].hist(all_resid_mu, bins=15, orientation="horizontal", color='#9E6240')
 
     # Adjusting axies presentation
@@ -905,8 +908,8 @@ def residual_plotter(path, x_params='z', data_set='', algo='', labels=False):
                  size='medium')
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
     axs[0].legend(loc='best')
-    print('Saved figure to... ', path[:-len(path.split('/')[-1])]+data_set.lower()+'_resid_v_'+x_params.lower()+'.png')
-    plt.savefig(path[:-len(path.split('/')[-1])]+data_set.lower()+'_resid_v_'+x_params.lower()+'.png')
+    print('Saved figure to... ', save_loc)
+    plt.savefig(save_loc)
     plt.show()
     return
 def histogram_plotter(path, param_bins=[45, 45, 45, 45, 45]):
@@ -938,6 +941,45 @@ def histogram_plotter(path, param_bins=[45, 45, 45, 45, 45]):
                  + "' data\n Number of Transients: " + str(len(data)), fontsize=20)
     print('Saved figure to... ', path.split('/')[-1].split('_')[0]+'_hist.png')
     plt.savefig(path.split('/')[-1].split('_')[0]+'_hist.png')
+    plt.show()
+    return
+def make_display_plots():
+    residual_plotter('output/COMBINED_combined_snpy_params_cut.txt', x_params='mass', data_set='CSP-ATLAS-ZTF (snpy)', algo='snpy', save_loc='saved/csp-atlas-ztf_snpy_resid_v_mass.png')
+    residual_plotter('output/COMBINED_combined_snpy_params_cut.txt', x_params='z', data_set='CSP-ATLAS-ZTF (snpy)', algo='snpy', save_loc='saved/csp-atlas-ztf_snpy_resid_v_z.png')
+    residual_plotter('output/COMBINED_combined_salt_params_cut.txt', x_params='mass', data_set='CSP-ATLAS-ZTF (salt)', algo='salt', save_loc='saved/csp-atlas-ztf_salt_resid_v_mass.png')
+    residual_plotter('output/COMBINED_combined_salt_params_cut.txt', x_params='z', data_set='CSP-ATLAS-ZTF (salt)', algo='salt', save_loc='saved/csp-atlas-ztf_salt_resid_v_z.png')
+    residual_plotter('mass_step_scatter.txt', x_params='mass', data_set='snpy-salt', algo='merged', save_loc='saved/merged_resid_v_mass.png')
+    residual_plotter('mass_step_scatter.txt', x_params='z', data_set='snpy-salt', algo='merged', save_loc='saved/merged_resid_v_z.png')
+    return
+def param_hist_compare(set1, set2, bin_width, xrange=None, title=''):
+    # Select bins
+    if bin_width == 'auto':
+        bin1, bin2 = None, None
+    elif len(bin_width) > 1:
+        bin1, bin2 = int((np.max(set1) - np.min(set1)) / bin_width[0]), int((np.max(set2) - np.min(set2)) / bin_width[1])
+    else:
+        bin1, bin2 = int((np.max(set1) - np.min(set1)) / bin_width), int((np.max(set2) - np.min(set2)) / bin_width)
+
+    # Plotting
+    plt.figure(figsize=(12, 6))
+    plt.hist(set1, color='#62BEC1', label=title.split(' ')[0], alpha=1,
+             bins=bin1)
+    plt.hist(set2, color='#5AD2F4', label=title.split(' ')[2], alpha=0.825,
+             bins=bin2)
+
+    # Data Lines
+    plt.axvline(x=np.median(set1), label='Median '+title.split(' ')[0], linewidth=4, color='#52a1a3', linestyle='--')
+    plt.axvline(x=np.median(set2), label='Median '+title.split(' ')[2], linewidth=4, color='#4bb0cc', linestyle='-.')
+
+    # Formatting
+    plt.title(title)
+    plt.xlim(xrange)
+    plt.legend()
+
+    # Save Plot
+    plt.savefig('saved/HiCATvPan+_'+title.split(' ')[4].lower()+'.png')
+    print('Saved to...', 'saved/HiCATvPan+_'+title.split(' ')[4].lower()+'.png')
+
     plt.show()
     return
 # ------------------------------------------------------------------------------------------------------------------- #
@@ -980,6 +1022,36 @@ def mass_step_calc(path, cut=10, quiet=False):
     sys.stdout = sys.__stdout__
 
     return mass_step, mass_step_err, {'cut': cut, 'scatter': np.std(all_resid), 'source': source}
+def alt_mass_step_calc(mu, mu_err, mass, z, cut=10, quiet=False):
+    if cut == 'median':
+        cut = round(np.median(mass), 4)
+
+    all_resid = mu - gen.current_cosmo().distmod(z).value
+    lower_resid, lower_resid_err = mu[mass < cut] - gen.current_cosmo().distmod(z[mass < cut]).value, mu_err[mass < cut]
+    upper_resid, upper_resid_err = mu[mass > cut] - gen.current_cosmo().distmod(z[mass > cut]).value, mu_err[mass > cut]
+
+    mass_step = np.abs(np.average(lower_resid) - np.average(upper_resid))
+    mass_step_err = np.abs(np.average(lower_resid_err) - np.average(upper_resid_err))
+
+    if quiet:
+        sys.stdout = open(os.devnull, 'w')
+
+    print('***********************************************************************************************************')
+    print('Mass Step [M(<' + str(cut) + ') - M(>' + str(cut) + ')]:',
+          round(mass_step, 4), '+/-', round(mass_step_err, 4),
+          '[', round(mass_step-mass_step_err, 4), '-', round(mass_step+mass_step_err, 4), ']')
+    print('\t----------------------')
+    print('\tScatter:', round(np.std(all_resid), 4),
+          '| M(<' + str(cut) + '):', round(np.std(lower_resid), 4),
+          '| M(>' + str(cut) + '):', round(np.std(upper_resid), 4))
+    print('\t----------------------')
+    print('\tNumber of Targets:', len(mu),
+          '| M(<' + str(cut) + '):', len(mu[mass < cut]),
+          '| M(>' + str(cut) + '):', len(mu[mass > cut]))
+
+    sys.stdout = sys.__stdout__
+
+    return mass_step, mass_step_err, {'cut': cut, 'scatter': np.std(all_resid)}
 def merge_snpy_salt(snpy_path, salt_path, save_loc):
     snpy_data = np.genfromtxt(snpy_path, delimiter=', ', skip_header=1, dtype=str)
     salt_data = np.genfromtxt(salt_path, delimiter=', ', skip_header=1, dtype=str)
@@ -1018,7 +1090,9 @@ def merge_snpy_salt(snpy_path, salt_path, save_loc):
                               file=f)
                     names.append(data[i, 0])
             n += 1
-    print('Finally number of objects:', len(names))
+    print('Final number of objects:', len(names),
+          '[snpy: '+str(len(snpy_data[:, 0]))+']',
+          '[salt: '+str(len(salt_data[:, 0]))+']')
     print('Saved merged param file to... ', save_loc)
 
     return
@@ -1067,6 +1141,73 @@ def mass_step_scatter_comparison():
             f.write(str(labels[i])+', '+str(mass_steps[i])+', '+str(mass_step_errs[i])+', '+str(scatters[i])+'\n')
 
     return
+def mass_step_compare_to_normals():
+    hicat_salt_data = np.genfromtxt('output/COMBINED_combined_salt_params_cut.txt', delimiter=', ', skip_header=1,
+                                    dtype=str)
+    hicat_snpy_data = np.genfromtxt('output/COMBINED_combined_snpy_params_cut.txt', delimiter=', ', skip_header=1,
+                                    dtype=str)
+    hicat_merged_data = np.genfromtxt('saved/snpy_salt_combined_params_cut.txt', delimiter=', ', skip_header=1,
+                                      dtype=str)
+    panplus_data = np.genfromtxt('txts/PanPlus_Latest.FITRES', skip_header=69, dtype=str)[:,
+                   1:]  # Removes 'SN:' at begining of each line
+    hdr = ('CID CIDint IDSURVEY TYPE FIELD CUTFLAG_SNANA zHEL zHELERR zCMB zCMBERR zHD zHDERR VPEC VPECERR MWEBV '
+           'HOST_LOGMASS HOST_LOGMASS_ERR HOST_sSFR HOST_sSFR_ERR PKMJDINI SNRMAX1 SNRMAX2 SNRMAX3 PKMJD PKMJDERR '
+           'x1 x1ERR c cERR mB mBERR x0 x0ERR COV_x1_c COV_x1_x0 COV_c_x0 NDOF FITCHI2 FITPROB RA DEC HOST_RA HOST_DEC '
+           'HOST_ANGSEP TGAPMAX TrestMIN TrestMAX ELU HOSTGAL_SFR HOSTGAL_SFR_ERR HOSTGAL_sSFR HOSTGAL_sSFR_ERR CUTMASK '
+           'MU MUMODEL MUERR MUERR_RENORM MUERR_RAW MUERR_VPEC MURES MUPULL M0DIF M0DIFERR CHI2 biasCor_mu biasCorErr_mu '
+           'biasCor_mB biasCor_x1 biasCor_c biasScale_muCOV IDSAMPLE IZBIN').split(' ')
+    panplus_data = panplus_data[panplus_data[:, hdr.index('zCMB')].astype(float) < 0.08]  # Only low-z SNe
+
+    print('\nMass Step of Norm Ia Panth+')
+    norm_step, norm_step_err, norm_params = alt_mass_step_calc(mu=panplus_data[:, hdr.index('MU')].astype(float),
+                                                               mu_err=panplus_data[:, hdr.index('MUERR')].astype(float),
+                                                               mass=panplus_data[:, hdr.index('HOST_LOGMASS')].astype(
+                                                                   float),
+                                                               z=panplus_data[:, hdr.index('zCMB')].astype(float),
+                                                               cut=10, quiet=False)
+
+    print('\nMass Step of 91bg-like HiloCATS - snpy')
+    snpy_step, snpy_step_err, snpy_params = alt_mass_step_calc(mu=hicat_snpy_data[:, 8].astype(float),
+                                                               mu_err=hicat_snpy_data[:, 9].astype(float),
+                                                               mass=hicat_snpy_data[:, 16].astype(float),
+                                                               z=hicat_snpy_data[:, 4].astype(float),
+                                                               cut=10, quiet=False)
+
+    print('\nMass Step of 91bg-like HiloCATS - salt')
+    salt_step, salt_step_err, salt_params = alt_mass_step_calc(mu=hicat_salt_data[:, 16].astype(float),
+                                                               mu_err=hicat_salt_data[:, 17].astype(float),
+                                                               mass=hicat_salt_data[:, 18].astype(float),
+                                                               z=hicat_salt_data[:, 4].astype(float),
+                                                               cut=10, quiet=False)
+
+    print('\nMass Step of 91bg-like HiloCATS - merged')
+    merged_step, merged_step_err, merged_params = alt_mass_step_calc(mu=hicat_merged_data[:, 3].astype(float),
+                                                                     mu_err=hicat_merged_data[:, 4].astype(float),
+                                                                     mass=hicat_merged_data[:, 5].astype(float),
+                                                                     z=hicat_merged_data[:, 1].astype(float),
+                                                                     cut=10, quiet=False)
+
+    # Plot mass_steps
+    plt.figure(figsize=(9, 5))
+
+    plt.errorbar(x=snpy_params['scatter'], y=norm_step - snpy_step, yerr=snpy_step_err, fmt='o')
+    plt.text(snpy_params['scatter'], norm_step - snpy_step, 'snpy', size='x-small', va='bottom')
+
+    plt.errorbar(x=salt_params['scatter'], y=norm_step - salt_step, yerr=salt_step_err, fmt='o')
+    plt.text(salt_params['scatter'], norm_step - salt_step, 'salt', size='x-small', va='bottom')
+
+    plt.errorbar(x=merged_params['scatter'], y=norm_step - merged_step, yerr=merged_step_err, fmt='o')
+    plt.text(merged_params['scatter'], norm_step - merged_step, 'merged', size='x-small', va='bottom')
+
+    plt.title('Mass Steps of SNooPy & SALT2 v. Normal SNe Ia Mass Step from Pantheon+')
+    plt.xlabel('Scatter of Hubble Residuals');
+    plt.ylabel('91bg Mass Step - Norm Ia Mass Step')
+    # plt.axhline(y=0)
+    plt.ylim(-0.45, 0.45)
+    # plt.ylim(-0.15, 0.15)
+    plt.xlim(0, 0.9)
+    plt.show()
+    return
 # ------------------------------------------------------------------------------------------------------------------- #
 def smart_fit(fit_type, data_set, algo, path=None, special_text='', dmag_max=0, dflux_max=0):
     if fit_type == 'indv':
@@ -1098,14 +1239,47 @@ def smart_fit(fit_type, data_set, algo, path=None, special_text='', dmag_max=0, 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
+    sample_cutter('output/COMBINED_combined_salt_params.txt', 'salt')
+    data = np.genfromtxt('output/COMBINED_combined_salt_params_cut.txt', delimiter=', ', skip_header=1, dtype=str)
+
+    resid, resid_err = data[:, 16].astype(float) - gen.current_cosmo().distmod(data[:, 4].astype(float)).value, data[:, 17].astype(float)
+    std, avg = np.std(resid), np.average(resid)
+    snr = np.sqrt(np.abs(np.average(resid)) / np.abs(np.std(resid_err)))
+    # print(std, snr)
+
+    residual_plotter('output/COMBINED_combined_salt_params_cut.txt', x_params='mass', data_set='CSP-ATLAS-ZTF', algo='salt')
+
+
+    # hicat_data = np.genfromtxt('output/COMBINED_combined_salt_params_cut.txt', delimiter=', ', skip_header=1, dtype=str)
+    # panplus_data = np.genfromtxt('txts/PanPlus_Latest.FITRES', skip_header=69, dtype=str)[:, 1:] # Removes 'SN:' at begining of each line
+    # hdr = ('CID CIDint IDSURVEY TYPE FIELD CUTFLAG_SNANA zHEL zHELERR zCMB zCMBERR zHD zHDERR VPEC VPECERR MWEBV '
+    #        'HOST_LOGMASS HOST_LOGMASS_ERR HOST_sSFR HOST_sSFR_ERR PKMJDINI SNRMAX1 SNRMAX2 SNRMAX3 PKMJD PKMJDERR '
+    #        'x1 x1ERR c cERR mB mBERR x0 x0ERR COV_x1_c COV_x1_x0 COV_c_x0 NDOF FITCHI2 FITPROB RA DEC HOST_RA HOST_DEC '
+    #        'HOST_ANGSEP TGAPMAX TrestMIN TrestMAX ELU HOSTGAL_SFR HOSTGAL_SFR_ERR HOSTGAL_sSFR HOSTGAL_sSFR_ERR CUTMASK '
+    #        'MU MUMODEL MUERR MUERR_RENORM MUERR_RAW MUERR_VPEC MURES MUPULL M0DIF M0DIFERR CHI2 biasCor_mu biasCorErr_mu '
+    #        'biasCor_mB biasCor_x1 biasCor_c biasScale_muCOV IDSAMPLE IZBIN').split(' ')
+    # panplus_data = panplus_data[panplus_data[:, hdr.index('zCMB')].astype(float) < np.max(hicat_data[:, 4].astype(float))] # Only low-z SNe
+    #
+    # param_hist_compare(panplus_data[:, hdr.index('x0')].astype(float), hicat_data[:, 10].astype(float), [0.0005, 0.001],
+    #                    xrange=[0, 0.02], title='Normal-SNe-Ia v. 91bg-like -- x0')
+    # param_hist_compare(panplus_data[:, hdr.index('x1')].astype(float), hicat_data[:, 12].astype(float), [0.125, 0.4],
+    #                    xrange=None, title='Normal-SNe-Ia v. 91bg-like -- x1')
+    # param_hist_compare(panplus_data[:, hdr.index('c')].astype(float), hicat_data[:, 14].astype(float), [0.008, 0.2],
+    #                    xrange=None, title='Normal-SNe-Ia v. 91bg-like -- c')
+    #
+
+
     # merge_snpy_salt('output/COMBINED_combined_snpy_params_cut.txt',
     #                 'output/COMBINED_combined_salt_params_cut.txt',
     #                 'mass_step_scatter.txt')
 
-    # residual_plotter('mass_step_scatter.txt', x_params='mass', data_set='dual', algo='merged', labels=False)
+    # mass_step_calc('mass_step_scatter.txt', cut=10, quiet=False)
+    # mass_step_calc('mass_step_scatter.txt', cut='median', quiet=False)
 
-    mass_step_calc('mass_step_scatter.txt', cut=10, quiet=False)
-    mass_step_calc('mass_step_scatter.txt', cut='median', quiet=False)
+    # hicat_data = np.genfromtxt('output/COMBINED_combined_snpy_params_cut.txt', delimiter=', ', skip_header=1, dtype=str)
+    # dr3_data = np.genfromtxt('txts/DR3_fits.dat', dtype=str, skip_header=1)
+    # param_hist_compare(hicat_data[:, 14].astype(float), dr3_data[:, 25].astype(float), 0.035,
+    #                    xrange=None, title='91bg-like v. Normal-SNe-Ia -- EBVhost')
 
     # sample_cutter('output/COMBINED_combined_salt_params.txt', algo='salt')
     # residual_plotter('output/COMBINED_combined_salt_params_cut.txt', x_params='z', algo='snpy', labels=True)
