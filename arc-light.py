@@ -422,6 +422,9 @@ class sn91bg():
         if quiet:
             sys.stdout = open(os.devnull, 'w')
 
+        # Check saved models
+        print(os.path.isfile(save_path))
+
         # Load Data
         try:
             n_s = snpy.get_sn(load_path)
@@ -1401,13 +1404,14 @@ if __name__ == '__main__':
                 'hostMass' in tempSN.params and
                 tempSN.params['hostMass']['value'] > 0):
             SNe.append(tempSN)
+        break
     print('Sucessfully fit [', len(SNe), '/', len(files), ']!')
 
-    # Save params to file
-    save_params_to_file('HiCAT_DR3_params.txt', SNe)
-
-    # Cut sample
-    sample_cutter('HiCAT_DR3_params.txt', algo=algo)
+    # # Save params to file
+    # save_params_to_file('HiCAT_DR3_params.txt', SNe)
+    #
+    # # Cut sample
+    # sample_cutter('HiCAT_DR3_params.txt', algo=algo)
 
     # smart_fit('COMBINED', 'COMBINED', 'salt', dmag_max=1)
     #
