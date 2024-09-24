@@ -43,7 +43,7 @@ def TNS_details(obj_ra, obj_dec, attempts=10, radius=2, use_keys=True):
     import tnsAPI
     APIkey = get_APIkeys()
     print('-----------------------------------------------------------------------------------------------------------')
-    print('Searching TNS for ['+str(obj_ra)+', '+str(obj_dec)+']...')
+    print('Searching TNS for ['+str(obj_ra)+', '+str(obj_dec)+'] ['+str(radius)+'"]...')
     tns_bot_id, tns_bot_name, tns_bot_api_key = APIkey['tns_bot_id'], APIkey['tns_bot_name'], APIkey['tns_bot_api_key']
     tns_key = dict_handler(choice='unpack', path=get_constants()['tns_key_txt'])
     obj_name, obj_z, obj_discdate = '', 0.00, ''
@@ -74,7 +74,8 @@ def TNS_details(obj_ra, obj_dec, attempts=10, radius=2, use_keys=True):
         except Exception as error:
             print('Error:', error)
             if attempts <= 0:
-                raise RuntimeError('TNS completly timed out.')
+                print('TNS completly timed out.')
+                return None, None, None
             print(f'{attempts} attempts remaining')
             systime.sleep(5)
             obj_name, obj_z, obj_discdate = TNS_details(obj_ra, obj_dec, attempts=attempts-1, radius=radius+1, use_keys=use_keys)

@@ -9,16 +9,18 @@ __NOTE: This repository is currently under construction__
 ## Recent Plots
 ### Hubble Residual v. Redshift
 This plot depicts the relationship between the redshift of the SN and the corresponding Hubble Residual.
-![](saved/readme_plots/merged_resid_v_z.png "")
 ![](saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png "")
 ![](saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png "")
+![](saved/readme_plots/merged_resid_v_z.png "")
 
 --------------------------
 ### Hubble Residual v. Host Mass
 This plot depicts the relationship between the mass of the host galaxy for the SN and the corresponding Hubble Residual. 
-![](saved/readme_plots/merged_resid_v_mass.png "")
 ![](saved/readme_plots/csp-atlas-ztf_snpy_resid_v_mass.png "")
 ![](saved/readme_plots/csp-atlas-ztf_salt_resid_v_mass.png "")
+![](saved/readme_plots/merged_resid_v_mass.png "")
+For perspective, below is the same plot for normal SNe Ia.
+![](saved/readme_plots/normIa_resid_v_mass.png "")
 
 --------------------------
 ### Parameter Histograms
@@ -31,10 +33,9 @@ Salt2 parameters compared to Pantheon+ Survey of Normal SNe Ia
 ![](saved/readme_plots/HiCATvPan+_x1.png "")
 ![](saved/readme_plots/HiCATvPan+_c.png "")
 
-
 --------------------------
 ## Developers
-* Developer: [Mekhi Woods](tinyurl.com/astrokhi) (mekhidw@hawaii.edu)
+* Developer: [Mekhi Woods](https://tinyurl.com/astrokhi) (mekhidw@hawaii.edu)
 * Advisor: [David Jones](https://github.com/djones1040) (dojones@hawaii.edu)
 
 --------------------------
