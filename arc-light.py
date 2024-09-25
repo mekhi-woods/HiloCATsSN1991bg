@@ -14,7 +14,8 @@ from astropy.coordinates import SkyCoord, Galactic
 from astropy.table import Table
 from astropy import units as u
 from astroquery.sdss import SDSS
-import general as gen
+from scripts import general as gen
+
 CONSTANTS = gen.get_constants()
 
 class sn91bg():
@@ -413,17 +414,25 @@ class sn91bg():
                     f.write(str(self.time[i]) + '\t' + str(self.mag[i]) + '\t' + str(self.dmag[i]) + '\n')
         print('      Saved file to '+save_loc + self.objname + '_snpy.txt')
         return
-    def snpy_fit(self, save_loc, show_plot=True, quiet=False): # use_saved=False, snpy_plots=True, save_plots=True,
+    def snpy_fit(self, save_loc, use_saved=True, show_plot=True, quiet=False):
         print('[+++] '+self.objname+' -- Fitting data with SNooPy...')
         load_path = save_loc + 'ascii/' + self.objname + '_snpy.txt'
         save_path = save_loc + 'models/' + self.objname + '_EBV_model2.snpy'
+        param_names = ['mu', 'st', 'Tmax', 'EBVhost']
+        snpy_param_names = ['DM', 'st', 'Tmax', 'EBVhost']
 
         # Check quiet
         if quiet:
             sys.stdout = open(os.devnull, 'w')
 
         # Check saved models
-        print(os.path.isfile(save_path))
+        if use_saved and os.path.isfile(save_path):
+            print('[+++] Saved model found! Pulling from...', save_path)
+            n_s = snpy.get_sn(save_path)
+            for i in range(len(param_names)):
+                self.params.update({param_names[i]: {'value': n_s.parameters[snpy_param_names[i]],
+                                                     'err': n_s.errors[snpy_param_names[i]]}})
+            return
 
         # Load Data
         try:
@@ -460,8 +469,7 @@ class sn91bg():
                     n_s.fit(bands=None, dokcorr=True, k_stretch=False, reset_kcorrs=True, **{'mangle': 1, 'calibration': 0})
                 n_s.save(save_path)
 
-                param_names = ['mu', 'st', 'Tmax', 'EBVhost']
-                snpy_param_names = ['DM', 'st', 'Tmax', 'EBVhost']
+                # Save paramaters
                 for i in range(len(param_names)):
                     self.params.update({param_names[i]: {'value': n_s.parameters[snpy_param_names[i]],
                                                          'err': n_s.errors[snpy_param_names[i]]}})
@@ -996,13 +1004,15 @@ def param_hist_compare(set1, set2, bin_width, xrange=None, title=''):
 
     plt.show()
     return
-def mass_step_residual_plot(path, data_set='', algo='', labels=False, save_loc=None):
+def mass_step_residual_plot(path, data_set='', title='', labels=False, save_loc=None):
     # Pull data from saved text
     data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
     if len(data_set) == 0:
         data_set = 'default'
     if save_loc is None:
         save_loc = path[:-len(path.split('/')[-1])]+data_set.lower()+'_resid_v_mass.png'
+    if len(title) == 0:
+        title = "Hubble Residuals vs. Host Stellar Mass of '" + data_set + "' 91bg-like SNe Ia\n"
 
     # Get header
     with open(path, 'r') as f:
@@ -1018,7 +1028,6 @@ def mass_step_residual_plot(path, data_set='', algo='', labels=False, save_loc=N
     # Determine x-axis
     axs[0].set(xlabel=' Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
     x_axis, x_axis_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
-    title = "Hubble Residuals vs. Host Stellar Mass of '"+data_set+"' 91bg-like SNe Ia\n"
 
     # Plot points
     all_mu, all_mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
@@ -1046,7 +1055,7 @@ def mass_step_residual_plot(path, data_set='', algo='', labels=False, save_loc=N
     axs[1].hist(all_resid_mu, bins=30, orientation="horizontal", color='#9E6240')
 
     # Plot mass step lines
-    cut = 10
+    cut = round(np.median(all_mass), 4)
     lower_resid = np.average(all_mu[all_mass < cut] - gen.current_cosmo().distmod(all_z[all_mass < cut]).value,
                              weights=1/(all_mu_err[all_mass < cut]**2))
     upper_resid = np.average(all_mu[all_mass > cut] - gen.current_cosmo().distmod(all_z[all_mass > cut]).value,
@@ -1075,7 +1084,7 @@ def mass_step_residual_plot(path, data_set='', algo='', labels=False, save_loc=N
     fig.suptitle(title +
                  'Scatter: ' + str(round(np.std(all_resid_mu), 2)) + ' | # of pts: ' + str(len(all_resid_mu)) +
                  ' | SNR: ' + str(round(np.sqrt(np.abs(np.average(all_resid_mu)) / np.abs(np.std(all_resid_mu_err))), 2)) +
-                 '\nMass Step: ' + str(round(mass_step, 4)) + ' +/- ' + str(round(mass_step_err, 6)),
+                 '\nMass Step ('+str(cut)+'): ' + str(round(mass_step, 4)) + ' +/- ' + str(round(mass_step_err, 6)),
                  size='medium')
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
     axs[0].legend(loc='best')
@@ -1083,7 +1092,6 @@ def mass_step_residual_plot(path, data_set='', algo='', labels=False, save_loc=N
     plt.savefig(save_loc)
     plt.show()
     return
-
 # ------------------------------------------------------------------------------------------------------------------- #
 def mass_step_calc(path, cut=10, quiet=False):
     data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
@@ -1360,7 +1368,31 @@ def covert_normIa_to_my_type():
     normIa_data = np.genfromtxt('txts/txts/normIaparams.txt', skip_header=1, dtype=str)
     return
 # ------------------------------------------------------------------------------------------------------------------- #
-def smart_fit(fit_type, data_set, algo, path=None, special_text='', dmag_max=0, dflux_max=0):
+def help():
+    """
+    Call to get examples of calls for smart_fit()
+    """
+    print('===========================================================================================================')
+    print('Ex. Indivisual:', "smart_fit(fit_type='indv', data_set='CSP', algo='snpy', path='data/CSP/SN2008bi_snpy.txt')")
+    print('------')
+    print('Ex. Batch:', "smart_fit(fit_type='batch', 'CSP', algo='snpy'")
+    print('------')
+    print('Ex. Combined:', "smart_fit(fit_type='combined', algo='snpy')")
+    print('===========================================================================================================')
+    return
+def smart_fit(fit_type, data_set, algo, path=None, save_loc='', dmag_max=0.00, dflux_max=0.00):
+    """
+    An function to easily fit data using both algorithms.
+    :param fit_type: [str] type of fitting protocol to use
+    :param data_set: [str] name of data set
+    :param algo: [str] algorithms to fit data with (snpy/salt)
+    :param path: [str] Default: None, data location for indivisual fits (only call for fit_type='indv')
+    :param save_loc: [str] location to save paramater data of SNe fits
+    :param dmag_max: [float] Default: 0, magnitude error cut off for taking in data
+    :param dflux_max: [float] Default: 0,  flux error cut off for taking in data
+    :return: SN [list], Array of sn91bg() classes from fitting call. Returns list of 'None' if unsuccessful.
+    """
+    fit_type = fit_type.lower()
     if fit_type == 'indv':
         tempSN = sn91bg().make_class(data_set=data_set, path=path, dmag_max=dmag_max, dflux_max=dflux_max)
         tempSN.fit(algo)
@@ -1371,42 +1403,50 @@ def smart_fit(fit_type, data_set, algo, path=None, special_text='', dmag_max=0, 
     elif fit_type == 'batch':
         SNe = batch_fit(data_set, algo=algo,
                         dmag_max=dmag_max, dflux_max=dflux_max)
-    elif fit_type == 'COMBINED':
+    elif fit_type == 'combiend':
         SNe = combined_fit(algo=algo,
                            dmag_max=dmag_max, dflux_max=dflux_max)
     else:
         raise ValueError(
-            "Invalid type selected ['indv'/'batch'/'COMBINED']")
+            "Invalid type selected ['indv'/'batch'/'combined']")
 
     # Saving
     if fit_type != 'indv' and len(SNe) != 0:
-        # Save params
-        save_params_to_file('output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_'+special_text+'params.txt', SNe)
-
-        # Cut sample
-        sample_cutter('output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_'+special_text+'params.txt', algo)
+        if len(save_loc) == 0:
+            save_loc = 'output/'+fit_type+'_'+data_set.lower()+'_'+algo+'_'+'params.txt'
+        save_params_to_file(save_loc, SNe) # Save params
+        sample_cutter(save_loc, algo) # Cut sample
     return SNe
 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
-    algo = 'snpy'
-    SNe, files = [], glob.glob('data/CSPdata/*.txt')
-    for path in files:
-        print('[', files.index(path) + 1, '/', len(files), ']')
-        print('-----------------------------------------------------------------------------------------------')
-        tempSN = sn91bg().make_class(data_set='CSP', path=path)
-        tempSN.fit(algo)
+    smart_fit('indv', 'CSP', 'snpy', path='data/CSP/SN2005ke_snpy.txt')
 
-        # Check if fit failed
-        if (tempSN != None and
-                tempSN.params['mu']['value'] > 0 and
-                'hostMass' in tempSN.params and
-                tempSN.params['hostMass']['value'] > 0):
-            SNe.append(tempSN)
-        break
-    print('Sucessfully fit [', len(SNe), '/', len(files), ']!')
+    # mass_step_residual_plot('output/merged_params_cut.txt',
+    #                         title="Hubble Residuals vs. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia (salt-snpy)\n")
+    # mass_step_residual_plot('HiCAT_DR3_params.txt',
+    #                         title="Hubble Residuals vs. Host Stellar Mass of CSP Normal SNe Ia\n")
 
+
+
+    # algo = 'snpy'
+    # SNe, files = [], glob.glob('data/CSPdata/*.txt')
+    # for path in files:
+    #     print('[', files.index(path) + 1, '/', len(files), ']')
+    #     print('-----------------------------------------------------------------------------------------------')
+    #     tempSN = sn91bg().make_class(data_set='CSP', path=path)
+    #     tempSN.fit(algo)
+    #
+    #     # Check if fit failed
+    #     if (tempSN != None and
+    #             tempSN.params['mu']['value'] > 0 and
+    #             'hostMass' in tempSN.params and
+    #             tempSN.params['hostMass']['value'] > 0):
+    #         SNe.append(tempSN)
+    #     # break
+    # print('Sucessfully fit [', len(SNe), '/', len(files), ']!')
+    #
     # # Save params to file
     # save_params_to_file('HiCAT_DR3_params.txt', SNe)
     #
