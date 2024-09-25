@@ -941,7 +941,7 @@ def resid_v_z(path, title='', labels=False, save_loc=None):
     ylimiter = np.max(np.abs(resid_mu)) + 0.3
     axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
     axs[0].set(xlabel='Host Galaxy CMB Redshift', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
-    # axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(0.01, 0.09)
+    axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(0.01, 0.09)
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
     axs[0].legend(loc='best')
 
@@ -1014,7 +1014,7 @@ def resid_v_mass(path, cut=10, title='', labels=False, save_loc=None):
     axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
     axs[0].set_xlim(xlimiter[0], xlimiter[1])
     axs[0].set(xlabel='Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
-    # axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(7.5, 13.0)
+    axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(7.5, 13.0)
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
     axs[0].legend(loc='best')
 
@@ -1023,6 +1023,23 @@ def resid_v_mass(path, cut=10, title='', labels=False, save_loc=None):
         print('Saved figure to... ', save_loc)
         plt.savefig(save_loc)
     plt.show()
+    return
+def update_readme_plots():
+    resid_v_mass('output/combiend__snpy_params_cut.txt', title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]\n',
+                 save_loc='saved/readme_plots/csp-atlas-ztf_snpy_resid_v_mass.png')
+    resid_v_mass('output/combiend__salt_params_cut.txt', title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3]\n',
+                 save_loc='saved/readme_plots/csp-atlas-ztf_salt_resid_v_mass.png')
+    resid_v_mass('output/merged_params_cut.txt', title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]\n',
+                 save_loc='saved/readme_plots/merged_resid_v_mass.png')
+    resid_v_mass('txts/HiCAT_DR3_params.txt', title='Hubble Residual v. Host Stellar Mass of Normal SNe Ia from CSP [SNooPy]\n',
+                 save_loc='saved/readme_plots/normIa_resid_v_mass.png')
+
+    resid_v_z('output/combiend__snpy_params_cut.txt', title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]\n',
+                 save_loc='saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png')
+    resid_v_z('output/combiend__salt_params_cut.txt', title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3]\n',
+                 save_loc='saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png')
+    resid_v_z('output/merged_params_cut.txt', title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]\n',
+                 save_loc='saved/readme_plots/merged_resid_v_z.png')
     return
 # ------------------------------------------------------------------------------------------------------------------- #
 ### Analysis Functions
@@ -1099,6 +1116,8 @@ def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0
 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
+
+    update_readme_plots()
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 

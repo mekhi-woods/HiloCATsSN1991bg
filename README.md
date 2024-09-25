@@ -31,9 +31,9 @@ If any instructions are unclear, please run `help()` to see examples of each fit
 --------------------------
 ### Hubble Residual v. Host Mass
 This plot depicts the relationship between the mass of the host galaxy for the SN and the corresponding Hubble Residual. 
+![](saved/readme_plots/merged_resid_v_mass.png "")
 ![](saved/readme_plots/csp-atlas-ztf_snpy_resid_v_mass.png "")
 ![](saved/readme_plots/csp-atlas-ztf_salt_resid_v_mass.png "")
-![](saved/readme_plots/merged_resid_v_mass.png "")
 For perspective, below is the same plot for normal SNe Ia.
 ![](saved/readme_plots/normIa_resid_v_mass.png "")
 
@@ -41,9 +41,9 @@ For perspective, below is the same plot for normal SNe Ia.
 ## Recent Plots
 ### Hubble Residual v. Redshift
 This plot depicts the relationship between the redshift of the SN and the corresponding Hubble Residual.
+![](saved/readme_plots/merged_resid_v_z.png "")
 ![](saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png "")
 ![](saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png "")
-![](saved/readme_plots/merged_resid_v_z.png "")
 
 --------------------------
 ### Parameter Histograms
