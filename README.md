@@ -4,14 +4,25 @@ data from the ATLAS and ZTF surveys. This project is a segment of the collaborat
 'Hilo Cosmology And Transients (CATs)', an initiative operative from the University of Hawaii.  
 
 __NOTE: This repository is currently under construction__
+--------------------------
+## Developers
+* Developer: [Mekhi Woods](https://tinyurl.com/astrokhi) (mekhidw@hawaii.edu)
+* Advisor: [David Jones](https://github.com/djones1040) (dojones@hawaii.edu)
 
 --------------------------
-## Recent Plots
-### Hubble Residual v. Redshift
-This plot depicts the relationship between the redshift of the SN and the corresponding Hubble Residual.
-![](saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png "")
-![](saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png "")
-![](saved/readme_plots/merged_resid_v_z.png "")
+## Operation
+1. Install necessary dependencies by running `pip install -r requirements.txt`
+2. Place `api_keys.txt` in working directory with proper TNS API keys (tns_bot_id/tns_bot_name/tns_bot_api_key). 
+3. Navigate to the main python file `arc-light.py`
+4. Within the `if __name__ == '__main__'` statement, call `smart_fit()`
+5. `smart_fit()` is able to fit individual SNe, batch fit for CSP/ATLAS/ZTF data, or fit all data at once.
+   * _Individual:_ `fit_type='indv'`, include `data_set` ('CSP'/'ATLAS'/'ZTF'), include `path` (path to data file)    
+   * _Batch:_ `fit_type='batch'`, include `data_set` ('CSP'/'ATLAS'/'ZTF')
+   * _Combined:_ `fit_type='combined'` 
+6. For each call of `smart_fit()`, the fitting algorithm must be specified via the `algo` variable ('snpy'/'salt').
+7. Additionally, `save_loc` can be called to specify the save location. 
+
+If any instructions are unclear, please run `help()` to see examples of each fit type.
 
 --------------------------
 ### Hubble Residual v. Host Mass
@@ -21,6 +32,14 @@ This plot depicts the relationship between the mass of the host galaxy for the S
 ![](saved/readme_plots/merged_resid_v_mass.png "")
 For perspective, below is the same plot for normal SNe Ia.
 ![](saved/readme_plots/normIa_resid_v_mass.png "")
+
+--------------------------
+## Recent Plots
+### Hubble Residual v. Redshift
+This plot depicts the relationship between the redshift of the SN and the corresponding Hubble Residual.
+![](saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png "")
+![](saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png "")
+![](saved/readme_plots/merged_resid_v_z.png "")
 
 --------------------------
 ### Parameter Histograms
@@ -34,11 +53,6 @@ Salt2 parameters compared to Pantheon+ Survey of Normal SNe Ia
 ![](saved/readme_plots/HiCATvPan+_c.png "")
 
 --------------------------
-## Developers
-* Developer: [Mekhi Woods](https://tinyurl.com/astrokhi) (mekhidw@hawaii.edu)
-* Advisor: [David Jones](https://github.com/djones1040) (dojones@hawaii.edu)
-
---------------------------
 ## Publications
 Please cite the following if this repo is utilized for a scientific project:
 * Kenworthy et al. 2021. [SALT3: An Improved Type Ia Supernova Model for Measuring Cosmic Distances](https://ui.adsabs.harvard.edu/abs/2021ApJ...923..265K/abstract)
@@ -50,10 +64,13 @@ Supernovae and Other White Dwarf Explosions](https://ui.adsabs.harvard.edu/abs/2
 --------------------------
 ## Dependencies
 * python ( >= 3.11.9 )
-* snpy (MacOS/Linux)
-* astro_ghost
-* astroquery
-* astropy
-* sncosmo
-* iminuit
-* ( glob /shutil / time / numpy / matplotlib )
+* snpy==2.7.0 (MacOS/Linux)
+* astro_ghost==2.1.5 
+* astropy==6.0.1 
+* astroquery==0.4.7 
+* matplotlib==3.9.2 
+* numpy==2.1.1 
+* Requests==2.32.3 
+* sncosmo==2.11.1
+* iminuit==2.29.1
+
