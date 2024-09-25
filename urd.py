@@ -1,3 +1,4 @@
+# M.D. Woods - 9/25/24
 import warnings
 warnings.simplefilter("ignore", UserWarning)
 import os
@@ -14,9 +15,13 @@ from astropy.coordinates import SkyCoord, Galactic
 from astropy.table import Table
 from astropy import units as u
 from astroquery.sdss import SDSS
+from astropy.stats import sigma_clip
+
 from scripts import general as gen
+from scripts import get_vpec
 
 CONSTANTS = gen.get_constants()
+VP = get_vpec.VelocityCorrection(f"twomass++_velocity_LH11.npy")
 
 class sn91bg():
     def __init__(self, objname=None, originalname=None, coords=(0.00, 0.00), z=0.00, origin=None, discovery_data=None):
@@ -184,7 +189,7 @@ class sn91bg():
 
         # Choose alogrithm
         if algo == 'snpy':
-            self.write_snpy_ASCII(save_loc= save_loc+ 'ascii/')
+            self.write_snpy_ASCII(save_loc=save_loc+ 'ascii/')
             self.snpy_fit(save_loc=save_loc)
         elif algo == 'salt':
             self.salt_fit(save_loc=save_loc)
@@ -442,7 +447,7 @@ class sn91bg():
             print('[!!!] Failed to load ASCII file')
             return
         n_s.k_version = '91bg'
-        n_s.choose_model('EBV_model2', stype='st', RVhost=2.5)
+        n_s.choose_model('EBV_model2', stype='st')
         n_s.set_restbands()  # Auto pick appropriate rest-bands
 
         # Remove empty filters -- fix for 'ValueError: attempt to get argmin of an empty sequence'
@@ -579,6 +584,11 @@ class sn91bg():
                         np.cos(float(CONSTANTS['cmb_b_h'])) * np.cos(galac_coords.l.deg - float(CONSTANTS['cmb_l_h'])))))
         corr_term = 1 - helio_corr
         self.z_cmb = (1 + self.z) / corr_term - 1
+
+        # Peculiar Velocity Correction -- using 'get_vpec.py' from David
+        self.z_cmb = VP.correct_redshift(self.z, 0, local_coords.galactic.l.deg, local_coords.galactic.b.deg)
+        vpec, vpec_sys = get_vpec.main(self.coords[0], self.coords[1], self.z_cmb)
+        self.z_cmb += vpec / 3e5
 
         # Try mass key
         if use_key:
@@ -726,7 +736,7 @@ def combined_fit(algo='snpy', dmag_max=0, dflux_max=0):
     # Fitting data
     fit_combined_SNe = []
     for SN in combined_SNe:
-        print('-----------------------------------------------------------------------------------------------')
+        print('-----------------------------------------------------------------------------------------------------')
         print('[', combined_SNe.index(SN)+1, '/', len(combined_SNe), '] Fitting data for '+SN.objname+' ['+algo+'] ['+SN.origin+']...')
         SN.fit(algo=algo, save_loc=CONSTANTS[algo+'_combined_saved_loc'])
         # Check if fit failed
@@ -735,7 +745,12 @@ def combined_fit(algo='snpy', dmag_max=0, dflux_max=0):
             'hostMass' in SN.params and
             SN.params['hostMass']['value'] > 0):
             fit_combined_SNe.append(SN)
-    print('Sucessfully fit [', len(fit_combined_SNe), '/', len(combined_SNe), ']!')
+            print('[+++++] Success!')
+        else:
+            print('[-----] Failed!')
+    print('=====================================================================================================\n',
+          'Sucessfully fit [', len(fit_combined_SNe), '/', len(combined_SNe), ']!\n',
+          '=====================================================================================================\n')
     return fit_combined_SNe
 def batch_fit(data_set, algo='snpy', dmag_max=0, dflux_max=0):
     SNe, files = [], glob.glob(CONSTANTS[data_set.lower()+'_data_loc'] + '*.txt')
@@ -900,7 +915,8 @@ def resid_v_z(path, title='', labels=False, save_loc=None):
     # Set Arrays
     z, z_err = data[:, hdr.index('z_cmb')].astype(float), np.full(len(data[:, hdr.index('z_cmb')]), np.nan)
     mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
-    resid_mu, resid_mu_err = mu - gen.current_cosmo().distmod(z).value, np.copy(mu_err)
+    resid_mu, resid_mu_err = sigma_clip(mu - gen.current_cosmo().distmod(z).value, sigma=3.0), np.copy(mu_err)
+
 
     # Make main plot
     for origin in np.unique(data[:, hdr.index('origin')]):
@@ -925,6 +941,7 @@ def resid_v_z(path, title='', labels=False, save_loc=None):
     ylimiter = np.max(np.abs(resid_mu)) + 0.3
     axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
     axs[0].set(xlabel='Host Galaxy CMB Redshift', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
+    # axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(0.01, 0.09)
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
     axs[0].legend(loc='best')
 
@@ -934,7 +951,7 @@ def resid_v_z(path, title='', labels=False, save_loc=None):
         plt.savefig(save_loc)
     plt.show()
     return
-def resid_v_mass(path, mass_step_cut=10, title='', labels=False, save_loc=None):
+def resid_v_mass(path, cut=10, title='', labels=False, save_loc=None):
     # Pull data from saved text
     data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
 
@@ -953,7 +970,7 @@ def resid_v_mass(path, mass_step_cut=10, title='', labels=False, save_loc=None):
     mass, mass_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
     mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
     z = data[:, hdr.index('z_cmb')].astype(float)
-    resid_mu = mu - gen.current_cosmo().distmod(z).value
+    resid_mu = sigma_clip(mu - gen.current_cosmo().distmod(z).value, sigma=3.0)
     resid_mu_err = np.copy(mu_err)
 
     # Make main plot
@@ -972,17 +989,18 @@ def resid_v_mass(path, mass_step_cut=10, title='', labels=False, save_loc=None):
     axs[1].hist(resid_mu, bins=30, orientation="horizontal", color='#9E6240')
 
     # Get Mass Step
-    cut = mass_step_cut
-    mass_step_dict, resid_dict = mass_step_calc(mu, mu_err, mass, z, cut=cut, quiet=True)
+    if cut == 'median':
+        cut = round(np.median(mass), 4)
+    mass_step_dict, resid_dict = mass_step_calc(mu, mu_err, mass, z, cut=cut)
 
     # Plot Mass Step
-    plt_details = {'linestyle': '--', 'linewidth': 2.5, 'color':'k'}
+    plt_details = {'linestyle': '--', 'linewidth': 1.5, 'color':'k'}
     fill_details = {'color': 'k', 'alpha': 0.2}
-    axs[0].hlines(y=resid_dict['lower_resid']['value'], xmin=np.min(mass)-0.1, xmax=cut, **plt_details) # Left
-    axs[0].hlines(y=resid_dict['upper_resid']['value'], xmin=cut, xmax=np.max(mass)+0.1, **plt_details) # Right
-    axs[0].fill_between([np.min(mass)-0.1, cut], resid_dict['lower_resid']['value'] - resid_dict['lower_resid']['err'],
+    axs[0].hlines(y=resid_dict['lower_resid']['value'], xmin=np.min(mass)-0.3, xmax=cut, **plt_details) # Left
+    axs[0].hlines(y=resid_dict['upper_resid']['value'], xmin=cut, xmax=np.max(mass)+0.3, **plt_details) # Right
+    axs[0].fill_between([np.min(mass)-0.3, cut], resid_dict['lower_resid']['value'] - resid_dict['lower_resid']['err'],
                         resid_dict['lower_resid']['value'] + resid_dict['lower_resid']['err'], **fill_details) # Left
-    axs[0].fill_between([cut, np.max(mass)+0.1], resid_dict['upper_resid']['value'] - resid_dict['upper_resid']['err'],
+    axs[0].fill_between([cut, np.max(mass)+0.3], resid_dict['upper_resid']['value'] - resid_dict['upper_resid']['err'],
                         resid_dict['upper_resid']['value'] + resid_dict['upper_resid']['err'], **fill_details) # Right
     axs[0].vlines(x=cut, ymin=resid_dict['lower_resid']['value'], ymax=resid_dict['upper_resid']['value'], **plt_details)
 
@@ -992,9 +1010,11 @@ def resid_v_mass(path, mass_step_cut=10, title='', labels=False, save_loc=None):
                  ' | SNR: ' + str(round(np.sqrt(np.abs(np.average(resid_mu)) / np.abs(np.std(resid_mu_err))), 2)) +
                  '\nMass Step ('+str(cut)+'): ' + str(round(mass_step_dict['value'], 4)) + ' +/- ' + str(round(mass_step_dict['err'], 6)),
                  size='medium')
-    ylimiter = np.max(np.abs(resid_mu)) + 0.3
+    ylimiter, xlimiter = np.max(np.abs(resid_mu)) + 0.3, [np.min(mass)-0.3, np.max(mass)+0.3]
     axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
+    axs[0].set_xlim(xlimiter[0], xlimiter[1])
     axs[0].set(xlabel='Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
+    # axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(7.5, 13.0)
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
     axs[0].legend(loc='best')
 
@@ -1006,7 +1026,7 @@ def resid_v_mass(path, mass_step_cut=10, title='', labels=False, save_loc=None):
     return
 # ------------------------------------------------------------------------------------------------------------------- #
 ### Analysis Functions
-def mass_step_calc(mu, mu_err, mass, z, cut=10, quiet=False):
+def mass_step_calc(mu, mu_err, mass, z, cut=10):
     if cut == 'median':
         cut = round(np.median(mass), 4)
 
@@ -1016,28 +1036,11 @@ def mass_step_calc(mu, mu_err, mass, z, cut=10, quiet=False):
                              weights=1/(mu_err[mass < cut]**2))
     upper_resid = np.average(mu[mass > cut] - gen.current_cosmo().distmod(z[mass > cut]).value,
                              weights=1/(mu_err[mass > cut]**2))
-    lower_resid_err = np.std(mu_err[mass < cut]) / np.sqrt(len(mu_err[mass < cut]))
+    lower_resid_err = np.std(mu_err[mass < cut]) / np.sqrt(len(mu_err[mass < cut])) # Using Standard Error Calc
     upper_resid_err = np.std(mu_err[mass > cut]) / np.sqrt(len(mu_err[mass > cut]))
+
     mass_step = np.abs(lower_resid - upper_resid)
     mass_step_err = np.sqrt((lower_resid_err**2) + (upper_resid_err**2))
-
-    if quiet:
-        sys.stdout = open(os.devnull, 'w')
-
-    print('***********************************************************************************************************')
-    print('Mass Step [M(<' + str(cut) + ') - M(>' + str(cut) + ')]:',
-          round(mass_step, 4), '+/-', round(mass_step_err, 4),
-          '[', round(mass_step-mass_step_err, 4), '-', round(mass_step+mass_step_err, 4), ']')
-    print('\t----------------------')
-    print('\tScatter:', round(np.std(all_resid), 4),
-          '| M(<' + str(cut) + '):', round(np.std(lower_resid), 4),
-          '| M(>' + str(cut) + '):', round(np.std(upper_resid), 4))
-    print('\t----------------------')
-    print('\tNumber of Targets:', len(mu),
-          '| M(<' + str(cut) + '):', len(mu[mass < cut]),
-          '| M(>' + str(cut) + '):', len(mu[mass > cut]))
-
-    sys.stdout = sys.__stdout__
 
     return ({'value': mass_step, 'err': mass_step_err},
             {'lower_resid': {'value': lower_resid, 'err': lower_resid_err},
@@ -1053,7 +1056,7 @@ def help():
     print('------')
     print('Ex. Batch:', "smart_fit(fit_type='batch', data_set='CSP', algo='snpy')")
     print('------')
-    print('Ex. Combined:', "smart_fit(fit_type='combiend', algo='snpy')")
+    print('Ex. Combined:', "smart_fit(fit_type='combiend', algo='snpy', dmag_max=1.00)")
     print('===========================================================================================================')
     return
 def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0.00, dflux_max=0.00):
@@ -1096,8 +1099,6 @@ def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0
 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
-
-    smart_fit(fit_type='batch', data_set='CSP', algo='snpy')
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 
