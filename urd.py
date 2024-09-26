@@ -941,7 +941,7 @@ def resid_v_z(path, title='', labels=False, save_loc=None):
     ylimiter = np.max(np.abs(resid_mu)) + 0.3
     axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
     axs[0].set(xlabel='Host Galaxy CMB Redshift', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
-    axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(0.01, 0.09)
+    # axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(0.01, 0.09)
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
     axs[0].legend(loc='best')
 
@@ -1014,7 +1014,7 @@ def resid_v_mass(path, cut=10, title='', labels=False, save_loc=None):
     axs[0].set_ylim(-ylimiter, ylimiter); axs[1].set_ylim(-ylimiter, ylimiter)
     axs[0].set_xlim(xlimiter[0], xlimiter[1])
     axs[0].set(xlabel='Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
-    axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(7.5, 13.0)
+    # axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(7.5, 13.0)
     axs[1].get_yaxis().set_visible(False) # Turn off y-axis labels
     axs[0].legend(loc='best')
 
@@ -1022,6 +1022,39 @@ def resid_v_mass(path, cut=10, title='', labels=False, save_loc=None):
     if save_loc != None:
         print('Saved figure to... ', save_loc)
         plt.savefig(save_loc)
+    plt.show()
+    return
+def normIa_vs_91bg_hist(param, width=None):
+    snenormIa = np.genfromtxt('txts/HiCAT_DR3_params.txt', delimiter=', ', skip_header=1, dtype=str)
+    sne91bg = np.genfromtxt('output/combiend__snpy_params.txt', delimiter=', ', skip_header=1, dtype=str)
+    snenormIa_hdr = ('objname, ra, dec, z, z_cmb, MJDs, MJDe, origin, mu, mu_err, st, st_err, Tmax, Tmax_err, EBVhost, '
+                     'EBVhost_err, hostMass, hostMass_err').split(', ')
+    sne91bg_hdr = ('objname, ra, dec, z, z_cmb, MJDs, MJDe, origin, mu, mu_err, st, st_err, Tmax, Tmax_err, EBVhost, '
+                   'EBVhost_err, hostMass, hostMass_err').split(', ')
+
+    set1 = sigma_clip(snenormIa[:, snenormIa_hdr.index(param)].astype(float), sigma=3.0)
+    set2 = sigma_clip(sne91bg[:, sne91bg_hdr.index(param)].astype(float), sigma=3.0)
+    if width == None:
+        width = np.min([np.std(set1), np.std(set2)])
+
+    # Plotting
+    plt.figure(figsize=(12, 6))
+    plt.hist(set1, color='#62BEC1', label='Normal SNe', alpha=1, bins=int((np.max(set1) - np.min(set1)) / width))
+    plt.hist(set2, color='#5AD2F4', label='91bg-like', alpha=0.825, bins=int((np.max(set2) - np.min(set2)) / width))
+
+    # Data Lines
+    data_lines_dict = {}
+    plt.axvline(x=np.median(set1), label='Normal SNe Median', linewidth=2.5, color='#52a1a3', linestyle=':')
+    plt.axvline(x=np.median(set2), label='91bg-like Median', linewidth=2.5, color='#4bb0cc', linestyle='--')
+
+    # Formatting
+    plt.title('Normal SNeIa v. 91bg-like SNeIa -- '+param)
+    plt.legend()
+
+    # Save Plot
+    # plt.savefig('saved/HiCATvPan+_'+title.split(' ')[4].lower()+'.png')
+    # print('Saved to...', 'saved/HiCATvPan+_'+title.split(' ')[4].lower()+'.png')
+
     plt.show()
     return
 def update_readme_plots():
@@ -1116,8 +1149,6 @@ def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0
 
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
-
-    update_readme_plots()
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
 
