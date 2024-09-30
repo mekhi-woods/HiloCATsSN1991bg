@@ -1140,7 +1140,7 @@ def alt_mass_step_calc(mu, mu_err, mass, z, cut=10, quiet=False):
 
     lower_resid = np.average(mu[mass < cut] - gen.current_cosmo().distmod(z[mass < cut]).value,
                              weights=1/(mu_err[mass < cut]**2))
-    upper_resid = np.average(all_mu[mass > cut] - gen.current_cosmo().distmod(z[mass > cut]).value,
+    upper_resid = np.average(mu[mass > cut] - gen.current_cosmo().distmod(z[mass > cut]).value,
                              weights=1/(mu_err[mass > cut]**2))
     lower_resid_err = np.std(mu_err[mass < cut]) / np.sqrt(len(mu_err[mass < cut]))
     upper_resid_err = np.std(mu_err[mass > cut]) / np.sqrt(len(mu_err[mass > cut]))
