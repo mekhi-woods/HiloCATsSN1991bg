@@ -1,3 +1,4 @@
+raise RuntimeError("'arc-light.py' has been deprecated. Please run 'urd.py' instead.")
 import warnings
 warnings.simplefilter("ignore", UserWarning)
 import os
@@ -17,7 +18,7 @@ from astroquery.sdss import SDSS
 from scripts import general as gen
 
 CONSTANTS = gen.get_constants()
-raise RuntimeError("'arc-light.py' has been deprecated. Please run 'urd.py' instead.")
+
 
 class sn91bg():
     def __init__(self, objname=None, originalname=None, coords=(0.00, 0.00), z=0.00, origin=None, discovery_data=None):
