@@ -15,6 +15,7 @@ from astropy.coordinates import SkyCoord, Galactic
 from astropy.table import Table
 from astroquery.sdss import SDSS
 from astropy.stats import sigma_clip
+from astropy.stats import sigma_clipped_stats
 
 from scripts import general as gen
 from scripts import get_vpec
@@ -826,8 +827,9 @@ def sample_cutter(path, algo='snpy'):
         hdr[-1] = hdr[-1][:-1]
     if algo == 'snpy':
         print('[+++] Cutting sample for SNooPy data...')
-        # cuts = {'z': 0.015, 'EBVhost': (-1, 1), 'EBVhost_err': 0.2, 'st': (0.3, 1.0), 'st_err': 0.1, 'Tmax_err': 1}  # Old
-        cuts = {'z': 0.015, 'EBVhost': (-1, 0.28), 'EBVhost_err': 0.1, 'st': (0.3, 1.0), 'st_err': 0.1, 'Tmax_err': 1}  # Maximized
+        # cuts = {'z': 0.015, 'EBVhost': (-1, 0.28), 'EBVhost_err': 0.1, 'st': (0.3, 1.0), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.2}  # Old
+        # cuts = {'z': 0.015, 'EBVhost': (-1, 0.3), 'EBVhost_err': 0.1, 'st': (0.3, 1.0), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.2}
+        cuts = {'z': 0.015, 'EBVhost': (-0.5, 0.3), 'EBVhost_err': 0.1, 'st': (-999, 1.0), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.1}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
@@ -839,11 +841,12 @@ def sample_cutter(path, algo='snpy'):
                     (data[:, hdr.index('st')].astype(float) > cuts['st'][0]) &
                     (data[:, hdr.index('st')].astype(float) < cuts['st'][1]) &
                     (data[:, hdr.index('st_err')].astype(float) < cuts['st_err']) &
-                    (data[:, hdr.index('Tmax_err')].astype(float) < cuts['Tmax_err'])]
+                    (data[:, hdr.index('Tmax_err')].astype(float) < cuts['Tmax_err']) &
+                    (data[:, hdr.index('mu_err')].astype(float) < cuts['mu_err'])]
     elif algo == 'salt':
         print('[+++] Cutting sample for SALT data...')
         # cuts = {'z': 0.015, 'x0': 999, 'x0_err': 999, 'x1': (-5, 5), 'x1_err': 1, 'c': (-0.3, 999), 'c_err': 0.1, 't0_err': 2}
-        cuts = {'z': 0.015, 'x0': 999, 'x0_err': 999, 'x1': (-4.5, 4.5), 'x1_err': 1, 'c': (-0.3, 1), 'c_err': 0.3, 't0_err': 0.5}
+        cuts = {'z': 0.015, 'x0': 999, 'x0_err': 999, 'x1': (-4.5, 4.5), 'x1_err': 1, 'c': (-0.3, 1), 'c_err': 0.3, 't0_err': 0.5, 'mu_err': 0.2}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
@@ -857,7 +860,8 @@ def sample_cutter(path, algo='snpy'):
                     (data[:, hdr.index('c')].astype(float) > cuts['c'][0]) &
                     (data[:, hdr.index('c')].astype(float) < cuts['c'][1]) &
                     (data[:, hdr.index('c_err')].astype(float) < cuts['c_err']) &
-                    (data[:, hdr.index('t0_err')].astype(float) < cuts['t0_err'])]
+                    (data[:, hdr.index('t0_err')].astype(float) < cuts['t0_err']) &
+                    (data[:, hdr.index('mu_err')].astype(float) < cuts['mu_err'])]
 
     # Save to file
     with open(path[:-4]+'_cut.txt', 'w') as f:
@@ -872,6 +876,12 @@ def sample_cutter(path, algo='snpy'):
             f.write(f_out + '\n')
     print('      Cut file saved to...', path[:-4]+'_cut.txt')
     print('      [ '+str(len(data[:, 0]))+' / '+original_num+' ]')
+
+    # Display Residual Scatter
+    resid_mu = sigma_clip(data[:, hdr.index('mu')].astype(float) -
+                          gen.current_cosmo().distmod(data[:, hdr.index('z_cmb')].astype(float)).value, sigma=5.0)
+    print('Hubble Residual Scatter:', np.std(resid_mu))
+
     return
 def merge_snpy_salt_params(snpy_path, salt_path, save_loc):
     snpy_data = np.genfromtxt(snpy_path, delimiter=', ', skip_header=1, dtype=str)
@@ -1079,6 +1089,84 @@ def norm_vs_91bg_hist(param, width=None):
 
     plt.show()
     return
+def snpy_hist(hicat_params_file, norm_params_file, save_loc='', sigma = 3.0, st_width = 0.02, c_width = 0.02):
+    # Open data
+    hicat_data = np.genfromtxt(hicat_params_file, delimiter=', ', skip_header=1, dtype=str)
+    with open(hicat_params_file, 'r') as f:
+        hicat_hdr = f.readline().split(', ')
+        hicat_hdr[-1] = hicat_hdr[-1][:-1]
+    dr3_data = np.genfromtxt(norm_params_file, delimiter=', ', skip_header=1, dtype=str)
+    with open(norm_params_file, 'r') as f:
+        dr3_hdr = f.readline().split(', ')
+        dr3_hdr[-1] = dr3_hdr[-1][:-1]
+
+    fig, ax = plt.subplots(1, 2, figsize=(14, 4), constrained_layout=True)
+    # ST plot
+    set1 = sigma_clip(dr3_data[:, dr3_hdr.index('st')].astype(float), sigma=sigma)
+    ax[0].hist(set1, int((np.max(set1) - np.min(set1)) / st_width), label='DR3', color='#5AD2F4')
+    ax[0].axvline(x=np.median(set1), label=r'$\tilde{x}_{DR3}$', linewidth=2.5, color='#4bb0cc', linestyle='--')
+    set2 = sigma_clip(hicat_data[:, hicat_hdr.index('st')].astype(float), sigma=sigma)
+    ax[0].hist(set2, int((np.max(set2) - np.min(set2)) / st_width), label='HiCAT', color='#62BEC1', alpha=0.75)
+    ax[0].axvline(x=np.median(set2), label=r'$\tilde{x}_{HiCAT}$', linewidth=2.5, color='#52a1a3', linestyle=':')
+    ax[0].legend()
+    ax[0].set_xlabel('Stretch [st]')
+
+    # EBVhost plot
+    set1 = sigma_clip(dr3_data[:, dr3_hdr.index('EBVhost')].astype(float), sigma=sigma)
+    ax[1].hist(set1, int((np.max(set1) - np.min(set1)) / c_width), label='DR3', color='#5AD2F4')
+    ax[1].axvline(x=np.average(set1), label=r'$\bar{x}_{DR3}$', linewidth=2.5, color='#4bb0cc', linestyle='--')
+    set2 = sigma_clip(hicat_data[:, hicat_hdr.index('EBVhost')].astype(float), sigma=sigma)
+    ax[1].hist(set2, int((np.max(set2) - np.min(set2)) / c_width), label='HiCAT', color='#62BEC1', alpha=0.75)
+    ax[1].axvline(x=np.average(set2), label=r'$\bar{x}_{HiCAT}$', linewidth=2.5, color='#52a1a3', linestyle=':')
+    ax[1].legend()
+    ax[1].set_xlabel('Color [E(B-V) Host]')
+    ax[1].set_xlim(-0.05, 0.45)
+    # ax[1].invert_xaxis()
+
+    plt.suptitle('HiCAT 91bg-like Type Ia SNe v. DR3 Normal Type Ia SNe\n SNooPy paramaters')
+    if len(save_loc) > 0:
+        plt.savefig(save_loc, dpi=300)
+    plt.show()
+    return
+def salt_hist(hicat_params_file, norm_params_file, save_loc='', sigma = 3.0, st_width = 0.3, c_width = 0.08):
+    # Open data
+    hicat_data = np.genfromtxt(hicat_params_file, delimiter=', ', skip_header=1, dtype=str)
+    with open(hicat_params_file, 'r') as f:
+        hicat_hdr = f.readline().split(', ')
+        hicat_hdr[-1] = hicat_hdr[-1][:-1]
+    dr3_data = np.genfromtxt(norm_params_file, delimiter=', ', skip_header=1, dtype=str)
+    with open(norm_params_file, 'r') as f:
+        dr3_hdr = f.readline().split(', ')
+        dr3_hdr[-1] = dr3_hdr[-1][:-1]
+
+    fig, ax = plt.subplots(1, 2, figsize=(14, 4), constrained_layout=True)
+
+    # x1 plot
+    set1 = sigma_clip(dr3_data[:, dr3_hdr.index('x1')].astype(float), sigma=sigma)
+    set2 = sigma_clip(hicat_data[:, hicat_hdr.index('x1')].astype(float), sigma=sigma)
+    ax[0].hist(set1, int((np.max(set1) - np.min(set1)) / st_width), label='DR3', color='#5AD2F4')
+    ax[0].hist(set2, int((np.max(set2) - np.min(set2)) / st_width), label='HiCAT', color='#62BEC1', alpha=0.75)
+    ax[0].axvline(x=np.median(set1), label=r'$\tilde{x}_{DR3}$', linewidth=2.5, color='#4bb0cc', linestyle='--')
+    ax[0].axvline(x=np.median(set2), label=r'$\tilde{x}_{HiCAT}$', linewidth=2.5, color='#52a1a3', linestyle=':')
+    ax[0].legend()
+    ax[0].set_xlabel('Stretch [x1]')
+
+    # c plot
+    set1 = sigma_clip(dr3_data[:, dr3_hdr.index('c')].astype(float), sigma=sigma)
+    set2 = sigma_clip(hicat_data[:, hicat_hdr.index('c')].astype(float), sigma=sigma)
+    ax[1].hist(set1, int((np.max(set1) - np.min(set1)) / c_width), label='DR3', color='#5AD2F4')
+    ax[1].hist(set2, int((np.max(set2) - np.min(set2)) / c_width), label='HiCAT', color='#62BEC1', alpha=0.75)
+    ax[1].axvline(x=np.median(set1), label=r'$\tilde{x}_{DR3}$', linewidth=2.5, color='#4bb0cc', linestyle='--')
+    ax[1].axvline(x=np.median(set2), label=r'$\tilde{x}_{HiCAT}$', linewidth=2.5, color='#52a1a3', linestyle=':')
+    ax[1].legend()
+    ax[1].set_xlabel('Color [c]')
+
+    plt.suptitle('HiCAT 91bg-like Type Ia SNe v. DR3 Normal Type Ia SNe\n SALT paramaters')
+    if len(save_loc) > 0:
+        print('[+++] Saved figure to...', save_loc)
+        plt.savefig(save_loc, dpi=300)
+    plt.show()
+    return
 def update_readme_plots():
     resid_v_mass(path='output/combiend__snpy_params_cut.txt',
                  title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]\n',
@@ -1178,6 +1266,13 @@ def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-    smart_fit(fit_type='indv', data_set='CSP', algo='snpy', path='data/CSP/SN2005ke_snpy.txt')
+    # smart_fit(fit_type='combiend', algo='snpy', dmag_max=1.00)
+    # smart_fit(fit_type='combiend', algo='salt', dmag_max=1.00)
+
+    # files = 'output/combiend__snpy_params.txt', 'output/combiend__salt_params.txt', 'output/merged_params_cut.txt'
+
+
+    sample_cutter('output/combiend__snpy_params.txt', 'snpy')
+    resid_v_mass('output/combiend__snpy_params_cut.txt')
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')

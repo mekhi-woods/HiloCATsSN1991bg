@@ -17,6 +17,7 @@ from astroquery.sdss import SDSS
 from scripts import general as gen
 
 CONSTANTS = gen.get_constants()
+raise RuntimeError("'arc-light.py' has been deprecated. Please run 'urd.py' instead.")
 
 class sn91bg():
     def __init__(self, objname=None, originalname=None, coords=(0.00, 0.00), z=0.00, origin=None, discovery_data=None):
@@ -1421,7 +1422,6 @@ def smart_fit(fit_type, data_set, algo, path=None, save_loc='', dmag_max=0.00, d
 if __name__ == '__main__':
     start = systime.time() # Runtime tracker
 
-    smart_fit('indv', 'CSP', 'snpy', path='data/CSP/SN2005ke_snpy.txt')
 
     # mass_step_residual_plot('output/merged_params_cut.txt',
     #                         title="Hubble Residuals vs. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia (salt-snpy)\n")

@@ -47,14 +47,8 @@ This plot depicts the relationship between the redshift of the SN and the corres
 
 --------------------------
 ### Parameter Histograms
-Below is the two main SNooPy parameters that determine the shape of the SN fit. 'DR3' is a collection of  normal 
-SNe Ia processed with SNooPy. 
-![](saved/readme_plots/HiCATvDR3_stretch.png "")
-![](saved/readme_plots/HiCATvDR3_ebvhost.png "")
-Salt2 parameters compared to Pantheon+ Survey of Normal SNe Ia
-![](saved/readme_plots/HiCATvPan+_x0.png "")
-![](saved/readme_plots/HiCATvPan+_x1.png "")
-![](saved/readme_plots/HiCATvPan+_c.png "")
+![](saved/readme_plots/snpy_params_hicat_v_dr3.png "")
+![](saved/readme_plots/salt_params_hicat_v_dr3.png "")
 
 --------------------------
 ## Publications
