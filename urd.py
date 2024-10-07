@@ -459,7 +459,7 @@ class SN91bg:
             self.params.update({'mu': {'value': 0.00, 'err': 0.00}})
             print('[!!!] Failed to load ASCII file -- ', error)
             return
-        n_s.k_version = '91bg'
+        # n_s.k_version = '91bg'
         n_s.choose_model('EBV_model2', stype='st')
         n_s.set_restbands()  # Auto pick appropriate rest-bands
 
@@ -827,9 +827,7 @@ def sample_cutter(path, algo='snpy'):
         hdr[-1] = hdr[-1][:-1]
     if algo == 'snpy':
         print('[+++] Cutting sample for SNooPy data...')
-        # cuts = {'z': 0.015, 'EBVhost': (-1, 0.28), 'EBVhost_err': 0.1, 'st': (0.3, 1.0), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.2}  # Old
-        # cuts = {'z': 0.015, 'EBVhost': (-1, 0.3), 'EBVhost_err': 0.1, 'st': (0.3, 1.0), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.2}
-        cuts = {'z': 0.015, 'EBVhost': (-0.5, 0.3), 'EBVhost_err': 0.1, 'st': (-999, 1.0), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.1}
+        cuts = {'z': 0.015, 'EBVhost': (-0.2, 0.3), 'EBVhost_err': 0.1, 'st': (-999, 0.8), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.2}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
@@ -845,21 +843,17 @@ def sample_cutter(path, algo='snpy'):
                     (data[:, hdr.index('mu_err')].astype(float) < cuts['mu_err'])]
     elif algo == 'salt':
         print('[+++] Cutting sample for SALT data...')
-        # cuts = {'z': 0.015, 'x0': 999, 'x0_err': 999, 'x1': (-5, 5), 'x1_err': 1, 'c': (-0.3, 999), 'c_err': 0.1, 't0_err': 2}
-        cuts = {'z': 0.015, 'x0': 999, 'x0_err': 999, 'x1': (-4.5, 4.5), 'x1_err': 1, 'c': (-0.3, 1), 'c_err': 0.3, 't0_err': 0.5, 'mu_err': 0.2}
+        # cuts = {'z': 0.015, 'c': (-0.3, 1.0), 'c_err': 0.1, 'x1_err': 1.0, 't0_err': 1, 'mu_err': 0.2}
+        cuts = {'z': 0.015, 'c': (-0.3, 0.3), 'c_err': 0.1, 'x1_err': 0.5, 't0_err': 1, 'mu_err': 0.2}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
         print(f_out)
         data = data[(data[:, hdr.index('z_cmb')].astype(float) > cuts['z']) &
-                    (data[:, hdr.index('x0')].astype(float) < cuts['x0']) &
-                    (data[:, hdr.index('x0_err')].astype(float) < cuts['x0_err']) &
-                    (data[:, hdr.index('x1')].astype(float) > cuts['x1'][0]) &
-                    (data[:, hdr.index('x1')].astype(float) < cuts['x1'][1]) &
-                    (data[:, hdr.index('x1_err')].astype(float) < cuts['x1_err']) &
                     (data[:, hdr.index('c')].astype(float) > cuts['c'][0]) &
                     (data[:, hdr.index('c')].astype(float) < cuts['c'][1]) &
                     (data[:, hdr.index('c_err')].astype(float) < cuts['c_err']) &
+                    (data[:, hdr.index('x1_err')].astype(float) < cuts['x1_err']) &
                     (data[:, hdr.index('t0_err')].astype(float) < cuts['t0_err']) &
                     (data[:, hdr.index('mu_err')].astype(float) < cuts['mu_err'])]
 
@@ -878,9 +872,9 @@ def sample_cutter(path, algo='snpy'):
     print('      [ '+str(len(data[:, 0]))+' / '+original_num+' ]')
 
     # Display Residual Scatter
-    resid_mu = sigma_clip(data[:, hdr.index('mu')].astype(float) -
-                          gen.current_cosmo().distmod(data[:, hdr.index('z_cmb')].astype(float)).value, sigma=5.0)
-    print('Hubble Residual Scatter:', np.std(resid_mu))
+    resid_scatter = sigma_clipped_stats(data[:, hdr.index('mu')].astype(float) -
+                                   gen.current_cosmo().distmod(data[:, hdr.index('z_cmb')].astype(float)).value)[2]
+    print('Hubble Residual Scatter:', resid_scatter)
 
     return
 def merge_snpy_salt_params(snpy_path, salt_path, save_loc):
@@ -966,7 +960,7 @@ def resid_v_z(path, title='', labels=False, save_loc=None):
 
     # Formatting
     fig.suptitle(title +
-                 'Scatter: ' + str(round(np.std(resid_mu), 2)) + ' | # of pts: ' + str(len(resid_mu)) +
+                 'Scatter: ' + str(round(sigma_clipped_stats(resid_mu)[2], 2)) + ' | # of pts: ' + str(len(resid_mu)) +
                  ' | SNR: ' + str(round(np.sqrt(np.abs(np.average(resid_mu)) / np.abs(np.std(resid_mu_err))), 2)),
                  size='medium')
     ylimiter = np.max(np.abs(resid_mu)) + 0.3
@@ -994,9 +988,9 @@ def resid_v_mass(path, cut=10, title='', labels=False, save_loc=None):
 
     fig, axs = plt.subplots(1, 2, figsize=(12, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
     color_wheel = {'ZTF': '#81ADC8', 'ATLAS': '#EEDFAA', 'CSP': '#CD4631', 'ATLAS-ZTF': '#DEA47E',
-                   'ZTF_SNPY': '#FFADC8', 'ATLAS_SNPY': '#FFDFAA', 'CSP_SNPY': '#FF4631', 'ATLAS-ZTF_SNPY': '#FFA47E',
-                   'ZTF_SALT': '#AAADC8', 'ATLAS_SALT': '#AADFAA', 'CSP_SALT': '#AA4631', 'ATLAS-ZTF_SALT': '#AAA47E',
-                   'Pan+': 'maroon'}
+                   'ZTF_SNPY': '#dcb160', 'ATLAS_SNPY': '#f4ac45', 'CSP_SNPY': '#af7b3f', 'ATLAS-ZTF_SNPY': '#694a38',
+                   'ZTF_SALT': '#dcb160', 'ATLAS_SALT': '#f4ac45', 'CSP_SALT': '#af7b3f', 'ATLAS-ZTF_SALT': '#694a38',
+                   'Pan+': 'maroon', 'Histogram': '#775A4A'}
 
     # Set Arrays
     mass, mass_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
@@ -1007,10 +1001,14 @@ def resid_v_mass(path, cut=10, title='', labels=False, save_loc=None):
 
     # Make main plot
     for origin in np.unique(data[:, hdr.index('origin')]):
+        if 'SALT' in origin:
+            mk = 'x'
+        else:
+            mk = 'o'
         indexes = np.where(data[:, hdr.index('origin')] == origin)[0]
 
         axs[0].errorbar(mass[indexes], resid_mu[indexes], xerr=mass_err[indexes], yerr=resid_mu_err[indexes],
-                        color=color_wheel[origin], fmt='o', label=origin, alpha=1)
+                        color=color_wheel[origin], fmt='o', label=origin, alpha=1, marker=mk)
 
         # Labels
         if labels:
@@ -1018,7 +1016,7 @@ def resid_v_mass(path, cut=10, title='', labels=False, save_loc=None):
                 axs[0].text(mass[indexes][i], resid_mu[indexes][i], str(data[:, 0][indexes][i]), size='x-small', va='top')
 
     # Make histogram
-    axs[1].hist(resid_mu, bins=30, orientation="horizontal", color='#9E6240')
+    axs[1].hist(resid_mu, bins=30, orientation="horizontal", color=color_wheel['Histogram'])
 
     # Get Mass Step
     if cut == 'median':
@@ -1038,7 +1036,7 @@ def resid_v_mass(path, cut=10, title='', labels=False, save_loc=None):
 
     # Formatting
     fig.suptitle(title +
-                 'Scatter: ' + str(round(np.std(resid_mu), 2)) + ' | # of pts: ' + str(len(resid_mu)) +
+                 'Scatter: ' + str(round(sigma_clipped_stats(resid_mu)[2], 2)) + ' | # of pts: ' + str(len(resid_mu)) +
                  ' | SNR: ' + str(round(np.sqrt(np.abs(np.average(resid_mu)) / np.abs(np.std(resid_mu_err))), 2)) +
                  '\nMass Step ('+str(cut)+'): ' + str(round(mass_step_dict['value'], 4)) + ' +/- ' + str(round(mass_step_dict['err'], 6)),
                  size='medium')
@@ -1197,14 +1195,15 @@ def mass_step_calc(mu, mu_err, mass, z, cut=10):
     if cut == 'median':
         cut = round(np.median(mass), 4)
 
-    lower_resid = np.average(mu[mass < cut] - gen.current_cosmo().distmod(z[mass < cut]).value,
-                             weights=1/(mu_err[mass < cut]**2))
-    upper_resid = np.average(mu[mass > cut] - gen.current_cosmo().distmod(z[mass > cut]).value,
-                             weights=1/(mu_err[mass > cut]**2))
-    lower_resid_err = np.std(mu_err[mass < cut]) / np.sqrt(len(mu_err[mass < cut]))  # Using Standard Error Calc
-    upper_resid_err = np.std(mu_err[mass > cut]) / np.sqrt(len(mu_err[mass > cut]))
+    resid = mu - gen.current_cosmo().distmod(z).value
 
-    mass_step = np.abs(lower_resid - upper_resid)
+    upper_resid = np.average(resid[mass > cut], weights=1/(mu_err[mass > cut]**2))
+    lower_resid = np.average(resid[mass < cut], weights=1/(mu_err[mass < cut]**2))
+
+    upper_resid_err = np.std(mu_err[mass > cut]) / np.sqrt(len(mu_err[mass > cut]))  # Using Standard Error Calc
+    lower_resid_err = np.std(mu_err[mass < cut]) / np.sqrt(len(mu_err[mass < cut]))
+
+    mass_step = np.abs(upper_resid - lower_resid)
     mass_step_err = np.sqrt((lower_resid_err**2) + (upper_resid_err**2))
 
     return ({'value': mass_step, 'err': mass_step_err},
@@ -1265,14 +1264,17 @@ def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0
 
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
-
-    # smart_fit(fit_type='combiend', algo='snpy', dmag_max=1.00)
-    # smart_fit(fit_type='combiend', algo='salt', dmag_max=1.00)
-
     # files = 'output/combiend__snpy_params.txt', 'output/combiend__salt_params.txt', 'output/merged_params_cut.txt'
 
-
-    sample_cutter('output/combiend__snpy_params.txt', 'snpy')
+    # sample_cutter('output/combiend__snpy_params.txt', 'snpy')
+    # merge_snpy_salt_params('output/combiend__snpy_params_cut.txt',
+    #                        'output/combiend__salt_params_cut.txt',
+    #                        'output/merged_params_cut.txt')
     resid_v_mass('output/combiend__snpy_params_cut.txt')
+
+    # data = np.genfromtxt('output/combiend__snpy_params_cut.txt', dtype=float, delimiter=', ', skip_header=1)
+    # mass, mu, z = data[:, 16], data[:, 8], data[:, 4]
+    # mass_err, mu_err = data[:, 17], data[:, 9]
+    # resid = mu - gen.current_cosmo().distmod(z).value
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
