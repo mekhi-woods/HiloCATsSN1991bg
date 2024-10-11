@@ -777,7 +777,8 @@ def batch_fit(data_set, algo='snpy', dmag_max=0.00, dflux_max=0.00):
         print('[', files.index(path) + 1, '/', len(files), ']')
         print('-----------------------------------------------------------------------------------------------')
         tempSN = SN91bg().make_class(data_set=data_set, path=path, dmag_max=dmag_max, dflux_max=dflux_max)
-        tempSN.fit(algo)
+        if tempSN is not None:
+            tempSN.fit(algo)
 
         # Check if fit failed
         if (tempSN is None or
@@ -1138,11 +1139,12 @@ def resid_v_mass_med(path, title='', labels=False, save_loc=None):
         plt.savefig(save_loc)
     plt.show()
     return
-def resid_v_mass_stacked(title='', labels=False, save_loc=None):
+def resid_v_mass_stacked():
+
     n = 0
-    fig, axs = plt.subplots(3, 2, figsize=(12, 16), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
-    for path in ['output/combiend__snpy_params_cut.txt', 'output/combiend__salt_params_cut.txt',
-                 'output/merged_params_cut.txt']:
+    subplot_titles = ['Merged', 'SNooPy Only', 'SALT3 Only']
+    fig, axs = plt.subplots(3, 2, figsize=(12, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
+    for path in ['output/combiend__snpy_params_cut.txt', 'output/combiend__snpy_params_cut.txt', 'output/combiend__salt_params_cut.txt']:
         # Pull data from saved text
         data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
 
@@ -1169,19 +1171,13 @@ def resid_v_mass_stacked(title='', labels=False, save_loc=None):
             if 'SALT' in origin:
                 format_dict = {'marker': '^', 'fmt': 'o', 'label': None, 'alpha': 1, 'ms': 6}
             else:
-                format_dict = {'marker': 'o', 'fmt': 'o', 'label': origin, 'alpha': 1, 'ms': 5}
+                format_dict = {'marker': 'o', 'fmt': 'o', 'label': origin[:5], 'alpha': 1, 'ms': 5}
             indexes = np.where(data[:, hdr.index('origin')] == origin)[0]
             axs[n, 0].errorbar(mass[indexes], resid_mu[indexes], xerr=mass_err[indexes], yerr=resid_mu_err[indexes],
-                               color=color_wheel[origin], **format_dict)
-
-            # Labels
-            if labels:
-                for i in range(len(resid_mu[indexes])):
-                    axs[n, 0].text(mass[indexes][i], resid_mu[indexes][i], str(data[:, 0][indexes][i]), size='x-small',
-                                   va='top')
+                            color=color_wheel[origin], **format_dict)
 
         # Make histogram
-        axs[n, 1].hist(resid_mu, bins=int(len(resid_mu) / 2), orientation="horizontal", color=color_wheel['Histogram'])
+        axs[n, 1].hist(resid_mu, bins=10, orientation="horizontal", color=color_wheel['Histogram'])
 
         # Get Mass Step
         for cut in [10, 'median']:
@@ -1190,53 +1186,51 @@ def resid_v_mass_stacked(title='', labels=False, save_loc=None):
                 lin_color, label = 'r', str(cut)
             else:
                 num_cut = cut
-                label = 'Scatter: ' + str(round(np.std(resid_mu), 2)) + ' | # of pts: ' + str(
-                    len(resid_mu)) + '\n' + str(cut)
                 lin_color = 'k'
 
             mass_step_dict, resid_dict = mass_step_calc(mu, mu_err, mass, z, cut=num_cut)
-            label += ' | ' + str(round(mass_step_dict['value'], 4)) + ' | ' + str(round(mass_step_dict['err'], 4))
 
             # Plot Mass Step
             plt_details = {'linestyle': '--', 'linewidth': 1.0, 'color': lin_color}
             fill_details = {'color': lin_color, 'alpha': 0.2}
             axs[n, 0].hlines(y=resid_dict['lower_resid']['value'], xmin=np.min(mass) - 0.3, xmax=num_cut,
-                             **plt_details)  # Left
+                          **plt_details)  # Left
             axs[n, 0].hlines(y=resid_dict['upper_resid']['value'], xmin=num_cut, xmax=np.max(mass) + 0.3,
-                             **plt_details)  # Right
+                          **plt_details)  # Right
             axs[n, 0].fill_between([np.min(mass) - 0.3, num_cut],
-                                   resid_dict['lower_resid']['value'] - resid_dict['lower_resid']['err'],
-                                   resid_dict['lower_resid']['value'] + resid_dict['lower_resid']['err'],
-                                   **fill_details)  # Left
+                                resid_dict['lower_resid']['value'] - resid_dict['lower_resid']['err'],
+                                resid_dict['lower_resid']['value'] + resid_dict['lower_resid']['err'],
+                                **fill_details)  # Left
             axs[n, 0].fill_between([num_cut, np.max(mass) + 0.3],
-                                   resid_dict['upper_resid']['value'] - resid_dict['upper_resid']['err'],
-                                   resid_dict['upper_resid']['value'] + resid_dict['upper_resid']['err'],
-                                   **fill_details)  # Right
-            axs[n, 0].vlines(x=num_cut, ymin=resid_dict['lower_resid']['value'],
-                             ymax=resid_dict['upper_resid']['value'],
-                             label=label, **plt_details)
+                                resid_dict['upper_resid']['value'] - resid_dict['upper_resid']['err'],
+                                resid_dict['upper_resid']['value'] + resid_dict['upper_resid']['err'],
+                                **fill_details)  # Right
+            axs[n, 0].vlines(x=num_cut, ymin=resid_dict['lower_resid']['value'], ymax=resid_dict['upper_resid']['value'],
+                             **plt_details)
 
-        axs[n, 1].get_yaxis().set_visible(False)  # Turn off y-axis labels
+        # Formatting
+        axs[n, 0].set_title(subplot_titles[n] + '\n' +
+                            'Scatter: ' + str(round(np.std(resid_mu), 2)) + ' | # of pts: ' + str(len(resid_mu))+ '\n'+str(cut))
         axs[n, 0].get_xaxis().set_visible(False);
-        axs[n, 1].get_xaxis().set_visible(False)  # Turn off x-axis labels
-        axs[n, 0].set_ylim(-0.25, 0.95);
-        axs[n, 1].set_ylim(-0.25, 0.95)
-        axs[n, 0].legend(loc='lower left')
+        axs[n, 1].get_xaxis().set_visible(False)
+        axs[n, 1].get_yaxis().set_visible(False)
 
         n += 1
 
     # Formatting
-    axs[1, 0].get_yaxis().set_visible(True)
-    axs[2, 0].get_xaxis().set_visible(True);
-    axs[2, 1].get_xaxis().set_visible(True)
-    axs[1, 0].set(ylabel='Hubble Residuals (mag)')
-    axs[2, 0].set(xlabel="Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)")
+    axs[2, 0].get_xaxis().set_visible(True); axs[2, 1].get_xaxis().set_visible(True)
+    # ylimiter, xlimiter = np.max(np.abs(resid_mu)) + 0.3, [np.min(mass) - 0.3, np.max(mass) + 0.3]
+    # axs[0].set(xlabel="Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)",ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
+    # axs[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
+    axs[2, 0].legend(loc='best')
 
     # Saving Figure
+    save_loc=None
     if save_loc is not None:
         print('Saved figure to... ', save_loc)
         plt.savefig(save_loc)
     plt.show()
+
     return
 def norm_vs_91bg_hist(param, width=None):
     snenormIa = np.genfromtxt('txts/HiCAT_DR3_params.txt', delimiter=', ', skip_header=1, dtype=str)
@@ -1400,6 +1394,40 @@ def mass_step_calc(mu, mu_err, mass, z, cut=10):
     return ({'value': mass_step, 'err': mass_step_err},
             {'lower_resid': {'value': lower_resid, 'err': lower_resid_err},
              'upper_resid': {'value': upper_resid, 'err': upper_resid_err}})
+def dataset_analysis():
+    for d_set in ['CSP', 'ATLAS', 'ZTF', 'COMBINED']:
+        n_overlap = 0
+        all_names, all_z, all_dec, avg_mag, avg_mag_err = [], [], [], [], []
+        for algo in ['snpy', 'salt']:
+            if algo == 'snpy':
+                t_type = 'Tmax'
+            else:
+                t_type = 't0'
+            sys.stdout = open(os.devnull, 'w')  # unnecessary output
+            SNe = batch_load(d_set, algo)
+            sys.stdout = sys.__stdout__
+
+            for SN in SNe:
+                if SN.objname not in all_names:
+                    if d_set == 'COMBINED' and SN.origin == 'ATLAS-ZTF':
+                        n_overlap += 1
+                    all_names.append(SN.objname)
+                    all_z.append(SN.z_cmb)
+                    all_dec.append(SN.coords[1])
+                    avg_mag.append(np.average(SN.mag))
+                    time_clipped_dmag = SN.dmag[(SN.time > SN.params[t_type]['value']-5) & (SN.time < SN.params[t_type]['value']+5)]
+                    if len(time_clipped_dmag) != 0:
+                        avg_mag_err.append(np.average(time_clipped_dmag))
+
+        # print('Number of SNe | Redshift | Declination | Average Mag. | Average Mag. Err (+/-5 MJD)')
+        print(d_set, '&', '$'+str(len(all_names))+'$', '&',
+              '$' + str(round(np.min(all_z), 4))+'$ - $'+str(round(np.max(all_z), 4))+'$', '&',
+              '$' + str(round(np.min(all_dec), 6))+'$ - $'+str(round(np.max(all_dec), 6))+'$', '&',
+              '$' + str(round(np.min(avg_mag), 6)) + '$ - $' + str(round(np.max(avg_mag), 6)) + '$', '&',
+              '$' + str(round(np.min(avg_mag_err), 6)) + '$ - $' + str(round(np.max(avg_mag_err), 6)) + '$\\\\')
+        if d_set == 'COMBINED':
+            print('COMBINED Overlap:', n_overlap)
+    return
 
 # Smart Fit Functions ----------------------------------------------------------------------------------------------- #
 def smart_fit_help():
@@ -1452,8 +1480,21 @@ def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0
         sample_cutter(save_loc, algo)  # Cut sample
     return SNe
 
-
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
+
+    dataset_analysis()
+
+    batch_fit('CSP', 'snpy', dmag_max=1.00)
+    batch_fit('ATLAS', 'snpy', dmag_max=1.00)
+    batch_fit('ZTF', 'snpy', dmag_max=1.00)
+
+    # batch_fit('CSP', 'salt', dmag_max=1.00)
+    # batch_fit('ATLAS', 'salt', dmag_max=1.00)
+    # batch_fit('ZTF', 'salt', dmag_max=1.00)
+    #
+    # batch_fit('COMBINED', 'snpy', dmag_max=1.00)
+    # batch_fit('COMBINED', 'salt', dmag_max=1.00)
+
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
