@@ -21,7 +21,6 @@ from scripts import general as gen
 from scripts import get_vpec
 
 CONSTANTS = gen.get_constants()
-VP = get_vpec.VelocityCorrection(f"twomass++_velocity_LH11.npy")
 
 class SN91bg:
     def __init__(self, objname=None, originalname=None, coords=(0.00, 0.00), z=0.00, origin=None, discovery_data=None):
@@ -602,6 +601,7 @@ class SN91bg:
         self.z_cmb = (1 + self.z) / corr_term - 1
 
         # Peculiar Velocity Correction -- using 'get_vpec.py' from David
+        VP = get_vpec.VelocityCorrection(f"twomass++_velocity_LH11.npy")
         self.z_cmb = VP.correct_redshift(self.z, 0, local_coords.galactic.l.deg, local_coords.galactic.b.deg)
         vpec, vpec_sys = get_vpec.main(self.coords[0], self.coords[1], self.z_cmb)
         self.z_cmb += vpec / 3e5
@@ -691,6 +691,29 @@ class SN91bg:
         return
 
 # Fitting Functions ------------------------------------------------------------------------------------------------- #
+def norm_fit(algo='snpy', save_loc=None, dmag_max=0.00, dflux_max=0.00):
+    SNe, files = [], glob.glob('data/CSPdata/*.txt')
+    for path in files:
+        print('[', files.index(path) + 1, '/', len(files), ']')
+        print('-----------------------------------------------------------------------------------------------')
+        tempSN = SN91bg().make_class(data_set='CSP', path=path, dmag_max=dmag_max, dflux_max=dflux_max)
+        if tempSN is not None:
+            tempSN.fit(algo)
+
+        # Check if fit failed
+        if (tempSN is None or
+                tempSN.params['mu']['value'] <= 0 or
+                'hostMass' not in tempSN.params or
+                tempSN.params['hostMass']['value'] <= 0):
+            print('[-----] Failed!')
+        else:
+            print('[+++++] Success!')
+            SNe.append(tempSN)
+
+    print('Sucessfully fit [', len(SNe), '/', len(files), ']!')
+    if save_loc is not None:
+        save_params_to_file(save_loc, SNe)
+    return SNe
 def combined_fit(algo='snpy', dmag_max=0.00, dflux_max=0.00):
     sys.stdout = open(os.devnull, 'w')  # Lots of unnecessary output
 
@@ -924,51 +947,53 @@ def merge_snpy_salt_params(snpy_path, salt_path, save_loc):
     return
 
 # Plotting Functions ------------------------------------------------------------------------------------------------ #
-def resid_v_z(path, title='', labels=False, save_loc=None):
-    # Pull data from saved text
-    data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
+def resid_v_z(path, title='', save_loc=None):
+    color_wheel = {'ZTF': '#D8973C', 'ATLAS': '#BD632F', 'CSP': '#72513B', 'ATLAS-ZTF': '#273E47',
+                   'ZTF_SNPY': '#D8973C', 'ATLAS_SNPY': '#BD632F', 'CSP_SNPY': '#72513B', 'ATLAS-ZTF_SNPY': '#273E47',
+                   'ZTF_SALT': '#D8973C', 'ATLAS_SALT': '#BD632F', 'CSP_SALT': '#72513B', 'ATLAS-ZTF_SALT': '#273E47',
+                   'Pan+': 'BD632F', 'Histogram': '#3B5058',
+                   '10dexfill': '#A4243B', 'mediandexfill': '#D8C99B'}
+    fig, axs = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
 
-    # Get header
+    # Pull data from saved text & header
+    data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
     with open(path, 'r') as f:
         hdr = f.readline().split(', ')
         hdr[-1] = hdr[-1][:-1]
 
-    fig, axs = plt.subplots(1, 2, figsize=(12, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
-    color_wheel = {'ZTF': '#81ADC8', 'ATLAS': '#EEDFAA', 'CSP': '#CD4631', 'ATLAS-ZTF': '#DEA47E',
-                   'ZTF_SNPY': '#FFADC8', 'ATLAS_SNPY': '#FFDFAA', 'CSP_SNPY': '#FF4631', 'ATLAS-ZTF_SNPY': '#FFA47E',
-                   'ZTF_SALT': '#AAADC8', 'ATLAS_SALT': '#AADFAA', 'CSP_SALT': '#AA4631', 'ATLAS-ZTF_SALT': '#AAA47E',
-                   'Pan+': 'maroon'}
-
     # Set Arrays
-    z, z_err = data[:, hdr.index('z_cmb')].astype(float), np.full(len(data[:, hdr.index('z_cmb')]), np.nan)
+    z = data[:, hdr.index('z_cmb')].astype(float)
+    mass, mass_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
     mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
     resid_mu, resid_mu_err = sigma_clip(mu - gen.current_cosmo().distmod(z).value, sigma=3.0), np.copy(mu_err)
 
     # Make main plot
     for origin in np.unique(data[:, hdr.index('origin')]):
+        format_dict = {'marker': 'o', 'fmt': 'o', 'label': origin, 'alpha': 1, 'ms': 6}
+        if 'SNPY' in origin:
+            format_dict['label'] = origin[:-5]
+        elif 'SALT' in origin:
+            format_dict['label'], format_dict['marker'] = None, '^'
+
         indexes = np.where(data[:, hdr.index('origin')] == origin)[0]
-
-        axs[0].errorbar(z[indexes], resid_mu[indexes], xerr=z_err[indexes], yerr=resid_mu_err[indexes],
-                        color=color_wheel[origin], fmt='o', label=origin, alpha=1)
-
-        # Labels
-        if labels:
-            for i in range(len(resid_mu[indexes])):
-                axs[0].text(z[indexes][i], resid_mu[indexes][i], str(data[:, 0][indexes][i]), size='x-small', va='top')
+        axs[0].errorbar(z[indexes], resid_mu[indexes], yerr=resid_mu_err[indexes],
+                        color=color_wheel[origin], elinewidth=0.8, **format_dict)
 
     # Make histogram
-    axs[1].hist(resid_mu, bins=30, orientation="horizontal", color='#9E6240')
+    axs[1].hist(resid_mu, bins=int((np.max(resid_mu) - np.min(resid_mu)) / 0.1),  # Bin Width = 0.1
+                orientation="horizontal", color=color_wheel['Histogram'])
+
+    # Extra Info
+    extra_info = '$\sigma$: '+str(round(np.std(resid_mu), 4)) + ', $n$: ' + str(len(resid_mu))
+    if 'merged' in path:
+        extra_info += r' | SALT3: $\triangle$, SNooPy: $\bigcirc$'
+    axs[0].text(np.min(z), np.max(resid_mu),
+                extra_info,
+                horizontalalignment='left', verticalalignment='bottom')
 
     # Formatting
-    fig.suptitle(title +
-                 'Scatter: ' + str(round(sigma_clipped_stats(resid_mu)[2], 2)) + ' | # of pts: ' + str(len(resid_mu)) +
-                 ' | SNR: ' + str(round(np.sqrt(np.abs(np.average(resid_mu)) / np.abs(np.std(resid_mu_err))), 2)),
-                 size='medium')
-    ylimiter = np.max(np.abs(resid_mu)) + 0.3
-    axs[0].set_ylim(-ylimiter, ylimiter)
-    axs[1].set_ylim(-ylimiter, ylimiter)
+    fig.suptitle(title)
     axs[0].set(xlabel='Host Galaxy CMB Redshift', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
-    # axs[0].set_ylim(-1.4, 1.4); axs[0].set_xlim(0.01, 0.09)
     axs[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
     axs[0].legend(loc='best')
 
@@ -1056,20 +1081,19 @@ def resid_v_mass(path, cut=10, title='', labels=False, save_loc=None):
         plt.savefig(save_loc)
     plt.show()
     return
-def resid_v_mass_med(path, title='', labels=False, save_loc=None):
-    # Pull data from saved text
-    data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
+def resid_v_mass_med(path, title='', save_loc=None):
+    color_wheel = {'ZTF': '#D8973C', 'ATLAS': '#BD632F', 'CSP': '#72513B', 'ATLAS-ZTF': '#273E47',
+                   'ZTF_SNPY': '#D8973C', 'ATLAS_SNPY': '#BD632F', 'CSP_SNPY': '#72513B', 'ATLAS-ZTF_SNPY': '#273E47',
+                   'ZTF_SALT': '#D8973C', 'ATLAS_SALT': '#BD632F', 'CSP_SALT': '#72513B', 'ATLAS-ZTF_SALT': '#273E47',
+                   'Pan+': 'BD632F', 'Histogram': '#3B5058',
+                   '10dexfill': '#A4243B', 'mediandexfill': '#D8C99B'}
+    fig, axs = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
 
-    # Get header
+    # Pull data from saved text & header
+    data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
     with open(path, 'r') as f:
         hdr = f.readline().split(', ')
         hdr[-1] = hdr[-1][:-1]
-
-    fig, axs = plt.subplots(1, 2, figsize=(12, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
-    color_wheel = {'ZTF': '#81ADC8', 'ATLAS': '#EEDFAA', 'CSP': '#CD4631', 'ATLAS-ZTF': '#DEA47E',
-                   'ZTF_SNPY': '#dcb160', 'ATLAS_SNPY': '#f4ac45', 'CSP_SNPY': '#af7b3f', 'ATLAS-ZTF_SNPY': '#694a38',
-                   'ZTF_SALT': '#dcb160', 'ATLAS_SALT': '#f4ac45', 'CSP_SALT': '#af7b3f', 'ATLAS-ZTF_SALT': '#694a38',
-                   'Pan+': 'maroon', 'Histogram': '#775A4A'}
 
     # Set Arrays
     z = data[:, hdr.index('z_cmb')].astype(float)
@@ -1079,57 +1103,62 @@ def resid_v_mass_med(path, title='', labels=False, save_loc=None):
 
     # Make main plot
     for origin in np.unique(data[:, hdr.index('origin')]):
-        if 'SALT' in origin:
-            format_dict = {'marker': '^', 'fmt':'o', 'label': None, 'alpha': 1, 'ms':6}
-        else:
-            format_dict = {'marker': 'o', 'fmt':'o', 'label': origin[:5], 'alpha': 1, 'ms':5}
+        format_dict = {'marker': 'o', 'fmt': 'o', 'label': origin, 'alpha': 1, 'ms': 6}
+        if 'SNPY' in origin:
+            format_dict['label'] = origin[:-5]
+        elif 'SALT' in origin:
+            format_dict['label'], format_dict['marker'] = None, '^'
+
         indexes = np.where(data[:, hdr.index('origin')] == origin)[0]
         axs[0].errorbar(mass[indexes], resid_mu[indexes], xerr=mass_err[indexes], yerr=resid_mu_err[indexes],
-                        color=color_wheel[origin], **format_dict)
-
-        # Labels
-        if labels:
-            for i in range(len(resid_mu[indexes])):
-                axs[0].text(mass[indexes][i], resid_mu[indexes][i], str(data[:, 0][indexes][i]), size='x-small', va='top')
+                        color=color_wheel[origin], elinewidth=0.8, **format_dict)
 
     # Make histogram
-    axs[1].hist(resid_mu, bins=10, orientation="horizontal", color=color_wheel['Histogram'])
+    axs[1].hist(resid_mu, bins=int((np.max(resid_mu) - np.min(resid_mu)) / 0.1),  # Bin Width = 0.1
+                orientation="horizontal", color=color_wheel['Histogram'])
 
-    # Get Mass Step
+    # Extra Info
+    extra_info = '$\sigma$: '+str(round(np.std(resid_mu), 4)) + ', $n$: ' + str(len(resid_mu))
+    if 'merged' in path:
+        extra_info += r' | SALT3: $\triangle$, SNooPy: $\bigcirc$'
+    axs[0].text(np.min(mass), np.max(resid_mu),
+                extra_info,
+                horizontalalignment='left', verticalalignment='bottom')
+
+    # Display Both Mass Steps
     for cut in [10, 'median']:
+        num_cut, lin_color = cut, color_wheel['10dexfill']
         if cut == 'median':
-            num_cut = round(np.median(mass), 4)
-            lin_color, label = 'r', str(cut)
-        else:
-            num_cut = cut
-            label = 'Scatter: ' + str(round(np.std(resid_mu), 2)) + ' | # of pts: ' + str(len(resid_mu))+ '\n'+str(cut)
-            lin_color = 'k'
+            num_cut, lin_color = round(np.median(mass), 4), color_wheel['mediandexfill']
 
+        # Get Mass Step
         mass_step_dict, resid_dict = mass_step_calc(mu, mu_err, mass, z, cut=num_cut)
-        label += ' | '+str(round(mass_step_dict['value'], 4))+' | '+str(round(mass_step_dict['err'], 4))
 
         # Plot Mass Step
-        plt_details = {'linestyle': '--', 'linewidth': 1.0, 'color': lin_color}
+        lin_details = {'linestyle': '--', 'linewidth': 1.0, 'color': lin_color}
         fill_details = {'color': lin_color, 'alpha': 0.2}
-        axs[0].hlines(y=resid_dict['lower_resid']['value'], xmin=np.min(mass)-0.3, xmax=num_cut, **plt_details)  # Left
-        axs[0].hlines(y=resid_dict['upper_resid']['value'], xmin=num_cut, xmax=np.max(mass)+0.3, **plt_details)  # Right
-        axs[0].fill_between([np.min(mass)-0.3, num_cut],
+        axs[0].vlines(x=num_cut, ymin=resid_dict['lower_resid']['value'], ymax=resid_dict['upper_resid']['value'],
+                      **lin_details)
+        axs[0].hlines(y=resid_dict['lower_resid']['value'], xmin=np.min(mass) - 0.3, xmax=num_cut,
+                      **lin_details)  # Left
+        axs[0].fill_between([np.min(mass) - 0.3, num_cut],
                             resid_dict['lower_resid']['value'] - resid_dict['lower_resid']['err'],
                             resid_dict['lower_resid']['value'] + resid_dict['lower_resid']['err'],
-                            **fill_details)  # Left
-        axs[0].fill_between([num_cut, np.max(mass)+0.3],
+                            **fill_details)
+        axs[0].hlines(y=resid_dict['upper_resid']['value'], xmin=num_cut, xmax=np.max(mass) + 0.3,
+                      **lin_details)  # Right
+        axs[0].fill_between([num_cut, np.max(mass) + 0.3],
                             resid_dict['upper_resid']['value'] - resid_dict['upper_resid']['err'],
                             resid_dict['upper_resid']['value'] + resid_dict['upper_resid']['err'],
+                            label=str(cut) + ': ' +
+                                  str(round(mass_step_dict['value'], 4)) + ' +/- ' +
+                                  str(round(mass_step_dict['err'], 4)),
                             **fill_details)  # Right
-        axs[0].vlines(x=num_cut, ymin=resid_dict['lower_resid']['value'], ymax=resid_dict['upper_resid']['value'],
-                      label=label, **plt_details)
 
     # Formatting
-    ylimiter, xlimiter = np.max(np.abs(resid_mu)) + 0.3, [np.min(mass)-0.3, np.max(mass)+0.3]
-    # axs[0].set_ylim(-ylimiter, ylimiter)
-    # axs[1].set_ylim(-ylimiter, ylimiter)
-    # axs[0].set_xlim(xlimiter[0], xlimiter[1])
-    axs[0].set(xlabel="Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)", ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
+    fig.suptitle(title)
+    axs[0].set(xlabel="Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)",
+               ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
     axs[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
     axs[0].legend(loc='best')
 
@@ -1291,11 +1320,11 @@ def snpy_hist(hicat_params_file, norm_params_file, save_loc='', sigma = 3.0, st_
     # EBVhost plot
     set1 = sigma_clip(dr3_data[:, dr3_hdr.index('EBVhost')].astype(float), sigma=sigma)
     ax[1].hist(set1, int((np.max(set1) - np.min(set1)) / c_width), label='DR3', color='#5AD2F4')
-    ax[1].axvline(x=np.average(set1), label=r'$\bar{x}_{DR3}$ = '+str(round(np.average(set1),2)),
+    ax[1].axvline(x=np.median(set1), label=r'$\tilde{x}_{DR3}$ = '+str(round(np.median(set1),2)),
                   linewidth=2.5, color='#4bb0cc', linestyle='--')
     set2 = sigma_clip(hicat_data[:, hicat_hdr.index('EBVhost')].astype(float), sigma=sigma)
     ax[1].hist(set2, int((np.max(set2) - np.min(set2)) / c_width), label='HiCAT', color='#62BEC1', alpha=0.75)
-    ax[1].axvline(x=np.average(set2), label=r'$\bar{x}_{HiCAT}$ = '+str(round(np.average(set2),2)),
+    ax[1].axvline(x=np.median(set2), label=r'$\tilde{x}_{HiCAT}$ = '+str(round(np.median(set2),2)),
                   linewidth=2.5, color='#52a1a3', linestyle=':')
     ax[1].legend()
     ax[1].set_title('Color [E(B-V) Host]')
@@ -1351,28 +1380,38 @@ def salt_hist(hicat_params_file, norm_params_file, save_loc='', sigma = 3.0, st_
     plt.show()
     return
 def update_readme_plots():
-    resid_v_mass(path='output/combiend__snpy_params_cut.txt',
-                 title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]\n',
-                 save_loc='saved/readme_plots/csp-atlas-ztf_snpy_resid_v_mass.png')
-    resid_v_mass(path='output/combiend__salt_params_cut.txt',
-                 title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3]\n',
-                 save_loc='saved/readme_plots/csp-atlas-ztf_salt_resid_v_mass.png')
-    resid_v_mass(path='output/merged_params_cut.txt',
-                 title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]\n',
-                 save_loc='saved/readme_plots/merged_resid_v_mass.png')
-    resid_v_mass(path='txts/HiCAT_DR3_params.txt',
-                 title='Hubble Residual v. Host Stellar Mass of Normal SNe Ia from CSP [SNooPy]\n',
-                 save_loc='saved/readme_plots/normIa_resid_v_mass.png')
+    # Update Mass Plots
+    resid_v_mass_med(path='output/combiend__snpy_params_cut.txt',
+                     title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]',
+                     save_loc='saved/readme_plots/csp-atlas-ztf_snpy_resid_v_mass.png')
+    resid_v_mass_med(path='output/combiend__salt_params_cut.txt',
+                     title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3]',
+                     save_loc='saved/readme_plots/csp-atlas-ztf_salt_resid_v_mass.png')
+    resid_v_mass_med(path='output/merged_params_cut.txt',
+                     title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]',
+                     save_loc='saved/readme_plots/merged_resid_v_mass.png')
+    resid_v_mass_med(path='txts/norm_10-11-24/normSNe_merged_10-11-24.txt',
+                     title='Hubble Residual v. Host Stellar Mass of Normal SNe Ia from CSP [SNooPy]',
+                     save_loc='saved/readme_plots/normIa_resid_v_mass.png')
 
+    # Update Redshift Plots
     resid_v_z(path='output/combiend__snpy_params_cut.txt',
-              title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]\n',
+              title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]',
               save_loc='saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png')
     resid_v_z(path='output/combiend__salt_params_cut.txt',
-              title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3]\n',
+              title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3]',
               save_loc='saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png')
     resid_v_z(path='output/merged_params_cut.txt',
-              title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]\n',
+              title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]',
               save_loc='saved/readme_plots/merged_resid_v_z.png')
+
+    # Update Histograms
+    snpy_hist('output/combiend__snpy_params_cut.txt',
+              'txts/norm_10-11-24/normSNe_snpy_10-11-24.txt',
+              save_loc='saved/readme_plots/snpy_params_hicat_v_dr3.png')
+    salt_hist('output/combiend__salt_params_cut.txt',
+              'txts/norm_10-11-24/normSNe_salt_10-11-24.txt',
+              save_loc='saved/readme_plots/salt_params_hicat_v_dr3.png')
     return
 
 # Analysis Functions ------------------------------------------------------------------------------------------------ #
@@ -1483,18 +1522,6 @@ def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-    dataset_analysis()
-
-    batch_fit('CSP', 'snpy', dmag_max=1.00)
-    batch_fit('ATLAS', 'snpy', dmag_max=1.00)
-    batch_fit('ZTF', 'snpy', dmag_max=1.00)
-
-    # batch_fit('CSP', 'salt', dmag_max=1.00)
-    # batch_fit('ATLAS', 'salt', dmag_max=1.00)
-    # batch_fit('ZTF', 'salt', dmag_max=1.00)
-    #
-    # batch_fit('COMBINED', 'snpy', dmag_max=1.00)
-    # batch_fit('COMBINED', 'salt', dmag_max=1.00)
 
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
