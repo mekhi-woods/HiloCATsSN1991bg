@@ -1535,4 +1535,6 @@ def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
+    update_readme_plots()
+
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
