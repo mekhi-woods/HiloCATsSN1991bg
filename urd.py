@@ -1,8 +1,10 @@
-# M.D. Woods - 9/30/24
+# M.D. Woods - 10/11/24
 import warnings
 # warnings.simplefilter("ignore", UserWarning)
 import os
 import sys
+
+import numpy
 import snpy
 import glob
 import shutil
@@ -1100,16 +1102,26 @@ def resid_v_mass_med(path, title='', save_loc=None):
     mass, mass_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
     mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
     resid_mu, resid_mu_err = sigma_clip(mu - gen.current_cosmo().distmod(z).value, sigma=3.0), np.copy(mu_err)
+    origins = data[:, hdr.index('origin')]
+
+    # David Adjustments for Outliers
+    mn,_,std = sigma_clipped_stats(mu - gen.current_cosmo().distmod(z).value,sigma=3.0)
+    iGood = abs(mu - gen.current_cosmo().distmod(z).value - mn) < 3.0*std
+    mu,mu_err,z,resid_mu,resid_mu_err,mass,mass_err,origins = (
+        mu[iGood],mu_err[iGood],z[iGood],resid_mu[iGood],resid_mu_err[iGood],mass[iGood],mass_err[iGood],origins[iGood])
+
+    # intrinsic dispersion added in quadrature
+    mu_err = np.sqrt(mu_err ** 2.0 + 0.1 ** 2.0)
 
     # Make main plot
-    for origin in np.unique(data[:, hdr.index('origin')]):
+    for origin in np.unique(origins):
         format_dict = {'marker': 'o', 'fmt': 'o', 'label': origin, 'alpha': 1, 'ms': 6}
         if 'SNPY' in origin:
             format_dict['label'] = origin[:-5]
         elif 'SALT' in origin:
             format_dict['label'], format_dict['marker'] = None, '^'
 
-        indexes = np.where(data[:, hdr.index('origin')] == origin)[0]
+        indexes = np.where(origins == origin)[0]
         axs[0].errorbar(mass[indexes], resid_mu[indexes], xerr=mass_err[indexes], yerr=resid_mu_err[indexes],
                         color=color_wheel[origin], elinewidth=0.8, **format_dict)
 
@@ -1421,14 +1433,15 @@ def mass_step_calc(mu, mu_err, mass, z, cut=10):
 
     resid = mu - gen.current_cosmo().distmod(z).value
 
-    upper_resid = np.average(resid[mass > cut], weights=1/(mu_err[mass > cut]**2))
-    lower_resid = np.average(resid[mass < cut], weights=1/(mu_err[mass < cut]**2))
+    upper_resid = np.average(resid[mass > cut], weights=(1/(mu_err[mass > cut]**2)))
+    lower_resid = np.average(resid[mass < cut], weights=(1/(mu_err[mass < cut]**2)))
 
     upper_resid_err = np.std(mu_err[mass > cut]) / np.sqrt(len(mu_err[mass > cut]))  # Using Standard Error Calc
     lower_resid_err = np.std(mu_err[mass < cut]) / np.sqrt(len(mu_err[mass < cut]))
 
     mass_step = np.abs(upper_resid - lower_resid)
     mass_step_err = np.sqrt((lower_resid_err**2) + (upper_resid_err**2))
+
 
     return ({'value': mass_step, 'err': mass_step_err},
             {'lower_resid': {'value': lower_resid, 'err': lower_resid_err},
@@ -1521,7 +1534,5 @@ def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0
 
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
-
-
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
