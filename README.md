@@ -15,7 +15,7 @@ __NOTE: This repository is currently under construction__
    * Install necessary packages by running `pip install -r requirements.txt`
    * Place `api_keys.txt` in working directory with proper TNS API keys (tns_bot_id/tns_bot_name/tns_bot_api_key). 
    * Place `twomass++_velocity_LH11.npy` in working directory. 
-2. Navigate to the main python file `urd.py`
+2. Navigate to the main python file `verthandi.py`
 3. Within the `if __name__ == '__main__'` statement, call `smart_fit()`
 4. `smart_fit()` is able to fit individual SNe, batch fit for CSP/ATLAS/ZTF data, or fit all data at once.
    * _Individual:_ `fit_type='indv'`, include `data_set` ('CSP'/'ATLAS'/'ZTF'), include `path` (path to data file)    

@@ -8,6 +8,7 @@ ztf_data_loc, data/ZTF/
 # ================================================ #
 snpy_csp_saved_loc, saved/snpy/csp/
 snpy_atlas_saved_loc, saved/snpy/atlas/
+snpy_atlas-ztf_saved_loc, saved/snpy/atlas-ztf/
 snpy_ztf_saved_loc, saved/snpy/ztf/
 snpy_combined_saved_loc, saved/snpy/combined/
 
@@ -15,6 +16,7 @@ snpy_combined_saved_loc, saved/snpy/combined/
 # ================================================ #
 salt_csp_saved_loc, saved/salt/csp/
 salt_atlas_saved_loc, saved/salt/atlas/
+salt_atlas-ztf_saved_loc, saved/salt/atlas-ztf/
 salt_ztf_saved_loc, saved/salt/ztf/
 salt_combined_saved_loc, saved/salt/combined/
 

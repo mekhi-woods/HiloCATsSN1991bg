@@ -1436,8 +1436,8 @@ def mass_step_calc(mu, mu_err, mass, z, cut=10):
     upper_resid = np.average(resid[mass > cut], weights=(1/(mu_err[mass > cut]**2)))
     lower_resid = np.average(resid[mass < cut], weights=(1/(mu_err[mass < cut]**2)))
 
-    upper_resid_err = np.std(mu_err[mass > cut]) / np.sqrt(len(mu_err[mass > cut]))  # Using Standard Error Calc
-    lower_resid_err = np.std(mu_err[mass < cut]) / np.sqrt(len(mu_err[mass < cut]))
+    upper_resid_err = np.std(resid[mass > cut]) / np.sqrt(len(mu_err[mass > cut]))
+    lower_resid_err = np.std(resid[mass < cut]) / np.sqrt(len(mu_err[mass < cut]))
 
     mass_step = np.abs(upper_resid - lower_resid)
     mass_step_err = np.sqrt((lower_resid_err**2) + (upper_resid_err**2))
@@ -1535,6 +1535,11 @@ def smart_fit(fit_type, data_set='', algo='', path=None, save_loc='', dmag_max=0
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-    update_readme_plots()
+    # resid_v_mass_med('output/merged_params_cut.txt')
+    # resid_v_mass_med('txts/norm_10-11-24/normSNe_merged_10-11-24_cut.txt')
+
+    # update_readme_plots()
+
+    smart_fit(fit_type='indv', data_set='ATLAS', algo='snpy', path='data/ATLAS/1010348331103532600.txt')
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')

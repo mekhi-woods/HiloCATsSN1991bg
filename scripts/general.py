@@ -7,6 +7,7 @@ from astropy.cosmology import FlatLambdaCDM
 from astropy.time import Time as astrotime
 
 
+
 def current_cosmo(H0=70, O_m=0.3):
     return FlatLambdaCDM(H0, O_m)
 def get_constants(cosntant_loc='txts/constants.txt'):
@@ -126,4 +127,14 @@ def dict_handler(data_dict={}, choice='', path='default/dict.txt', delimiter=', 
         print("[!!!] Invalid packing option! ['arrays'/'pack'/'unpack']")
         return
 
-
+def open_default_file(path: str) -> (list[str], np.array(str)):
+    """
+    Open file that has the typical format of this project's 'txt' files.
+    :param path: str; location of file
+    :return: (hdr, data)
+    """
+    data = np.genfromtxt(path, delimiter=', ', dtype=str, skip_header=1)
+    with open(path, 'r') as f:
+        hdr = f.readline().split(', ')
+        hdr[-1] = hdr[-1][:-1]
+    return hdr, data
