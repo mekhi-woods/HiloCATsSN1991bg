@@ -4,6 +4,7 @@ import sys
 import numpy
 import snpy
 import glob
+import corner
 import shutil
 import sncosmo
 import numpy as np
@@ -660,7 +661,7 @@ class SN91bg:
             pho_mB = -2.5 * np.log10(self.params['x0']['value']) + mB_const
             pho_mB_err = np.abs(-2.5 * (self.params['x0']['err'] / (self.params['x0']['value'] * np.log(10))))
 
-            mu = pho_mB + (alpha * self.params['x1']['value']) - (beta * self.params['c']['value'])  - M0
+            mu = pho_mB + (alpha * self.params['x1']['value']) - (beta * self.params['c']['value']) - M0
             mu_err = np.sqrt(pho_mB_err ** 2 + (np.abs(alpha) * self.params['x1']['err']) ** 2 + (np.abs(beta) * self.params['c']['err']) ** 2)
 
             self.params.update({'mu': {'value': mu, 'err': mu_err}})
@@ -1085,7 +1086,7 @@ def sample_cutter(path: str, algo: str ='snpy'):
     elif algo == 'salt':
         print('[+++] Cutting sample for SALT data...')
         # cuts = {'z': 0.015, 'c': (-0.3, 1.0), 'c_err': 0.1, 'x1_err': 1.0, 't0_err': 1, 'mu_err': 0.2}
-        cuts = {'z': 0.015, 'c': (-0.3, 0.6), 'c_err': 0.1, 'x1_err': 0.5, 't0_err': 1, 'mu_err': 0.2}
+        cuts = {'z': 0.015, 'c': (-0.3, 0.6), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 0.5, 't0_err': 1, 'mu_err': 0.2}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
@@ -1093,6 +1094,8 @@ def sample_cutter(path: str, algo: str ='snpy'):
         data = data[(data[:, hdr.index('z_cmb')].astype(float) > cuts['z']) &
                     (data[:, hdr.index('c')].astype(float) > cuts['c'][0]) &
                     (data[:, hdr.index('c')].astype(float) < cuts['c'][1]) &
+                    (data[:, hdr.index('x1')].astype(float) > cuts['x1'][0]) &
+                    (data[:, hdr.index('x1')].astype(float) < cuts['x1'][1]) &
                     (data[:, hdr.index('c_err')].astype(float) < cuts['c_err']) &
                     (data[:, hdr.index('x1_err')].astype(float) < cuts['x1_err']) &
                     (data[:, hdr.index('t0_err')].astype(float) < cuts['t0_err']) &
@@ -1118,16 +1121,18 @@ def sample_cutter(path: str, algo: str ='snpy'):
     print('Hubble Residual Scatter:', resid_scatter)
 
     return
-def merge_snpy_salt_params(snpy_path: str, salt_path: str, save_loc: str):
+def merge_params(snpy_path: str, salt_path: str, save_loc: str, algo_bias: str = 'snpy'):
     """
     Combines SNooPy and SALT params into a single file.
     :param snpy_path: str; location of snpy file
     :param salt_path: str; location of salt file
     :param save_loc: str; location of merged file
+    :param algo_bias; str; algorithm to prioritize
     """
+
+    # Load data
     snpy_data = np.genfromtxt(snpy_path, delimiter=', ', skip_header=1, dtype=str)
     salt_data = np.genfromtxt(salt_path, delimiter=', ', skip_header=1, dtype=str)
-
     with open(snpy_path, 'r') as f:
         hdr_snpy = f.readline().split(', ')
         hdr_snpy[-1] = hdr_snpy[-1][:-1]
@@ -1135,39 +1140,170 @@ def merge_snpy_salt_params(snpy_path: str, salt_path: str, save_loc: str):
         hdr_salt = f.readline().split(', ')
         hdr_salt[-1] = hdr_salt[-1][:-1]
 
-    source, n = ['snpy', 'salt'], 0
-    names = []
+    # Match data in arrays
+    snpy_data = np.hstack((snpy_data[:, 0:10], snpy_data[:, -2:]))
+    salt_data = np.hstack((salt_data[:, 0:8], salt_data[:, -4:]))
+
+    # Tag arrays for sorting
+    snpy_data = np.hstack((snpy_data, np.full((len(snpy_data[:, 0]), 1), 'SNPY')))  # Add SNooPy tag
+    salt_data = np.hstack((salt_data, np.full((len(salt_data[:, 0]), 1), 'SALT')))  # Add SALT3 tag
+
+    # Modify origins for plotting later
+    snpy_data[:, 7] = np.char.add(snpy_data[:, 7],
+                                  np.full(len(snpy_data[:, 7]), '_SNPY'))
+    salt_data[:, 7] = np.char.add(salt_data[:, 7],
+                                  np.full(len(salt_data[:, 7]), '_SALT'))
+
+    # Make merged arrays
+    combined_arr = np.vstack((snpy_data, salt_data))  # Stack arrays
+    new_merged_arr = np.empty((1, len(combined_arr[0, :])))  # Make empty array for validated data
+
+    # Sort through arrays
+    print(f'Prioritizing for {algo_bias.upper()}...')
+    for arr in combined_arr:
+        if arr[0] in new_merged_arr[:, 0]:
+            continue
+        elif (algo_bias.upper() == 'BEST' and
+                arr[0] in combined_arr[:, 0][combined_arr[:, -1] == 'SNPY'] and
+                arr[0] in combined_arr[:, 0][combined_arr[:, -1] == 'SALT']):
+            if (combined_arr[(combined_arr[:, -1] == 'SNPY') & (combined_arr[:, 0] == arr[0])][0, -4] <
+                combined_arr[(combined_arr[:, -1] == 'SALT') & (combined_arr[:, 0] == arr[0])][0, -4]):
+                new_merged_arr = np.vstack((new_merged_arr,
+                                            combined_arr[(combined_arr[:, -1] == 'SNPY') & (combined_arr[:, 0] == arr[0])]))
+            else:
+                new_merged_arr = np.vstack((new_merged_arr,
+                                            combined_arr[(combined_arr[:, -1] == 'SALT') & (combined_arr[:, 0] == arr[0])]))
+        elif len(combined_arr[(combined_arr[:, -1] == algo_bias.upper()) & (combined_arr[:, 0] == arr[0])]) != 0:
+            new_merged_arr = np.vstack((new_merged_arr,
+                                        combined_arr[(combined_arr[:, -1] == algo_bias.upper()) & (combined_arr[:, 0] == arr[0])]))
+        else:
+            new_merged_arr = np.vstack((new_merged_arr, arr))
+    new_merged_arr = new_merged_arr[1:, :] # Remove empty first array
+
+    # Write to file
     with open(save_loc, 'w') as f:
-        print('objname, z_cmb, origin, mu, mu_err, hostMass, hostMass_err', file=f)
-        for data in [snpy_data, salt_data]:
-            for i in range(len(data[:, 0])):
-                if data[i, 0] not in names:
-                    if source[n] == 'snpy':
-                        print(data[i, hdr_snpy.index('objname')] + ',',
-                              data[i, hdr_snpy.index('z_cmb')] + ',',
-                              data[i, hdr_snpy.index('origin')] + '_' + source[n].upper() + ',',
-                              data[i, hdr_snpy.index('mu')] + ',',
-                              data[i, hdr_snpy.index('mu_err')] + ',',
-                              data[i, hdr_snpy.index('hostMass')] + ',',
-                              data[i, hdr_snpy.index('hostMass_err')],
-                              file=f)
-                    elif source[n] == 'salt':
-                        print(data[i, hdr_salt.index('objname')] + ',',
-                              data[i, hdr_salt.index('z_cmb')] + ',',
-                              data[i, hdr_salt.index('origin')] + '_' + source[n].upper() + ',',
-                              data[i, hdr_salt.index('mu')] + ',',
-                              data[i, hdr_salt.index('mu_err')] + ',',
-                              data[i, hdr_salt.index('hostMass')] + ',',
-                              data[i, hdr_salt.index('hostMass_err')],
-                              file=f)
-                    names.append(data[i, 0])
-            n += 1
-    print('Final number of objects:', len(names),
-          '[snpy: '+str(len(snpy_data[:, 0]))+']',
-          '[salt: '+str(len(salt_data[:, 0]))+']')
+        print('objname, ra, dec, z, z_cmb, MJDs, MJDe, origin, mu, mu_err, hostMass, hostMass_err, algo', file=f)
+        for arr in new_merged_arr:
+            print(f'{arr[0]}, {arr[1]}, {arr[2]}, {arr[3]}, {arr[4]}, {arr[5]}, {arr[6]}, {arr[7]}, {arr[8]}, '
+                  f'{arr[9]}, {arr[10]}, {arr[11]}, {arr[12]}', file=f)
     print('Saved merged param file to... ', save_loc)
 
-    return
+    print(f'Merged SNooPy+SALT3 -- Total: {len(new_merged_arr[:, -1])} ['+
+          f"SNooPy: {len(new_merged_arr[:, -1][new_merged_arr[:, -1] == 'SNPY'])}, "+
+          f"SALT3: {len(new_merged_arr[:, -1][new_merged_arr[:, -1] == 'SALT'])}]")
+    return new_merged_arr
+def merge_params_plus(snpy_path: str, salt_path: str, save_loc: str = '', algo_bias: str = 'snpy'):
+    """
+    Combines SNooPy and SALT params into a single file.
+    :param snpy_path: str; location of snpy file
+    :param salt_path: str; location of salt file
+    :param save_loc: str; location of merged file
+    :param algo_bias; str; algorithm to prioritize
+    """
+    # Load data
+    snpy_data = np.genfromtxt(snpy_path, delimiter=', ', skip_header=1, dtype=str)
+    salt_data = np.genfromtxt(salt_path, delimiter=', ', skip_header=1, dtype=str)
+    with open(snpy_path, 'r') as f:
+        hdr_snpy = f.readline().split(', ')
+        hdr_snpy[-1] = hdr_snpy[-1][:-1]
+    with open(salt_path, 'r') as f:
+        hdr_salt = f.readline().split(', ')
+        hdr_salt[-1] = hdr_salt[-1][:-1]
+
+    # Order the paramaters
+    new_snpy_data = np.array([
+        snpy_data[:, hdr_snpy.index('objname')],
+        snpy_data[:, hdr_snpy.index('ra')],
+        snpy_data[:, hdr_snpy.index('dec')],
+        snpy_data[:, hdr_snpy.index('z')],
+        snpy_data[:, hdr_snpy.index('z_cmb')],
+        snpy_data[:, hdr_snpy.index('MJDs')],
+        snpy_data[:, hdr_snpy.index('MJDe')],
+        snpy_data[:, hdr_snpy.index('origin')],
+        snpy_data[:, hdr_snpy.index('mu')],
+        snpy_data[:, hdr_snpy.index('mu_err')],
+        snpy_data[:, hdr_snpy.index('hostMass')],
+        snpy_data[:, hdr_snpy.index('hostMass_err')],
+        snpy_data[:, hdr_snpy.index('Tmax')],
+        snpy_data[:, hdr_snpy.index('Tmax_err')],
+        snpy_data[:, hdr_snpy.index('st')],
+        snpy_data[:, hdr_snpy.index('st_err')],
+        snpy_data[:, hdr_snpy.index('EBVhost')],
+        snpy_data[:, hdr_snpy.index('EBVhost_err')]
+    ])
+    snpy_data = new_snpy_data.T
+    new_salt_data = np.array([
+        salt_data[:, hdr_salt.index('objname')],
+        salt_data[:, hdr_salt.index('ra')],
+        salt_data[:, hdr_salt.index('dec')],
+        salt_data[:, hdr_salt.index('z')],
+        salt_data[:, hdr_salt.index('z_cmb')],
+        salt_data[:, hdr_salt.index('MJDs')],
+        salt_data[:, hdr_salt.index('MJDe')],
+        salt_data[:, hdr_salt.index('origin')],
+        salt_data[:, hdr_salt.index('mu')],
+        salt_data[:, hdr_salt.index('mu_err')],
+        salt_data[:, hdr_salt.index('hostMass')],
+        salt_data[:, hdr_salt.index('hostMass_err')],
+        salt_data[:, hdr_salt.index('t0')],
+        salt_data[:, hdr_salt.index('t0_err')],
+        salt_data[:, hdr_salt.index('x1')],
+        salt_data[:, hdr_salt.index('x1_err')],
+        salt_data[:, hdr_salt.index('c')],
+        salt_data[:, hdr_salt.index('c_err')]
+    ])
+    salt_data = new_salt_data.T
+
+    # Tag arrays for sorting
+    snpy_data = np.hstack((snpy_data, np.full((len(snpy_data[:, 0]), 1), 'SNPY')))  # Add SNooPy tag
+    salt_data = np.hstack((salt_data, np.full((len(salt_data[:, 0]), 1), 'SALT')))  # Add SALT3 tag
+
+    # Modify origins for plotting later
+    snpy_data[:, 7] = np.char.add(snpy_data[:, 7],
+                                  np.full(len(snpy_data[:, 7]), '_SNPY'))
+    salt_data[:, 7] = np.char.add(salt_data[:, 7],
+                                  np.full(len(salt_data[:, 7]), '_SALT'))
+
+    # Make merged arrays
+    combined_arr = np.vstack((snpy_data, salt_data))  # Stack arrays
+    new_merged_arr = np.empty((1, len(combined_arr[0, :])))  # Make empty array for validated data
+
+    # Sort through arrays
+    print(f'Prioritizing for {algo_bias.upper()}...')
+    for arr in combined_arr:
+        if arr[0] in new_merged_arr[:, 0]:
+            continue
+        elif (algo_bias.upper() == 'BEST' and
+                arr[0] in combined_arr[:, 0][combined_arr[:, -1] == 'SNPY'] and
+                arr[0] in combined_arr[:, 0][combined_arr[:, -1] == 'SALT']):
+            if (combined_arr[(combined_arr[:, -1] == 'SNPY') & (combined_arr[:, 0] == arr[0])][0, -4] <
+                combined_arr[(combined_arr[:, -1] == 'SALT') & (combined_arr[:, 0] == arr[0])][0, -4]):
+                new_merged_arr = np.vstack((new_merged_arr,
+                                            combined_arr[(combined_arr[:, -1] == 'SNPY') & (combined_arr[:, 0] == arr[0])]))
+            else:
+                new_merged_arr = np.vstack((new_merged_arr,
+                                            combined_arr[(combined_arr[:, -1] == 'SALT') & (combined_arr[:, 0] == arr[0])]))
+        elif len(combined_arr[(combined_arr[:, -1] == algo_bias.upper()) & (combined_arr[:, 0] == arr[0])]) != 0:
+            new_merged_arr = np.vstack((new_merged_arr,
+                                        combined_arr[(combined_arr[:, -1] == algo_bias.upper()) & (combined_arr[:, 0] == arr[0])]))
+        else:
+            new_merged_arr = np.vstack((new_merged_arr, arr))
+    new_merged_arr = new_merged_arr[1:, :] # Remove empty first array
+
+    # Write to file
+    if len(save_loc) != 0:
+        with open(save_loc, 'w') as f:
+            print('objname, ra, dec, z, z_cmb, MJDs, MJDe, origin, mu, mu_err, hostMass, hostMass_err, algo', file=f)
+            for arr in new_merged_arr:
+                print(f'{arr[0]}, {arr[1]}, {arr[2]}, {arr[3]}, {arr[4]}, {arr[5]}, {arr[6]}, {arr[7]}, {arr[8]}, '
+                      f'{arr[9]}, {arr[10]}, {arr[11]}, {arr[-1]}', file=f)
+        print('Saved merged param file to... ', save_loc)
+
+    print(f'Merged SNooPy+SALT3 -- Total: {len(new_merged_arr[:, -1])} ['+
+          f"SNooPy: {len(new_merged_arr[:, -1][new_merged_arr[:, -1] == 'SNPY'])}, "+
+          f"SALT3: {len(new_merged_arr[:, -1][new_merged_arr[:, -1] == 'SALT'])}]")
+    return new_merged_arr
+    # return
 
 # Plotting Functions ------------------------------------------------------------------------------------------------ #
 def resid_v_z(path: str, title: str = '', save_loc: str = ''):
@@ -1336,7 +1472,7 @@ def resid_v_mass(path: str, title='', save_loc=None):
     plt.show()
     return
 def snpy_hist(hicat_params_file: str, norm_params_file: str, save_loc: str = '',
-              sigma: float = 3.0, st_width: float = 0.02, c_width: float = 0.02):
+              sigma: float = 3.0, st_width: float = 0.04, c_width: float = 0.04):
     """
     Histogram of the SNooPy paramaters of 91bg-like vs. normal SNe Ia
     :param hicat_params_file: str; location of 91bg-like paramaters
@@ -1440,6 +1576,40 @@ def salt_hist(hicat_params_file: str, norm_params_file: str, save_loc: str = '',
         print('[+++] Saved figure to...', save_loc)
         plt.savefig(save_loc, dpi=300)
     plt.show()
+    return
+def param_corner_plot(snpy_path: str, salt_path: str, save_loc: str = ''):
+    data = merge_params_plus(snpy_path, salt_path)
+
+    # Plot all common params
+    all_params = np.array([data[:, 8].astype(float), data[:, 10].astype(float), data[:, 12].astype(float)])
+    figure = corner.corner(all_params.T,
+                           labels=[r"$\mu$", r"$\log M/M_{\ast}$", r"$T_{Max}$"],
+                           quantiles=[0.16, 0.5, 0.84],
+                           show_titles=True,
+                           title_kwargs={"fontsize": 12})
+    if len(save_loc) != 0:
+        plt.savefig(save_loc+'allparam_cornerPlot.png')
+    plt.show()
+
+    # Plot algo-specific params
+    for algo in ['SNPY', 'SALT']:
+        all_params = np.array([data[data[:, -1] == algo][:, 8].astype(float),
+                               data[data[:, -1] == algo][:, 10].astype(float),
+                               data[data[:, -1] == algo][:, 12].astype(float),
+                               data[data[:, -1] == algo][:, 14].astype(float),
+                               data[data[:, -1] == algo][:, 16].astype(float)])
+        figure = corner.corner(all_params.T,
+                               labels=[r"$\mu$",
+                                       r"$\log M/M_{\ast}$",
+                                       r"$T_{Max}$",
+                                       r"Stretch",
+                                       r"Color"],
+                               quantiles=[0.16, 0.5, 0.84],
+                               show_titles=True,
+                               title_kwargs={"fontsize": 12})
+        if len(save_loc) != 0:
+            plt.savefig(save_loc+algo.lower()+'_cornerPlot.png')
+        plt.show()
     return
 def update_readme_plots():
     """
@@ -1546,6 +1716,73 @@ def dataset_analysis():
         if d_set == 'COMBINED':
             print('COMBINED Overlap:', n_overlap)
     return
+def SNooPy_SALT3_overlap(snpy_path: str, salt_path: str):
+    """
+    Compares SNooPy and SALT3 overlap
+    :param snpy_path:
+    :param salt_path:
+    """
+    snpy_data = np.genfromtxt(snpy_path, delimiter=', ', skip_header=1, dtype=str)
+    salt_data = np.genfromtxt(salt_path, delimiter=', ', skip_header=1, dtype=str)
+    with open(snpy_path, 'r') as f:
+        hdr_snpy = f.readline().split(', ')
+        hdr_snpy[-1] = hdr_snpy[-1][:-1]
+    with open(salt_path, 'r') as f:
+        hdr_salt = f.readline().split(', ')
+        hdr_salt[-1] = hdr_salt[-1][:-1]
+
+    overlap = []
+    for n in snpy_data[:, 0]:
+        if n in salt_data[:, 0]:
+            overlap.append(n)
+
+    for n_ind in range(len(overlap)):
+        print('--------------\n', overlap[n_ind], '\n--------------')
+        snpy_resid_mu  = (float(snpy_data[snpy_data[:, 0] == overlap[n_ind]][0, hdr_snpy.index('mu')]) -
+                           gen.current_cosmo().distmod(float(snpy_data[snpy_data[:, 0] == overlap[n_ind]][0, hdr_snpy.index('z_cmb')])).value)
+        snpy_resid_mu_err = float(snpy_data[snpy_data[:, 0] == overlap[n_ind]][0, hdr_snpy.index('mu_err')])
+        print(f"{round(snpy_resid_mu,3)} +/- {round(snpy_resid_mu_err,3)}")
+
+        salt_resid_mu = (float(salt_data[salt_data[:, 0] == overlap[n_ind]][0, hdr_salt.index('mu')]) -
+                         gen.current_cosmo().distmod(float(salt_data[salt_data[:, 0] == overlap[n_ind]][0, hdr_salt.index('z_cmb')])).value)
+        salt_resid_mu_err = float(salt_data[salt_data[:, 0] == overlap[n_ind]][0, hdr_salt.index('mu_err')])
+        print(f"{round(salt_resid_mu, 3)} +/- {round(salt_resid_mu_err, 3)}")
+
+        plt.errorbar(snpy_resid_mu, salt_resid_mu, xerr=snpy_resid_mu_err, yerr=salt_resid_mu_err, fmt='o')
+    plt.xlabel('SNooPy'); plt.ylabel('SAlT3')
+    plt.show()
+
+    return
+def alpha_beta_fitting():
+    # SNe = main(fit_type='combiend', algo='salt', dmag_max=1.00)
+    # save_params_to_file_cov('output/combiend__salt_params_cov.txt', SNe)
+    # sample_cutter('output/combiend__salt_params_cov.txt', 'salt')
+    opt_dict = optimize_alpha_beta('output/combiend__salt_params_cov_cut.txt')
+    print('91bg-like SNe Ia ========================')
+    print('\tAlpha: '+str(round(opt_dict['alpha'], 3)))
+    print('\tBeta:  '+str(round(opt_dict['beta'], 3)))
+
+    # SNe = norm_fit(algo = 'salt', save_loc = 'txts/norm_10-18-24/norm_10-18-24_params.txt', dflux_max = 1.00)
+    # save_params_to_file_cov('txts/norm_10-18-24/norm_10-18-24_params_cov.txt', SNe)
+    # sample_cutter('txts/norm_10-18-24/norm_10-18-24_params_cov.txt', 'salt')
+    opt_dict = optimize_alpha_beta('txts/norm_10-18-24/norm_10-18-24_params_cov_cut.txt')
+    print('Normal SNe Ia ===========================')
+    print('\tAlpha: '+str(round(opt_dict['alpha'], 3)))
+    print('\tBeta:  '+str(round(opt_dict['beta'], 3)))
+
+    print('Expected Normal SNe =====================')
+    print('\tAlpha: 0.153')
+    print('\tBeta:  2.980')
+    return
+def merged_options(plot: bool = False):
+    for choice in ['snpy', 'salt', 'best']:
+        merge_params('output/combiend__snpy_params_cut.txt',
+                     'output/combiend__salt_params_cut.txt',
+                     'merged_test.txt',
+                     algo_bias=choice)
+        if plot:
+            resid_v_mass('merged_test.txt')
+    return
 
 # Main Function Call ------------------------------------------------------------------------------------------------ #
 def main_help():
@@ -1601,34 +1838,8 @@ def main(fit_type: str, data_set: str = '', path: str = '', algo: str = '', save
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-    main(fit_type='combiend', algo='snpy', dmag_max=1.00)
-    main(fit_type='combiend', algo='salt', dmag_max=1.00)
-    merge_snpy_salt_params('output/combiend__snpy_params_cut.txt',
-                           'output/combiend__salt_params_cut.txt',
-                           'output/merged_params_cut.txt')
-    update_readme_plots()
-
-
-
-
-    # # SNe = main(fit_type='combiend', algo='salt', dmag_max=1.00)
-    # # save_params_to_file_cov('output/combiend__salt_params_cov.txt', SNe)
-    # # sample_cutter('output/combiend__salt_params_cov.txt', 'salt')
-    # opt_dict = optimize_alpha_beta('output/combiend__salt_params_cov_cut.txt')
-    # print('91bg-like SNe Ia ========================')
-    # print('\tAlpha: '+str(round(opt_dict['alpha'], 3)))
-    # print('\tBeta:  '+str(round(opt_dict['beta'], 3)))
-    #
-    # # SNe = norm_fit(algo = 'salt', save_loc = 'txts/norm_10-18-24/norm_10-18-24_params.txt', dflux_max = 1.00)
-    # # save_params_to_file_cov('txts/norm_10-18-24/norm_10-18-24_params_cov.txt', SNe)
-    # # sample_cutter('txts/norm_10-18-24/norm_10-18-24_params_cov.txt', 'salt')
-    # opt_dict = optimize_alpha_beta('txts/norm_10-18-24/norm_10-18-24_params_cov_cut.txt')
-    # print('Normal SNe Ia ===========================')
-    # print('\tAlpha: '+str(round(opt_dict['alpha'], 3)))
-    # print('\tBeta:  '+str(round(opt_dict['beta'], 3)))
-    #
-    # print('Expected Normal SNe =====================')
-    # print('\tAlpha: 0.153')
-    # print('\tBeta:  2.980')
+    param_corner_plot('output/combiend__snpy_params_cut.txt',
+                      'output/combiend__salt_params_cut.txt',
+                      save_loc='saved/readme_plots/')
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')

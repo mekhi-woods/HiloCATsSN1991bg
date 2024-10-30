@@ -49,6 +49,13 @@ This plot depicts the relationship between the redshift of the SN and the corres
 ### Parameter Histograms
 ![](saved/readme_plots/snpy_params_hicat_v_dr3.png "")
 ![](saved/readme_plots/salt_params_hicat_v_dr3.png "")
+![](saved/readme_plots/allparam_cornerPlot.png "")
+
+Corner Plot of SNooPy Parameters
+![](saved/readme_plots/snpy_cornerPlot.png "")
+
+Corner Plot of SALT3 Parameters
+![](saved/readme_plots/salt_cornerPlot.png "")
 
 --------------------------
 ## Publications
@@ -71,4 +78,3 @@ Supernovae and Other White Dwarf Explosions](https://ui.adsabs.harvard.edu/abs/2
 * Requests==2.32.3 
 * sncosmo==2.11.1
 * iminuit==2.29.1
-
