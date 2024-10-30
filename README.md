@@ -78,3 +78,4 @@ Supernovae and Other White Dwarf Explosions](https://ui.adsabs.harvard.edu/abs/2
 * Requests==2.32.3 
 * sncosmo==2.11.1
 * iminuit==2.29.1
+* corner~=2.2.2
