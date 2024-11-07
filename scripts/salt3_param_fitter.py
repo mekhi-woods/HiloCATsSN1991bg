@@ -72,7 +72,6 @@ def optimize_alpha_beta(path: str):
             for j in range(0, 4):
                 cv[k, i, j] = data[k, hdr.index('cov'+str(i)+str(j))].astype(float)
 
-
     # Put through optimization function
     r = opt.minimize(cost_mu, x0=[0.14, 3.0, 19.36, 0.0, 0.1], args=(z, x_0, x_1, c, e, cv, masses))
     results = r.x

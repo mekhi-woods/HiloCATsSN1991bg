@@ -1121,78 +1121,7 @@ def sample_cutter(path: str, algo: str ='snpy'):
     print('Hubble Residual Scatter:', resid_scatter)
 
     return
-def merge_params(snpy_path: str, salt_path: str, save_loc: str, algo_bias: str = 'snpy'):
-    """
-    Combines SNooPy and SALT params into a single file.
-    :param snpy_path: str; location of snpy file
-    :param salt_path: str; location of salt file
-    :param save_loc: str; location of merged file
-    :param algo_bias; str; algorithm to prioritize
-    """
-
-    # Load data
-    snpy_data = np.genfromtxt(snpy_path, delimiter=', ', skip_header=1, dtype=str)
-    salt_data = np.genfromtxt(salt_path, delimiter=', ', skip_header=1, dtype=str)
-    with open(snpy_path, 'r') as f:
-        hdr_snpy = f.readline().split(', ')
-        hdr_snpy[-1] = hdr_snpy[-1][:-1]
-    with open(salt_path, 'r') as f:
-        hdr_salt = f.readline().split(', ')
-        hdr_salt[-1] = hdr_salt[-1][:-1]
-
-    # Match data in arrays
-    snpy_data = np.hstack((snpy_data[:, 0:10], snpy_data[:, -2:]))
-    salt_data = np.hstack((salt_data[:, 0:8], salt_data[:, -4:]))
-
-    # Tag arrays for sorting
-    snpy_data = np.hstack((snpy_data, np.full((len(snpy_data[:, 0]), 1), 'SNPY')))  # Add SNooPy tag
-    salt_data = np.hstack((salt_data, np.full((len(salt_data[:, 0]), 1), 'SALT')))  # Add SALT3 tag
-
-    # Modify origins for plotting later
-    snpy_data[:, 7] = np.char.add(snpy_data[:, 7],
-                                  np.full(len(snpy_data[:, 7]), '_SNPY'))
-    salt_data[:, 7] = np.char.add(salt_data[:, 7],
-                                  np.full(len(salt_data[:, 7]), '_SALT'))
-
-    # Make merged arrays
-    combined_arr = np.vstack((snpy_data, salt_data))  # Stack arrays
-    new_merged_arr = np.empty((1, len(combined_arr[0, :])))  # Make empty array for validated data
-
-    # Sort through arrays
-    print(f'Prioritizing for {algo_bias.upper()}...')
-    for arr in combined_arr:
-        if arr[0] in new_merged_arr[:, 0]:
-            continue
-        elif (algo_bias.upper() == 'BEST' and
-                arr[0] in combined_arr[:, 0][combined_arr[:, -1] == 'SNPY'] and
-                arr[0] in combined_arr[:, 0][combined_arr[:, -1] == 'SALT']):
-            if (combined_arr[(combined_arr[:, -1] == 'SNPY') & (combined_arr[:, 0] == arr[0])][0, -4] <
-                combined_arr[(combined_arr[:, -1] == 'SALT') & (combined_arr[:, 0] == arr[0])][0, -4]):
-                new_merged_arr = np.vstack((new_merged_arr,
-                                            combined_arr[(combined_arr[:, -1] == 'SNPY') & (combined_arr[:, 0] == arr[0])]))
-            else:
-                new_merged_arr = np.vstack((new_merged_arr,
-                                            combined_arr[(combined_arr[:, -1] == 'SALT') & (combined_arr[:, 0] == arr[0])]))
-        elif len(combined_arr[(combined_arr[:, -1] == algo_bias.upper()) & (combined_arr[:, 0] == arr[0])]) != 0:
-            new_merged_arr = np.vstack((new_merged_arr,
-                                        combined_arr[(combined_arr[:, -1] == algo_bias.upper()) & (combined_arr[:, 0] == arr[0])]))
-        else:
-            new_merged_arr = np.vstack((new_merged_arr, arr))
-    new_merged_arr = new_merged_arr[1:, :] # Remove empty first array
-
-    # Write to file
-    with open(save_loc, 'w') as f:
-        print('objname, ra, dec, z, z_cmb, MJDs, MJDe, origin, mu, mu_err, hostMass, hostMass_err, algo', file=f)
-        for arr in new_merged_arr:
-            print(f'{arr[0]}, {arr[1]}, {arr[2]}, {arr[3]}, {arr[4]}, {arr[5]}, {arr[6]}, {arr[7]}, {arr[8]}, '
-                  f'{arr[9]}, {arr[10]}, {arr[11]}, {arr[12]}', file=f)
-    print('Saved merged param file to... ', save_loc)
-
-    print(f'Merged SNooPy+SALT3 -- Total: {len(new_merged_arr[:, -1])} ['+
-          f"SNooPy: {len(new_merged_arr[:, -1][new_merged_arr[:, -1] == 'SNPY'])}, "+
-          f"SALT3: {len(new_merged_arr[:, -1][new_merged_arr[:, -1] == 'SALT'])}]")
-    return new_merged_arr
-def merge_params_plus(snpy_path: str, salt_path: str, save_loc: str = '', algo_bias: str = 'snpy'):
+def merge_params(snpy_path: str, salt_path: str, save_loc: str = '', algo_bias: str = 'best'):
     """
     Combines SNooPy and SALT params into a single file.
     :param snpy_path: str; location of snpy file
@@ -1368,7 +1297,7 @@ def resid_v_z(path: str, title: str = '', save_loc: str = ''):
         plt.savefig(save_loc)
     plt.show()
     return
-def resid_v_mass(path: str, title='', save_loc=None):
+def resid_v_mass(path: str, title='', cuts=[10, 'median'], save_loc=None):
     """
     Plots the Hubble Residual v. Mass
     :param path: str; location of file of parameter file
@@ -1379,7 +1308,7 @@ def resid_v_mass(path: str, title='', save_loc=None):
                    'ZTF_SNPY': '#D8973C', 'ATLAS_SNPY': '#BD632F', 'CSP_SNPY': '#72513B', 'ATLAS-ZTF_SNPY': '#273E47',
                    'ZTF_SALT': '#D8973C', 'ATLAS_SALT': '#BD632F', 'CSP_SALT': '#72513B', 'ATLAS-ZTF_SALT': '#273E47',
                    'Pan+': 'BD632F', 'Histogram': '#3B5058',
-                   '10dexfill': '#A4243B', 'mediandexfill': '#D8C99B'}
+                   '10': '#A4243B', 'median': '#D8C99B'}
     fig, axs = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
 
     # Pull data from saved text & header
@@ -1390,19 +1319,25 @@ def resid_v_mass(path: str, title='', save_loc=None):
 
     # Set Arrays
     z = data[:, hdr.index('z_cmb')].astype(float)
-    mass, mass_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
-    mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
-    resid_mu, resid_mu_err = sigma_clip(mu - gen.current_cosmo().distmod(z).value, sigma=3.0), np.copy(mu_err)
     origins = data[:, hdr.index('origin')]
+    mass = data[:, hdr.index('hostMass')].astype(float)
+    mass_err =  data[:, hdr.index('hostMass_err')].astype(float)
+    mu = data[:, hdr.index('mu')].astype(float)
+    mu_err = data[:, hdr.index('mu_err')].astype(float)
 
-    # David Adjustments for Outliers
-    mn,_,std = sigma_clipped_stats(mu - gen.current_cosmo().distmod(z).value,sigma=3.0)
+    # Calculate Hubble Residual
+    resid_mu = mu - gen.current_cosmo().distmod(z).value
+    resid_mu_err = np.copy(mu_err)
+
+    # Subtracting off Average Hubble Residual
+    resid_mu -= np.average(resid_mu)
+
+    # David Corrections
+    mn, _, std = sigma_clipped_stats(mu - gen.current_cosmo().distmod(z).value, sigma=3.0)
     iGood = abs(mu - gen.current_cosmo().distmod(z).value - mn) < 3.0*std
-    mu,mu_err,z,resid_mu,resid_mu_err,mass,mass_err,origins = (
-        mu[iGood],mu_err[iGood],z[iGood],resid_mu[iGood],resid_mu_err[iGood],mass[iGood],mass_err[iGood],origins[iGood])
-
-    # intrinsic dispersion added in quadrature
-    mu_err = np.sqrt(mu_err ** 2.0 + 0.1 ** 2.0)
+    mu, mu_err, z, resid_mu, resid_mu_err, mass, mass_err, origins = (
+        mu[iGood], mu_err[iGood], z[iGood], resid_mu[iGood], resid_mu_err[iGood], mass[iGood], mass_err[iGood], origins[iGood])
+    mu_err = np.sqrt(mu_err ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
 
     # Make main plot
     for origin in np.unique(origins):
@@ -1417,7 +1352,7 @@ def resid_v_mass(path: str, title='', save_loc=None):
                         color=color_wheel[origin], elinewidth=0.8, **format_dict)
 
     # Make histogram
-    axs[1].hist(resid_mu, bins=int((np.max(resid_mu) - np.min(resid_mu)) / 0.1),  # Bin Width = 0.1
+    axs[1].hist(resid_mu, bins=int((np.max(resid_mu) - np.min(resid_mu)) / 0.05),  # Bin Width = 0.05
                 orientation="horizontal", color=color_wheel['Histogram'])
 
     # Extra Info
@@ -1429,17 +1364,17 @@ def resid_v_mass(path: str, title='', save_loc=None):
                 horizontalalignment='left', verticalalignment='bottom')
 
     # Display Both Mass Steps
-    for cut in [10, 'median']:
-        num_cut, lin_color = cut, color_wheel['10dexfill']
+    for cut in cuts:
+        num_cut, lin_color = cut, color_wheel[str(cut)]
         if cut == 'median':
-            num_cut, lin_color = round(np.median(mass), 4), color_wheel['mediandexfill']
+            num_cut = round(np.median(mass), 4)
 
         # Get Mass Step
-        mass_step_dict, resid_dict = mass_step_calc(mu, mu_err, mass, z, cut=num_cut)
+        mass_step_dict, resid_dict = mass_step_calc(mu, mu_err, resid_mu, mass, z, cut=num_cut)
 
         # Plot Mass Step
         lin_details = {'linestyle': '--', 'linewidth': 1.0, 'color': lin_color}
-        fill_details = {'color': lin_color, 'alpha': 0.2}
+        fill_details = {'color': lin_color, 'alpha': 0.15}
         axs[0].vlines(x=num_cut, ymin=resid_dict['lower_resid']['value'], ymax=resid_dict['upper_resid']['value'],
                       **lin_details)
         axs[0].hlines(y=resid_dict['lower_resid']['value'], xmin=np.min(mass) - 0.3, xmax=num_cut,
@@ -1458,12 +1393,17 @@ def resid_v_mass(path: str, title='', save_loc=None):
                                   str(round(mass_step_dict['err'], 4)),
                             **fill_details)  # Right
 
-    # Formatting
+    # Labels
     fig.suptitle(title)
-    axs[0].set(xlabel="Host Stellar Mass (log $M_{*}$/$[M_{\odot}]$)",
+    axs[0].set(xlabel="Host Stellar Mass ($\log M_{*}[M_{\odot}]$)",
                ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
     axs[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
     axs[0].legend(loc='best')
+
+    # Adjust axies
+    clearance = 0.2
+    axs[0].set_ylim(np.min(resid_mu) - clearance, np.max(resid_mu) + clearance)
+    axs[1].set_ylim(np.min(resid_mu) - clearance, np.max(resid_mu) + clearance)
 
     # Saving Figure
     if save_loc is not None:
@@ -1578,7 +1518,7 @@ def salt_hist(hicat_params_file: str, norm_params_file: str, save_loc: str = '',
     plt.show()
     return
 def param_corner_plot(snpy_path: str, salt_path: str, save_loc: str = ''):
-    data = merge_params_plus(snpy_path, salt_path)
+    data = merge_params(snpy_path, salt_path)
 
     # Plot all common params
     all_params = np.array([data[:, 8].astype(float), data[:, 10].astype(float), data[:, 12].astype(float)])
@@ -1650,12 +1590,14 @@ def update_readme_plots():
     return
 
 # Analysis Functions ------------------------------------------------------------------------------------------------ #
-def mass_step_calc(mu: numpy.array(float), mu_err: numpy.array(float), mass: numpy.array(float), z: numpy.array(float),
+def mass_step_calc(mu: numpy.array(float), mu_err: numpy.array(float), resid: numpy.array(float),
+                   mass: numpy.array(float), z: numpy.array(float),
                    cut: float = 10.0) -> (dict, dict):
     """
     Calculates the mass step given arrays data
     :param mu: numpy.array(float);
     :param mu_err: numpy.array(float);
+    :param resid: numpy.array(float);
     :param mass: numpy.array(float);
     :param z: numpy.array(float);
     :param cut: float = 10.0;
@@ -1663,8 +1605,6 @@ def mass_step_calc(mu: numpy.array(float), mu_err: numpy.array(float), mass: num
     """
     if cut == 'median':
         cut = round(np.median(mass), 4)
-
-    resid = mu - gen.current_cosmo().distmod(z).value
 
     upper_resid = np.average(resid[mass > cut], weights=(1/(mu_err[mass > cut]**2)))
     lower_resid = np.average(resid[mass < cut], weights=(1/(mu_err[mass < cut]**2)))
@@ -1838,8 +1778,27 @@ def main(fit_type: str, data_set: str = '', path: str = '', algo: str = '', save
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-    param_corner_plot('output/combiend__snpy_params_cut.txt',
-                      'output/combiend__salt_params_cut.txt',
-                      save_loc='saved/readme_plots/')
+    # data = merge_params('output/combiend__snpy_params_cut.txt',
+    #                     'output/combiend__salt_params_cut.txt',
+    #                     save_loc='merged_params_cut.txt',
+    #                     algo_bias='salt')
+    # data = merge_params('output/combiend__snpy_params.txt',
+    #                     'output/combiend__salt_params.txt',
+    #                     save_loc='merged_params.txt',
+    #                     algo_bias='salt')
+
+    # update_readme_plots()
+
+    param_corner_plot('output/combiend__snpy_params.txt',
+                      'output/combiend__salt_params.txt')
+
+    # data = merge_params('output/combiend__snpy_params_cut.txt',
+    #                     'output/combiend__salt_params_cut.txt')
+    # merged_options(True)
+
+    # alpha_beta_fitting()
+
+    # main(fit_type='combiend', algo='salt', dmag_max=1.00)
+
 
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
