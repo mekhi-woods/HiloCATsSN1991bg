@@ -3,6 +3,9 @@
 import scipy.optimize as opt
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
+from scripts import general as gen
+from astropy.stats import sigma_clipped_stats
+
 
 
 def fit_sigma_mu2(params, z, x_0, errors, cov, pec=250, dint=0.1):
@@ -44,26 +47,27 @@ def optimize_alpha_beta(path: str):
     :return: results: dict; results of optimization function
     """
     # Load data
-    data = np.genfromtxt(path, delimiter=', ', dtype=str, skip_header=1)
-    with open(path, 'r') as f:
-        hdr = f.readline().split(', ')
-        hdr[-1] = hdr[-1][:-1]
+    hdr, data = gen.default_open(path)
 
     # Set arrays
     z = data[:, hdr.index('z')].astype(float)
     x_0 = data[:, hdr.index('x0')].astype(float)
+    x_0_err = data[:, hdr.index('x0_err')].astype(float)
     x_1 = data[:, hdr.index('x1')].astype(float)
+    x_1_err = data[:, hdr.index('x1_err')].astype(float)
     c = data[:, hdr.index('c')].astype(float)
+    c_err = data[:, hdr.index('c_err')].astype(float)
     masses = data[:, hdr.index('hostMass')].astype(float)
 
-    # Errors of x0, x1, c in a nested numpy array
-    e = np.transpose(np.array([np.full(len(x_0), 0.00),
-                     data[:, hdr.index('x0_err')].astype(float),
-                     data[:, hdr.index('x1_err')].astype(float),
-                     data[:, hdr.index('c_err')].astype(float)]))
+    # Remove outliers
+    resid = fit_mu([0.14, 3.1, 0, -19.36, 0.1], z, x_0, x_1, c, masses) - gen.current_cosmo().distmod(z).value
+    mn, md, std = sigma_clipped_stats(resid)
+    iGood = np.where(abs(resid - mn) < 3 * std)
+    z, x_0, x_1, c, masses, x_0_err, x_1_err, c_err = (
+        z[iGood], x_0[iGood], x_1[iGood], c[iGood], masses[iGood], x_0_err[iGood], x_1_err[iGood], c_err[iGood])
 
-    # # Errors of empty covariances
-    # cv = np.full((len(x_0), 4, 4), 0.00)
+    # Errors of x0, x1, c in a nested numpy array
+    e = np.transpose(np.array([np.full(len(x_0), 0.00), x_0_err, x_1_err, c_err]))
 
     # Load covariances
     cv = np.full((len(x_0), 4, 4), 0.00)
@@ -73,8 +77,19 @@ def optimize_alpha_beta(path: str):
                 cv[k, i, j] = data[k, hdr.index('cov'+str(i)+str(j))].astype(float)
 
     # Put through optimization function
-    r = opt.minimize(cost_mu, x0=[0.14, 3.0, 19.36, 0.0, 0.1], args=(z, x_0, x_1, c, e, cv, masses))
+    r = opt.minimize(cost_mu, x0=[0.14, 3.1, 19.36, 0.0, 0.1], args=(z, x_0, x_1, c, e, cv, masses))
     results = r.x
     errs = np.sqrt(np.diag(r.hess_inv))
 
     return {'alpha': results[0], 'beta': results[1]}
+
+
+# 91bg-like SNe Ia ========================
+# 	Alpha: -0.018
+# 	Beta:  3.347
+# Normal SNe Ia ===========================
+# 	Alpha: 0.146
+# 	Beta:  3.1
+# Expected Normal SNe =====================
+# 	Alpha: 0.153
+# 	Beta:  2.980

@@ -2,10 +2,9 @@ import os
 import time as systime
 import numpy as np
 
-# from astro_ghost.ghostHelperFunctions import getTransientHosts
 from astropy.cosmology import FlatLambdaCDM
 from astropy.time import Time as astrotime
-
+from astropy.stats import sigma_clip, sigma_clipped_stats
 
 
 def current_cosmo(H0=70, O_m=0.3):
@@ -126,15 +125,64 @@ def dict_handler(data_dict={}, choice='', path='default/dict.txt', delimiter=', 
     else:
         print("[!!!] Invalid packing option! ['arrays'/'pack'/'unpack']")
         return
-
-def open_default_file(path: str) -> (list[str], np.array(str)):
+def default_open(path: str) -> list:
     """
     Open file that has the typical format of this project's 'txt' files.
     :param path: str; location of file
     :return: (hdr, data)
     """
-    data = np.genfromtxt(path, delimiter=', ', dtype=str, skip_header=1)
-    with open(path, 'r') as f:
-        hdr = f.readline().split(', ')
-        hdr[-1] = hdr[-1][:-1]
-    return hdr, data
+    data = np.genfromtxt(path, dtype='str', delimiter=', ')
+    hdr, data = data[0, :], data[1:, :]
+    for i in range(len(hdr)):
+        if hdr[i] in ['objname', 'origin', 'algo']: continue
+        data[:, i] = data[:, i].astype(float)
+    return hdr.tolist(), data
+def rm_outliers(mu, z):
+    resid = mu - current_cosmo().distmod(z).value
+    mn, md, std = sigma_clipped_stats(resid)
+    return np.where(abs(resid - mn) < 3 * std)[0]
+def get_resid(mu, z):
+    return mu.astype(float) - current_cosmo().distmod(z.astype(float)).value
+
+
+
+# import numpy as np
+# import requests
+# from requests.auth import HTTPBasicAuth
+# import urllib.request
+# import os
+#
+# API_TOKEN = "7f4e1dee8f52cf0c8cdaf55bf29d04bef4810fb4"
+#
+# def main():
+#
+#         #pickle = np.load('tmp.npz', allow_pickle=True)
+#         #data = pickle['data']
+#
+#         data = requests.post(
+#             'https://star.pst.qub.ac.uk/sne/atlas4/api/objectlist/',
+#             headers={'Authorization': f'Token {API_TOKEN}'},
+#             data={'objectlistid':2}
+#         ).json()
+#
+#         np.savez('tmp.npz', data=data)
+#
+#         count = 0
+#         for d in data:
+#             if d['observation_status'] is not None and d['observation_status'].startswith('SN Ia'):
+#                 print(d['atlas_designation'],d['observation_status'].replace(' ',''),d['ra'],d['dec'])
+#                 count += 1
+#
+#                 ids = d['id']
+#                 base_url = 'https://star.pst.qub.ac.uk/sne/atlas4/lightcurveforced/1161048951013729300/'
+#                 new_url = base_url.replace('1161048951013729300/',str(ids))
+#                 print(new_url)
+#
+#                 idfile = '/content/ATLAS_ids/' + str(ids)+'.txt'
+#                 if os.path.exists(idfile):
+#                     continue
+#                 urllib.request.urlretrieve(str(new_url), str(idfile))
+#                 print(idfile)
+#
+#             if count > 3000:
+#                 break

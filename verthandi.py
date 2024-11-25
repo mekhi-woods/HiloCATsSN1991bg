@@ -9,19 +9,20 @@ import shutil
 import sncosmo
 import numpy as np
 import time as systime
+import datetime
 import matplotlib.pyplot as plt
 from astro_ghost.ghostHelperFunctions import getTransientHosts
 from astropy.coordinates import SkyCoord, Galactic
 from astropy.table import Table
 from astroquery.sdss import SDSS
-from astropy.stats import sigma_clip
-from astropy.stats import sigma_clipped_stats
+from astropy.stats import sigma_clip, sigma_clipped_stats
 
 from scripts import general as gen
-from scripts import get_vpec  # Loads heavy data so if not activly fitting I would comment this out
 from scripts.salt3_param_fitter import optimize_alpha_beta
+# from scripts import get_vpec  # Loads heavy data so if not activly fitting I would comment this out
 
 CONSTANTS = gen.get_constants()
+CURRENTDATE = datetime.datetime.now()
 
 class SN91bg:
     """
@@ -1069,7 +1070,8 @@ def sample_cutter(path: str, algo: str ='snpy'):
         hdr[-1] = hdr[-1][:-1]
     if algo == 'snpy':
         print('[+++] Cutting sample for SNooPy data...')
-        cuts = {'z': 0.015, 'EBVhost': (-0.2, 0.3), 'EBVhost_err': 0.1, 'st': (-999, 0.8), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.2}
+        # cuts = {'z': 0.015, 'EBVhost': (-0.2, 0.3), 'EBVhost_err': 0.1, 'st': (-999, 0.8), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.2}
+        cuts = {'z': 0.015, 'EBVhost': (0.15, 0.3), 'EBVhost_err': 0.1, 'st': (-999, 0.8), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.2}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
@@ -1085,8 +1087,8 @@ def sample_cutter(path: str, algo: str ='snpy'):
                     (data[:, hdr.index('mu_err')].astype(float) < cuts['mu_err'])]
     elif algo == 'salt':
         print('[+++] Cutting sample for SALT data...')
-        # cuts = {'z': 0.015, 'c': (-0.3, 1.0), 'c_err': 0.1, 'x1_err': 1.0, 't0_err': 1, 'mu_err': 0.2}
-        cuts = {'z': 0.015, 'c': (-0.3, 0.6), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 0.5, 't0_err': 1, 'mu_err': 0.2}
+        # cuts = {'z': 0.015, 'c': (-0.3, 0.6), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 0.5, 't0_err': 1, 'mu_err': 0.2}
+        cuts = {'z': 0.015, 'c': (0.2, 0.6), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 0.5, 't0_err': 1, 'mu_err': 0.2}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
@@ -1121,6 +1123,89 @@ def sample_cutter(path: str, algo: str ='snpy'):
     print('Hubble Residual Scatter:', resid_scatter)
 
     return
+def new_sample_cutter(path: str, algo: str = 'snpy', save_loc: str = ''):
+    """
+    Applys cuts to paramater file
+    :param path: str; location of paramter file
+    :param algo: str; algorithm to apply cuts
+    """
+    hdr, data = gen.default_open(path)
+    if len(data) == 0:
+        print('[+++] No params to cut!')
+        return
+    original_num = str(len(data[:, 0]))
+    if algo == 'snpy':
+        print('[+++] Cutting sample for SNooPy data...')
+        cuts = {'z': 0.015, 'EBVhost': (-0.2, 0.3), 'EBVhost_err': 0.1, 'st': (-999, 0.8), 'st_err': 0.1, 'Tmax_err': 1, 'mu_err': 0.2}
+        f_out = '      | '
+        for c in cuts:
+            f_out += c + ': ' + str(cuts[c]) + ' | '
+        print(f_out)
+        data = data[(data[:, hdr.index('z_cmb')].astype(float) > cuts['z']) &
+                    (data[:, hdr.index('EBVhost')].astype(float) > cuts['EBVhost'][0]) &
+                    (data[:, hdr.index('EBVhost')].astype(float) < cuts['EBVhost'][1]) &
+                    (data[:, hdr.index('EBVhost_err')].astype(float) < cuts['EBVhost_err']) &
+                    (data[:, hdr.index('st')].astype(float) > cuts['st'][0]) &
+                    (data[:, hdr.index('st')].astype(float) < cuts['st'][1]) &
+                    (data[:, hdr.index('st_err')].astype(float) < cuts['st_err']) &
+                    (data[:, hdr.index('Tmax_err')].astype(float) < cuts['Tmax_err']) &
+                    (data[:, hdr.index('mu_err')].astype(float) < cuts['mu_err'])]
+    elif algo == 'salt':
+        print('[+++] Cutting sample for SALT data...')
+        cuts = {'z': 0.015, 'c': (-0.3, 0.6), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 0.5, 't0_err': 1, 'mu_err': 0.2}
+        # cuts = {'z': 0.015, 'c': (0.2, 0.6), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 0.5, 't0_err': 1, 'mu_err': 0.2}
+        f_out = '      | '
+        for c in cuts:
+            f_out += c + ': ' + str(cuts[c]) + ' | '
+        print(f_out)
+        data = data[(data[:, hdr.index('z_cmb')].astype(float) > cuts['z']) &
+                    (data[:, hdr.index('c')].astype(float) > cuts['c'][0]) &
+                    (data[:, hdr.index('c')].astype(float) < cuts['c'][1]) &
+                    (data[:, hdr.index('x1')].astype(float) > cuts['x1'][0]) &
+                    (data[:, hdr.index('x1')].astype(float) < cuts['x1'][1]) &
+                    (data[:, hdr.index('c_err')].astype(float) < cuts['c_err']) &
+                    (data[:, hdr.index('x1_err')].astype(float) < cuts['x1_err']) &
+                    (data[:, hdr.index('t0_err')].astype(float) < cuts['t0_err']) &
+                    (data[:, hdr.index('mu_err')].astype(float) < cuts['mu_err'])]
+
+    # Remove mass outliers
+    mass = data[:, hdr.index('hostMass')].astype(float)
+    m_mn, m_md, m_std = sigma_clipped_stats(mass)
+    data = data[abs(mass - m_mn) < 3 * m_std]
+
+    resid = (data[:, hdr.index('mu')].astype(float) -
+             gen.current_cosmo().distmod(data[:, hdr.index('z_cmb')].astype(float)).value)
+    r_mn, r_md, r_std = sigma_clipped_stats(resid)
+    data = data[abs(resid - r_mn) < 3 * r_std]
+
+    new_resid = (data[:, hdr.index('mu')].astype(float) -
+             gen.current_cosmo().distmod(data[:, hdr.index('z_cmb')].astype(float)).value)
+    mn, md, std = sigma_clipped_stats(new_resid)
+    print('      Hubble Residual Scatter:', std)
+
+    # Save to file
+    if len(save_loc) == 0: save_loc = path[:-4]+'_cut.txt'
+    with open(save_loc, 'w') as f:
+        # Info
+        f.write(f'# Created by M.D. Woods -- {CURRENTDATE} -- HUBBLE RESID STD: {std}\n')
+        f.write(f'# {cuts}\n')
+
+        # Header
+        f_out = hdr[0]
+        for h in hdr[1:]:
+            f_out += ', ' + h
+        f.write(f_out + '\n')
+
+        # Data
+        for line in data[:]:
+            f_out = line[0]
+            for item in line[1:]:
+                f_out += ', ' + str(item)
+            f.write(f_out + '\n')
+    print(f'      Cut file saved to... {save_loc}')
+    print(f'      [ {data.shape[0]} / {original_num} ]')
+
+    return
 def merge_params(snpy_path: str, salt_path: str, save_loc: str = '', algo_bias: str = 'best'):
     """
     Combines SNooPy and SALT params into a single file.
@@ -1130,14 +1215,8 @@ def merge_params(snpy_path: str, salt_path: str, save_loc: str = '', algo_bias: 
     :param algo_bias; str; algorithm to prioritize
     """
     # Load data
-    snpy_data = np.genfromtxt(snpy_path, delimiter=', ', skip_header=1, dtype=str)
-    salt_data = np.genfromtxt(salt_path, delimiter=', ', skip_header=1, dtype=str)
-    with open(snpy_path, 'r') as f:
-        hdr_snpy = f.readline().split(', ')
-        hdr_snpy[-1] = hdr_snpy[-1][:-1]
-    with open(salt_path, 'r') as f:
-        hdr_salt = f.readline().split(', ')
-        hdr_salt[-1] = hdr_salt[-1][:-1]
+    hdr_snpy, snpy_data = gen.default_open(snpy_path)
+    hdr_salt, salt_data = gen.default_open(salt_path)
 
     # Order the paramaters
     new_snpy_data = np.array([
@@ -1235,6 +1314,69 @@ def merge_params(snpy_path: str, salt_path: str, save_loc: str = '', algo_bias: 
     # return
 
 # Plotting Functions ------------------------------------------------------------------------------------------------ #
+def mu_v_z(path: str, title: str = '', save_loc: str = ''):
+    """
+    Plots the Hubble Residual v. Redshift
+    :param path: str; location of file of parameter file
+    :param title: str = ''; optional title to put at top of file
+    :param save_loc: str = ''; location to save plot
+    """
+    color_wheel = {'ZTF': '#D8973C', 'ATLAS': '#BD632F', 'CSP': '#72513B', 'ATLAS-ZTF': '#273E47',
+                   'ZTF_SNPY': '#D8973C', 'ATLAS_SNPY': '#BD632F', 'CSP_SNPY': '#72513B', 'ATLAS-ZTF_SNPY': '#273E47',
+                   'ZTF_SALT': '#D8973C', 'ATLAS_SALT': '#BD632F', 'CSP_SALT': '#72513B', 'ATLAS-ZTF_SALT': '#273E47',
+                   'Pan+': 'BD632F', 'Histogram': '#3B5058',
+                   '10dexfill': '#A4243B', 'mediandexfill': '#D8C99B'}
+    fig, axs = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
+
+    # Pull data from saved text & header
+    hdr, data = gen.default_open(path)
+
+    # Set Arrays
+    z = data[:, hdr.index('z_cmb')].astype(float)
+    mass, mass_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
+    mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
+
+    # Make main plot
+    for origin in np.unique(data[:, hdr.index('origin')]):
+        format_dict = {'marker': 'o', 'fmt': 'o', 'label': origin, 'alpha': 1, 'ms': 6}
+        if 'SNPY' in origin:
+            format_dict['label'] = origin[:-5]
+        elif 'SALT' in origin:
+            format_dict['label'], format_dict['marker'] = None, '^'
+
+        indexes = np.where(data[:, hdr.index('origin')] == origin)[0]
+        axs[0].errorbar(z[indexes], mu[indexes], yerr=mu_err[indexes],
+                        color=color_wheel[origin], elinewidth=0.8, **format_dict)
+
+    # Fit Line -- D_L = (1+z)^2
+    z_fit = np.arange(0, np.max(z), np.max(z) / 50)
+    mu_fit = (1+z_fit)**2
+    axs[0].plot(z_fit, mu_fit)
+
+    # Make histogram
+    axs[1].hist(mu, bins=int((np.max(mu) - np.min(mu)) / 0.1),  # Bin Width = 0.1
+                orientation="horizontal", color=color_wheel['Histogram'])
+
+    # Extra Info
+    extra_info = '$\sigma$: '+str(round(np.std(mu), 4)) + ', $n$: ' + str(len(mu))
+    if 'merged' in path:
+        extra_info += r' | SALT3: $\triangle$, SNooPy: $\bigcirc$'
+    axs[0].text(np.min(z), np.max(mu),
+                extra_info,
+                horizontalalignment='left', verticalalignment='bottom')
+
+    # Formatting
+    fig.suptitle(title)
+    axs[0].set(xlabel='Host Galaxy CMB Redshift', ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
+    axs[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
+    axs[0].legend(loc='best')
+
+    # Saving Figure
+    if len(save_loc) != 0:
+        print('Saved figure to... ', save_loc)
+        plt.savefig(save_loc)
+    plt.show()
+    return
 def resid_v_z(path: str, title: str = '', save_loc: str = ''):
     """
     Plots the Hubble Residual v. Redshift
@@ -1250,10 +1392,7 @@ def resid_v_z(path: str, title: str = '', save_loc: str = ''):
     fig, axs = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
 
     # Pull data from saved text & header
-    data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
-    with open(path, 'r') as f:
-        hdr = f.readline().split(', ')
-        hdr[-1] = hdr[-1][:-1]
+    hdr, data = gen.default_open(path)
 
     # Set Arrays
     z = data[:, hdr.index('z_cmb')].astype(float)
@@ -1297,7 +1436,7 @@ def resid_v_z(path: str, title: str = '', save_loc: str = ''):
         plt.savefig(save_loc)
     plt.show()
     return
-def resid_v_mass(path: str, title='', cuts=[10, 'median'], save_loc=None):
+def resid_v_mass(path: str, title: str = '', cuts: list = [10, 'median'], save_loc: str = '', label: bool = False):
     """
     Plots the Hubble Residual v. Mass
     :param path: str; location of file of parameter file
@@ -1312,12 +1451,10 @@ def resid_v_mass(path: str, title='', cuts=[10, 'median'], save_loc=None):
     fig, axs = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
 
     # Pull data from saved text & header
-    data = np.genfromtxt(path, delimiter=', ', skip_header=1, dtype=str)
-    with open(path, 'r') as f:
-        hdr = f.readline().split(', ')
-        hdr[-1] = hdr[-1][:-1]
+    hdr, data = gen.default_open(path)
 
     # Set Arrays
+    names = data[:, hdr.index('objname')]
     z = data[:, hdr.index('z_cmb')].astype(float)
     origins = data[:, hdr.index('origin')]
     mass = data[:, hdr.index('hostMass')].astype(float)
@@ -1330,26 +1467,33 @@ def resid_v_mass(path: str, title='', cuts=[10, 'median'], save_loc=None):
     resid_mu_err = np.copy(mu_err)
 
     # Subtracting off Average Hubble Residual
-    resid_mu -= np.average(resid_mu)
+    resid_mu -= np.average(resid_mu[~np.isnan(resid_mu)])
 
-    # David Corrections
-    mn, _, std = sigma_clipped_stats(mu - gen.current_cosmo().distmod(z).value, sigma=3.0)
-    iGood = abs(mu - gen.current_cosmo().distmod(z).value - mn) < 3.0*std
-    mu, mu_err, z, resid_mu, resid_mu_err, mass, mass_err, origins = (
-        mu[iGood], mu_err[iGood], z[iGood], resid_mu[iGood], resid_mu_err[iGood], mass[iGood], mass_err[iGood], origins[iGood])
+    # Corrections
+    r_mn, r_md, r_std = sigma_clipped_stats(resid_mu)
+    m_mn, m_md, m_std = sigma_clipped_stats(mass)
+    iGood = (abs(resid_mu - r_mn) < 3 * r_std) & (abs(mass - m_mn) < 3 * m_std)
+    mu, mu_err, z, resid_mu, resid_mu_err, mass, mass_err, origins, names = (
+        mu[iGood], mu_err[iGood], z[iGood], resid_mu[iGood], resid_mu_err[iGood], mass[iGood], mass_err[iGood], origins[iGood], names[iGood])
     mu_err = np.sqrt(mu_err ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
 
     # Make main plot
     for origin in np.unique(origins):
         format_dict = {'marker': 'o', 'fmt': 'o', 'label': origin, 'alpha': 1, 'ms': 6}
-        if 'SNPY' in origin:
-            format_dict['label'] = origin[:-5]
-        elif 'SALT' in origin:
-            format_dict['label'], format_dict['marker'] = None, '^'
+        if 'algo' in hdr:
+            if 'SNPY' in origin:
+                format_dict['label'], format_dict['marker'] = origin[:-5], 'o'
+            elif 'SALT' in origin:
+                format_dict['label'], format_dict['marker'] = origin[:-5], '^'
 
         indexes = np.where(origins == origin)[0]
         axs[0].errorbar(mass[indexes], resid_mu[indexes], xerr=mass_err[indexes], yerr=resid_mu_err[indexes],
                         color=color_wheel[origin], elinewidth=0.8, **format_dict)
+
+    # Labels
+    if label:
+        for i in range(len(resid_mu)):
+            axs[0].text(mass[i], resid_mu[i], names[i], ha='left', va='top', size='xx-small')
 
     # Make histogram
     axs[1].hist(resid_mu, bins=int((np.max(resid_mu) - np.min(resid_mu)) / 0.05),  # Bin Width = 0.05
@@ -1371,6 +1515,8 @@ def resid_v_mass(path: str, title='', cuts=[10, 'median'], save_loc=None):
 
         # Get Mass Step
         mass_step_dict, resid_dict = mass_step_calc(mu, mu_err, resid_mu, mass, z, cut=num_cut)
+        if mass_step_dict['value'] == 0.00 and mass_step_dict['err'] == 0.00:
+            continue
 
         # Plot Mass Step
         lin_details = {'linestyle': '--', 'linewidth': 1.0, 'color': lin_color}
@@ -1406,9 +1552,91 @@ def resid_v_mass(path: str, title='', cuts=[10, 'median'], save_loc=None):
     axs[1].set_ylim(np.min(resid_mu) - clearance, np.max(resid_mu) + clearance)
 
     # Saving Figure
-    if save_loc is not None:
+    if len(save_loc) != 0:
         print('Saved figure to... ', save_loc)
         plt.savefig(save_loc)
+    plt.show()
+    return
+def param_hist(hicat_params_file: str, norm_params_file: str, algo: str, type: str, save_loc: str = '',
+    sigma: float = 3.0, st_width: float = 0.04, c_width: float = 0.04):
+    """
+    Histogram of the SNooPy paramaters of 91bg-like vs. normal SNe Ia
+    :param hicat_params_file: str; location of 91bg-like paramaters
+    :param norm_params_file: str; location of normal paramaters
+    :param algo: str; algo of histogram to generate
+    :param save_loc: str = '';
+    :param type: str = 'median' or 'average';
+    :param sigma: float = 3.0;
+    :param st_width: float = 0.02;
+    :param c_width: float = 0.02;
+    """
+    # Open data
+    hicat_hdr, hicat_data = gen.default_open(hicat_params_file)
+    norm_hdr, norm_data = gen.default_open(norm_params_file)
+
+    # Select Algo
+    if algo == 'snpy':
+        param_dict = {'stretch': 'st', 'color': 'EBVhost'}
+    elif algo == 'salt':
+        param_dict = {'stretch': 'x1', 'color': 'c'}
+    else:
+        raise ValueError(f"[!!!] '{algo}' is invalid; choose between 'snpy' or 'salt'")
+
+    fig, ax = plt.subplots(1, 2, figsize=(16, 4), constrained_layout=True)
+
+    # Stretch plot
+    st_norm = sigma_clip(norm_data[:, norm_hdr.index(param_dict['stretch'])].astype(float), sigma=sigma)
+    st_hicat = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['stretch'])].astype(float), sigma=sigma)
+    st_norm_err = sigma_clip(norm_data[:, norm_hdr.index(param_dict['stretch']+'_err')].astype(float), sigma=sigma)
+    st_hicat_err = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['stretch']+'_err')].astype(float), sigma=sigma)
+    ax[0].hist(st_norm, int((np.max(st_norm) - np.min(st_norm)) / st_width), label='Normal', color='#5AD2F4')
+    ax[0].hist(st_hicat, int((np.max(st_hicat) - np.min(st_hicat)) / st_width), label='91bg', color='#62BEC1', alpha=0.75)
+    ax[0].set_title(f"Stretch [{param_dict['stretch']}]")
+
+    # Color plot
+    c_norm = sigma_clip(norm_data[:, norm_hdr.index(param_dict['color'])].astype(float), sigma=sigma)
+    c_hicat = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['color'])].astype(float), sigma=sigma)
+    c_norm_err = sigma_clip(norm_data[:, norm_hdr.index(param_dict['color']+'_err')].astype(float), sigma=sigma)
+    c_hicat_err = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['color']+'_err')].astype(float), sigma=sigma)
+    ax[1].hist(c_norm, int((np.max(c_norm) - np.min(c_norm)) / c_width), label='Normal', color='#5AD2F4')
+    ax[1].hist(c_hicat, int((np.max(c_hicat) - np.min(c_hicat)) / c_width), label='91bg', color='#62BEC1', alpha=0.75)
+    ax[1].set_title(f"Color [{param_dict['color']}]")
+
+    # Plot labels
+    if type == 'median':
+        ax[0].axvline(x=np.median(st_norm),
+                      label=r'$\tilde{x}_{Normal}$ = ' + str(round(np.median(st_norm), 2))+' $\pm$ '+str(round(np.median(st_norm_err), 3)),
+                      linewidth=2.5, color='#4bb0cc', linestyle='--')
+        ax[0].axvline(x=np.median(st_hicat),
+                      label=r'$\tilde{x}_{91bg}$ = ' + str(round(np.median(st_hicat), 2))+' $\pm$ '+str(round(np.median(st_hicat_err), 3)),
+                      linewidth=2.5, color='#52a1a3', linestyle=':')
+        ax[1].axvline(x=np.median(c_norm),
+                      label=r'$\tilde{x}_{Normal}$ = ' + str(round(np.median(c_norm), 2))+' $\pm$ '+str(round(np.median(c_norm_err), 3)),
+                      linewidth=2.5, color='#4bb0cc', linestyle='--')
+        ax[1].axvline(x=np.median(c_hicat),
+                      label=r'$\tilde{x}_{91bg}$ = '+str(round(np.median(c_hicat), 2))+' $\pm$ '+str(round(np.median(c_hicat_err), 3)),
+                      linewidth=2.5, color='#52a1a3', linestyle=':')
+    elif type == 'average':
+        ax[0].axvline(x=np.average(st_norm),
+                      label=r'$\tilde{x}_{Normal}$ = ' + str(round(np.average(st_norm), 2))+' $\pm$ '+str(round(np.average(st_norm_err), 3)),
+                      linewidth=2.5, color='#4bb0cc', linestyle='--')
+        ax[0].axvline(x=np.average(st_hicat),
+                      label=r'$\tilde{x}_{91bg}$ = ' + str(round(np.average(st_hicat), 2))+' $\pm$ '+str(round(np.average(st_hicat_err), 3)),
+                      linewidth=2.5, color='#52a1a3', linestyle=':')
+        ax[1].axvline(x=np.average(c_norm),
+                      label=r'$\tilde{x}_{Normal}$ = ' + str(round(np.average(c_norm), 2))+' $\pm$ '+str(round(np.average(c_norm_err), 3)),
+                      linewidth=2.5, color='#4bb0cc', linestyle='--')
+        ax[1].axvline(x=np.average(c_hicat),
+                      label=r'$\tilde{x}_{91bg}$ = '+str(round(np.average(c_hicat), 2))+' $\pm$ '+str(round(np.average(c_hicat_err), 3)),
+                      linewidth=2.5, color='#52a1a3', linestyle=':')
+    else:
+        raise ValueError(f"[!!!] '{type}' is invalid; choose between 'median' or 'average'")
+    ax[0].legend()
+    ax[1].legend()
+
+
+    if len(save_loc) > 0:
+        plt.savefig(save_loc, dpi=300)
     plt.show()
     return
 def snpy_hist(hicat_params_file: str, norm_params_file: str, save_loc: str = '',
@@ -1423,14 +1651,8 @@ def snpy_hist(hicat_params_file: str, norm_params_file: str, save_loc: str = '',
     :param c_width: float = 0.02;
     """
     # Open data
-    hicat_data = np.genfromtxt(hicat_params_file, delimiter=', ', skip_header=1, dtype=str)
-    with open(hicat_params_file, 'r') as f:
-        hicat_hdr = f.readline().split(', ')
-        hicat_hdr[-1] = hicat_hdr[-1][:-1]
-    dr3_data = np.genfromtxt(norm_params_file, delimiter=', ', skip_header=1, dtype=str)
-    with open(norm_params_file, 'r') as f:
-        dr3_hdr = f.readline().split(', ')
-        dr3_hdr[-1] = dr3_hdr[-1][:-1]
+    hicat_hdr, hicat_data = gen.default_open(hicat_params_file)
+    dr3_hdr, dr3_data = gen.default_open(norm_params_file)
 
     fig, ax = plt.subplots(1, 2, figsize=(14, 4), constrained_layout=True)
     # ST plot
@@ -1476,14 +1698,8 @@ def salt_hist(hicat_params_file: str, norm_params_file: str, save_loc: str = '',
     :param c_width: float = 0.02;
     """
     # Open data
-    hicat_data = np.genfromtxt(hicat_params_file, delimiter=', ', skip_header=1, dtype=str)
-    with open(hicat_params_file, 'r') as f:
-        hicat_hdr = f.readline().split(', ')
-        hicat_hdr[-1] = hicat_hdr[-1][:-1]
-    dr3_data = np.genfromtxt(norm_params_file, delimiter=', ', skip_header=1, dtype=str)
-    with open(norm_params_file, 'r') as f:
-        dr3_hdr = f.readline().split(', ')
-        dr3_hdr[-1] = dr3_hdr[-1][:-1]
+    hicat_hdr, hicat_data = gen.default_open(hicat_params_file)
+    dr3_hdr, dr3_data = gen.default_open(norm_params_file)
 
     fig, ax = plt.subplots(1, 2, figsize=(14, 4), constrained_layout=True)
 
@@ -1606,14 +1822,19 @@ def mass_step_calc(mu: numpy.array(float), mu_err: numpy.array(float), resid: nu
     if cut == 'median':
         cut = round(np.median(mass), 4)
 
-    upper_resid = np.average(resid[mass > cut], weights=(1/(mu_err[mass > cut]**2)))
-    lower_resid = np.average(resid[mass < cut], weights=(1/(mu_err[mass < cut]**2)))
+    try:
+        upper_resid = np.average(resid[mass > cut], weights=(1/(mu_err[mass > cut]**2)))
+        lower_resid = np.average(resid[mass < cut], weights=(1/(mu_err[mass < cut]**2)))
 
-    upper_resid_err = np.std(resid[mass > cut]) / np.sqrt(len(mu_err[mass > cut]))
-    lower_resid_err = np.std(resid[mass < cut]) / np.sqrt(len(mu_err[mass < cut]))
+        upper_resid_err = np.std(resid[mass > cut]) / np.sqrt(len(mu_err[mass > cut]))
+        lower_resid_err = np.std(resid[mass < cut]) / np.sqrt(len(mu_err[mass < cut]))
 
-    mass_step = np.abs(upper_resid - lower_resid)
-    mass_step_err = np.sqrt((lower_resid_err**2) + (upper_resid_err**2))
+        mass_step = np.abs(upper_resid - lower_resid)
+        mass_step_err = np.sqrt((lower_resid_err**2) + (upper_resid_err**2))
+    except ZeroDivisionError:
+        return ({'value': 0.00, 'err': 0.00},
+                {'lower_resid': {'value': 0.00, 'err': 0.00},
+                 'upper_resid': {'value': 0.00, 'err': 0.00}})
 
 
     return ({'value': mass_step, 'err': mass_step_err},
@@ -1714,14 +1935,91 @@ def alpha_beta_fitting():
     print('\tAlpha: 0.153')
     print('\tBeta:  2.980')
     return
-def merged_options(plot: bool = False):
-    for choice in ['snpy', 'salt', 'best']:
-        merge_params('output/combiend__snpy_params_cut.txt',
-                     'output/combiend__salt_params_cut.txt',
-                     'merged_test.txt',
-                     algo_bias=choice)
+def merged_options(path_snpy: str, path_salt: str, save_loc: str = '', plot: bool = False):
+    all_std, all_choices = [], ['snpy', 'salt', 'best']
+    for choice in all_choices:
+        data = merge_params(path_snpy,
+                            path_salt,
+                            algo_bias=choice)
+        mn, md, std = sigma_clipped_stats(gen.get_resid(data[:, 8], data[:, 4]))
+        all_std.append(std)
+
         if plot:
             resid_v_mass('merged_test.txt')
+
+    print(f'[+++] Lowest Residual STD Option: {all_choices[all_std.index(min(all_std))]}')
+    merge_params(path_snpy,
+                 path_salt,
+                 save_loc,
+                 algo_bias=all_choices[all_std.index(min(all_std))])
+
+    return
+def refresh_all(new_data: bool = False):
+    """
+    Updates the plots on the README.md file
+    """
+    pref = 'best'
+
+    if new_data:
+        main(fit_type='combiend', algo='snpy', dmag_max=1.00)
+        main(fit_type='combiend', algo='salt', dmag_max=1.00)
+        norm_fit('snpy', 'txts/norm_11-13-24/normSNe_snpy_11-13-24.txt', dmag_max=1.00)
+        norm_fit('salt', 'txts/norm_11-13-24/normSNe_salt_11-13-24.txt', dmag_max=1.00)
+
+    # Make sure most recent cuts are applied
+    new_sample_cutter('output/combiend__snpy_params.txt', 'snpy')
+    new_sample_cutter('output/combiend__salt_params.txt', 'salt')
+    merged_options('output/combiend__snpy_params_cut.txt',
+                   'output/combiend__salt_params_cut.txt',
+                   'output/merged_params_cut.txt')
+    # merge_params('output/combiend__snpy_params.txt',
+    #              'output/combiend__salt_params.txt',
+    #              'output/merged_params_cut.txt',
+    #              pref)
+    new_sample_cutter('txts/norm_11-13-24/normSNe_snpy_11-13-24.txt', 'snpy')
+    new_sample_cutter('txts/norm_11-13-24/normSNe_salt_11-13-24.txt', 'salt')
+    merged_options('txts/norm_11-13-24/normSNe_snpy_11-13-24_cut.txt',
+                   'txts/norm_11-13-24/normSNe_salt_11-13-24_cut.txt',
+                   'txts/norm_11-13-24/normSNe_merged_11-13-24_cut.txt')
+    # merge_params('txts/norm_11-13-24/normSNe_snpy_11-13-24.txt',
+    #              'txts/norm_11-13-24/normSNe_salt_11-13-24.txt',
+    #              'txts/norm_11-13-24/normSNe_merged_11-13-24.txt',
+    #              pref)
+
+    # Update Mass Plots
+    resid_v_mass(path='output/combiend__snpy_params_cut.txt',
+                 save_loc = 'saved/readme_plots/csp-atlas-ztf_snpy_resid_v_mass.png')
+                 # title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]',
+    resid_v_mass(path='output/combiend__salt_params_cut.txt',
+                 save_loc='saved/readme_plots/csp-atlas-ztf_salt_resid_v_mass.png')
+                 # title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3]',)
+    resid_v_mass(path='output/merged_params_cut.txt',
+                 save_loc='saved/readme_plots/merged_resid_v_mass.png')
+                 # title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]')
+    resid_v_mass(path='txts/norm_11-13-24/normSNe_merged_11-13-24_cut.txt',
+                 save_loc='saved/readme_plots/normIa_resid_v_mass.png')
+                 # title='Hubble Residual v. Host Stellar Mass of Normal SNe Ia from CSP [SNooPy]',)
+
+    # Update Redshift Plots
+    resid_v_z(path='output/combiend__snpy_params_cut.txt',
+              save_loc='saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png')
+              # title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]')
+    resid_v_z(path='output/combiend__salt_params_cut.txt',
+              save_loc='saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png')
+              # title = 'Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3]',
+    resid_v_z(path='output/merged_params_cut.txt',
+              save_loc='saved/readme_plots/merged_resid_v_z.png')
+              # title = 'Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]',
+
+    # Update Histograms
+    param_hist('output/combiend__snpy_params_cut.txt',
+               'txts/norm_11-13-24/normSNe_snpy_11-13-24.txt',
+               algo='snpy', type='median', st_width=0.04, c_width=0.04,
+               save_loc='saved/readme_plots/snpy_params_hicat_v_dr3.png')
+    param_hist('output/combiend__salt_params_cut.txt',
+               'txts/norm_11-13-24/normSNe_salt_11-13-24.txt',
+               algo='salt', type='median', st_width=0.3, c_width=0.08,
+               save_loc='saved/readme_plots/salt_params_hicat_v_dr3.png')
     return
 
 # Main Function Call ------------------------------------------------------------------------------------------------ #
@@ -1778,27 +2076,5 @@ def main(fit_type: str, data_set: str = '', path: str = '', algo: str = '', save
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-    # data = merge_params('output/combiend__snpy_params_cut.txt',
-    #                     'output/combiend__salt_params_cut.txt',
-    #                     save_loc='merged_params_cut.txt',
-    #                     algo_bias='salt')
-    # data = merge_params('output/combiend__snpy_params.txt',
-    #                     'output/combiend__salt_params.txt',
-    #                     save_loc='merged_params.txt',
-    #                     algo_bias='salt')
-
-    # update_readme_plots()
-
-    param_corner_plot('output/combiend__snpy_params.txt',
-                      'output/combiend__salt_params.txt')
-
-    # data = merge_params('output/combiend__snpy_params_cut.txt',
-    #                     'output/combiend__salt_params_cut.txt')
-    # merged_options(True)
-
-    # alpha_beta_fitting()
-
-    # main(fit_type='combiend', algo='salt', dmag_max=1.00)
-
-
+    refresh_all()
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
