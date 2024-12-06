@@ -48,8 +48,9 @@ This plot depicts the relationship between the redshift of the SN and the corres
 --------------------------
 ### Parameter Histograms
 ![](saved/readme_plots/snpy_params_hicat_v_dr3.png "")
-![](saved/readme_plots/salt_params_hicat_v_dr3.png "")
-![](saved/readme_plots/allparam_cornerPlot.png "")
+![](saved/readme_plots/salt_params_hicat_v_panthplus.png "")
+
+[//]: # (![]&#40;saved/readme_plots/allparam_cornerPlot.png ""&#41;)
 
 Corner Plot of SNooPy Parameters
 ![](saved/readme_plots/snpy_cornerPlot.png "")

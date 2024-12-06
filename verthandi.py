@@ -20,7 +20,7 @@ from astropy.stats import sigma_clip, sigma_clipped_stats
 
 from scripts import general as gen
 from scripts.salt3_param_fitter import optimize_alpha_beta
-from scripts import get_vpec  # Loads heavy data so if not activly fitting I would comment this out
+# from scripts import get_vpec  # Loads heavy data so if not activly fitting I would comment this out
 
 CONSTANTS = gen.get_constants()
 CURRENTDATE = datetime.datetime.now()
@@ -1102,8 +1102,8 @@ def sample_cutter(path: str, algo: str = 'snpy', save_loc: str = ''):
                     (data[:, hdr.index('mu_err')].astype(float) < cuts['mu_err'])]
     elif algo == 'salt':
         print('[+++] Cutting sample for SALT data...')
-        cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
-        # cuts = {'z': 0.015, 'c': (0.1, 999), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
+        # cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
+        cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-3.2, 3.2), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
@@ -1138,7 +1138,19 @@ def sample_cutter(path: str, algo: str = 'snpy', save_loc: str = ''):
     with open(save_loc, 'w') as f:
         # Info
         f.write(f'# Created by M.D. Woods -- {CURRENTDATE} -- HUBBLE RESID STD: {std}\n')
-        f.write(f'# {cuts}\n')
+        f.write(f'# Cuts: {cuts}\n')
+
+        # Useful Stats
+        if algo == 'snpy':
+            f.write(f"# Avg. 'EBVhost': {np.average(data[:, hdr.index('EBVhost')].astype(float))} +/- "
+                    f"{np.average(data[:, hdr.index('EBVhost_err')].astype(float))}\n")
+            f.write(f"# Avg. 'st': {np.average(data[:, hdr.index('st')].astype(float))} +/- "
+                    f"{np.average(data[:, hdr.index('st_err')].astype(float))}\n")
+        elif algo == 'salt':
+            f.write(f"# Avg. 'c': {np.average(data[:, hdr.index('c')].astype(float))} +/- "
+                    f"{np.average(data[:, hdr.index('c_err')].astype(float))}\n")
+            f.write(f"# Avg. 'x1': {np.average(data[:, hdr.index('x1')].astype(float))} +/- "
+                    f"{np.average(data[:, hdr.index('x1_err')].astype(float))}\n")
 
         # Header
         f_out = hdr[0]
@@ -1566,18 +1578,52 @@ def resid_v_mass_colormap(path: str, param: str, title: str = '', cuts: list = [
         plt.savefig(save_loc)
     plt.show()
     return
-def param_hist(hicat_params_file: str, norm_params_file: str, algo: str, type: str, save_loc: str = '',
-    sigma: float = 3.0, st_width: float = 0.04, c_width: float = 0.04):
+def mass_step_v_c():
+    # hdr, data = gen.default_open('output/combiend__salt_params_cut.txt')
+    # hdr, data = gen.default_open('output/combiend__salt_params.txt')
+    hdr, data = gen.default_open('output/panthplus_params_cut.txt')
+
+    mass, mu = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('mu')].astype(float)
+    z = data[:, hdr.index('z')].astype(float)
+    c = data[:, hdr.index('c')].astype(float)
+    mass_err, mu_err = data[:, hdr.index('hostMass_err')].astype(float), data[:, hdr.index('mu_err')].astype(float)
+    resid = gen.get_resid(mu, z)
+
+    # all_gamma, all_c_bin = [], []
+    # num_bins = 30
+    # c_sort = np.arange(np.min(np.sort(c)), np.max(np.sort(c)), np.max(np.sort(c))/(num_bins+1))
+    # for i in range(len(c_sort) - 1):
+    #     indexes = np.where((c > c_sort[i]) & (c < c_sort[i+1]))[0]
+    #     gamma, cut_dict = mass_step_calc(mu[indexes], mu_err[indexes], resid[indexes], mass[indexes], z[indexes], cut=10)
+    #     print(f"{gamma['value']} +/- {gamma['err']}")
+    #     all_gamma.append(gamma['value'])
+    #     all_c_bin.append(c_sort[i])
+    #
+    # plt.scatter(all_c_bin, all_gamma)
+    # plt.show()
+
+    hist, bins = np.histogram(c, bins=9)
+    print(hist[0])
+
+
+
+
+
+
+    return
+def param_hist(hicat_params_file: str, norm_params_file: str, algo: str, line_type: str, save_loc: str = '',
+    sigma: float = 3.0, st_width: float = 0.04, c_width: float = 0.04, norm_factor: int = 1):
     """
     Histogram of the SNooPy paramaters of 91bg-like vs. normal SNe Ia
     :param hicat_params_file: str; location of 91bg-like paramaters
     :param norm_params_file: str; location of normal paramaters
     :param algo: str; algo of histogram to generate
     :param save_loc: str = '';
-    :param type: str = 'median' or 'average';
+    :param line_type: str = 'median' or 'average';
     :param sigma: float = 3.0;
     :param st_width: float = 0.02;
     :param c_width: float = 0.02;
+    :param norm_factor: int = 1;
     """
     # Open data
     hicat_hdr, hicat_data = gen.default_open(hicat_params_file)
@@ -1586,33 +1632,35 @@ def param_hist(hicat_params_file: str, norm_params_file: str, algo: str, type: s
     # Select Algo
     if algo == 'snpy':
         param_dict = {'stretch': 'st', 'color': 'EBVhost'}
+        param_dict_display = {'stretch': '$s_{BV}$', 'color': '$E(B-V)_{host}$'}
     elif algo == 'salt':
         param_dict = {'stretch': 'x1', 'color': 'c'}
+        param_dict_display = {'stretch': '$x_1$', 'color': '$c$'}
     else:
         raise ValueError(f"[!!!] '{algo}' is invalid; choose between 'snpy' or 'salt'")
 
     fig, ax = plt.subplots(1, 2, figsize=(16, 4), constrained_layout=True)
 
-    # Stretch plot
-    st_norm = sigma_clip(norm_data[:, norm_hdr.index(param_dict['stretch'])].astype(float), sigma=sigma)
-    st_hicat = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['stretch'])].astype(float), sigma=sigma)
-    st_norm_err = sigma_clip(norm_data[:, norm_hdr.index(param_dict['stretch']+'_err')].astype(float), sigma=sigma)
-    st_hicat_err = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['stretch']+'_err')].astype(float), sigma=sigma)
-    ax[0].hist(st_norm, int((np.max(st_norm) - np.min(st_norm)) / st_width), label='Normal', color='#5AD2F4')
-    ax[0].hist(st_hicat, int((np.max(st_hicat) - np.min(st_hicat)) / st_width), label='91bg', color='#62BEC1', alpha=0.75)
-    ax[0].set_title(f"Stretch [{param_dict['stretch']}]")
+    # Stretch arrays
+    st_norm = sigma_clip(norm_data[:, norm_hdr.index(param_dict['stretch'])].astype(float), sigma=sigma, masked=False)
+    st_hicat = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['stretch'])].astype(float), sigma=sigma, masked=False)
+    st_norm_err = sigma_clip(norm_data[:, norm_hdr.index(param_dict['stretch']+'_err')].astype(float), sigma=sigma, masked=False)
+    st_hicat_err = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['stretch']+'_err')].astype(float), sigma=sigma, masked=False)
 
-    # Color plot
-    c_norm = sigma_clip(norm_data[:, norm_hdr.index(param_dict['color'])].astype(float), sigma=sigma)
-    c_hicat = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['color'])].astype(float), sigma=sigma)
-    c_norm_err = sigma_clip(norm_data[:, norm_hdr.index(param_dict['color']+'_err')].astype(float), sigma=sigma)
-    c_hicat_err = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['color']+'_err')].astype(float), sigma=sigma)
-    ax[1].hist(c_norm, int((np.max(c_norm) - np.min(c_norm)) / c_width), label='Normal', color='#5AD2F4')
+    # Color arrays
+    c_norm = sigma_clip(norm_data[:, norm_hdr.index(param_dict['color'])].astype(float), sigma=sigma, masked=False)
+    c_hicat = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['color'])].astype(float), sigma=sigma, masked=False)
+    c_norm_err = sigma_clip(norm_data[:, norm_hdr.index(param_dict['color']+'_err')].astype(float), sigma=sigma, masked=False)
+    c_hicat_err = sigma_clip(hicat_data[:, hicat_hdr.index(param_dict['color']+'_err')].astype(float), sigma=sigma, masked=False)
+
+    # Plot data
+    ax[0].hist(st_norm, norm_factor*int((np.max(st_norm) - np.min(st_norm)) / st_width), label='Normal', color='#5AD2F4')
+    ax[0].hist(st_hicat, int((np.max(st_hicat) - np.min(st_hicat)) / st_width), label='91bg', color='#62BEC1', alpha=0.75)
+    ax[1].hist(c_norm, norm_factor*int((np.max(c_norm) - np.min(c_norm)) / c_width), label='Normal', color='#5AD2F4')
     ax[1].hist(c_hicat, int((np.max(c_hicat) - np.min(c_hicat)) / c_width), label='91bg', color='#62BEC1', alpha=0.75)
-    ax[1].set_title(f"Color [{param_dict['color']}]")
 
     # Plot labels
-    if type == 'median':
+    if line_type == 'median':
         ax[0].axvline(x=np.median(st_norm),
                       label=r'$\tilde{x}_{Normal}$ = ' + str(round(np.median(st_norm), 2))+' $\pm$ '+str(round(np.median(st_norm_err), 3)),
                       linewidth=2.5, color='#4bb0cc', linestyle='--')
@@ -1625,7 +1673,7 @@ def param_hist(hicat_params_file: str, norm_params_file: str, algo: str, type: s
         ax[1].axvline(x=np.median(c_hicat),
                       label=r'$\tilde{x}_{91bg}$ = '+str(round(np.median(c_hicat), 2))+' $\pm$ '+str(round(np.median(c_hicat_err), 3)),
                       linewidth=2.5, color='#52a1a3', linestyle=':')
-    elif type == 'average':
+    elif line_type == 'average':
         ax[0].axvline(x=np.average(st_norm),
                       label=r'$\tilde{x}_{Normal}$ = ' + str(round(np.average(st_norm), 2))+' $\pm$ '+str(round(np.average(st_norm_err), 3)),
                       linewidth=2.5, color='#4bb0cc', linestyle='--')
@@ -1639,10 +1687,15 @@ def param_hist(hicat_params_file: str, norm_params_file: str, algo: str, type: s
                       label=r'$\tilde{x}_{91bg}$ = '+str(round(np.average(c_hicat), 2))+' $\pm$ '+str(round(np.average(c_hicat_err), 3)),
                       linewidth=2.5, color='#52a1a3', linestyle=':')
     else:
-        raise ValueError(f"[!!!] '{type}' is invalid; choose between 'median' or 'average'")
+        raise ValueError(f"[!!!] '{line_type}' is invalid; choose between 'median' or 'average'")
+
+    # Plot details
+
+    ax[0].set_xlabel(f"Stretch [{param_dict_display['stretch']}]")
+    ax[1].set_xlabel(f"Color [{param_dict_display['color']}]")
+    ax[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
     ax[0].legend()
     ax[1].legend()
-
 
     if len(save_loc) > 0:
         plt.savefig(save_loc, dpi=300)
@@ -1887,6 +1940,10 @@ def format_panthplus(path: str = 'txts/PanPlus_Latest.FITRES', save_loc: str = '
     # Write to new file
     with open(save_loc, 'w') as f:
         f.write(f'# Created by M.D. Woods -- {CURRENTDATE} -- NUM TARGETS: {len(data[:, 0])}\n')
+        f.write(f"# Avg. 'c': {np.average(data[:, hdr.index('c')].astype(float))} +/- "
+                f"{np.average(data[:, hdr.index('cERR')].astype(float))}\n")
+        f.write(f"# Avg. 'x1': {np.average(data[:, hdr.index('x1')].astype(float))} +/- "
+                f"{np.average(data[:, hdr.index('x1ERR')].astype(float))}\n")
         f.write(f'objname, ra, dec, z, z_cmb, MJDs, MJDe, origin, mu, mu_err, x1, x1_err, t0, t0_err, c, c_err, chisquare, chisquare_err, hostMass, hostMass_err\n')
         for i in range(len(data[:, 0])):
             f.write(f"{data[i, hdr.index('CID')]}, "
@@ -1918,6 +1975,10 @@ def format_dr3(path: str = 'txts/DR3_fits.dat', save_loc: str = 'output/dr3_para
     # Write to file
     with open(save_loc, 'w') as f:
         f.write(f'# Created by M.D. Woods -- {CURRENTDATE} -- NUM TARGETS: {len(data[:, 0])}\n')
+        f.write(f"# Avg. 'EBVhost': {np.average(data[:, hdr.index('EBVhost')].astype(float))} +/- "
+                f"{np.average(data[:, hdr.index('e_EBVhost')].astype(float))}\n")
+        f.write(f"# Avg. 'st': {np.average(data[:, hdr.index('st')].astype(float))} +/- "
+                f"{np.average(data[:, hdr.index('e_st')].astype(float))}\n")
         f.write(f'objname, z, z_cmb, origin, st, st_err, Tmax, Tmax_err, EBVhost, EBVhost_err\n')
         for i in range(len(data[:, 0])):
             f.write(f"{data[i, hdr.index('SN')]}, "
@@ -1949,7 +2010,7 @@ def main(fit_type: str, data_set: str = '', path: str = '', algo: str = '', save
          dmag_max: float = 0.00, dflux_max: float = 0.00) -> list[object]:
     """
     A function to easily fit data using both algorithms.
-    :param fit_type: str; type of fitting protocol to use
+    :param fit_type: str; line_type of fitting protocol to use
     :param data_set = '': str; name of data set
     :param algo = '': str; algorithms to fit data with (snpy/salt)
     :param path = '': str; data location for individual fits (only call for fit_type='indv')
@@ -1973,7 +2034,7 @@ def main(fit_type: str, data_set: str = '', path: str = '', algo: str = '', save
                            dmag_max=dmag_max, dflux_max=dflux_max)
     else:
         raise ValueError(
-            "Invalid type selected ['indv'/'batch'/'combined']")
+            "Invalid line_type selected ['indv'/'batch'/'combined']")
 
     # Saving
     if fit_type != 'indv' and len(SNe) != 0:
@@ -1992,6 +2053,11 @@ def refresh_all(new_data: bool = False):
         norm_fit('snpy', 'output/norm_snpy_params.txt', dmag_max=1.00)
         norm_fit('salt', 'output/norm_salt_params.txt', dmag_max=1.00)
 
+    # Fix normal files
+    format_dr3()
+    format_panthplus()
+    sample_cutter('output/panthplus_params.txt', 'salt')
+
     # Merge raw files
     merged_options('output/combiend__snpy_params.txt',
                    'output/combiend__salt_params.txt',
@@ -2001,15 +2067,15 @@ def refresh_all(new_data: bool = False):
                    'output/norm_merged_params.txt')
 
     # Make sure most recent cuts are applied
-    sample_cutter('output/combiend__snpy_params.txt', 'snpy')
-    sample_cutter('output/combiend__salt_params.txt', 'salt')
+    sample_cutter('output/combiend__snpy_params.txt', 'snpy', 'output/combiend__snpy_params_cut.txt')
+    sample_cutter('output/combiend__salt_params.txt', 'salt', 'output/combiend__salt_params_cut.txt')
     merged_options('output/combiend__snpy_params_cut.txt',
                    'output/combiend__salt_params_cut.txt',
                    'output/merged_params_cut.txt')
-    sample_cutter('output/norm_snpy_params.txt', 'snpy')
-    sample_cutter('output/norm_salt_params.txt', 'salt')
-    merged_options('output/norm_snpy_params.txt',
-                   'output/norm_salt_params.txt',
+    sample_cutter('output/norm_snpy_params.txt', 'snpy', 'output/norm_snpy_params_cut.txt')
+    sample_cutter('output/norm_salt_params.txt', 'salt', 'output/norm_salt_params_cut.txt')
+    merged_options('output/norm_snpy_params_cut.txt',
+                   'output/norm_salt_params_cut.txt',
                    'output/norm_merged_params_cut.txt')
 
     # Update Mass Plots
@@ -2038,20 +2104,18 @@ def refresh_all(new_data: bool = False):
               # title = 'Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]',
 
     # Update Histograms
-    param_hist('output/combiend__snpy_params_cut.txt',
-               'output/norm_snpy_params_cut.txt',
-               algo='snpy', type='median', st_width=0.04, c_width=0.04,
+    param_hist('output/combiend__snpy_params.txt',
+               'output/dr3_params.txt',
+               algo='snpy', line_type='median', st_width=0.04, c_width=0.04, norm_factor=1,
                save_loc='saved/readme_plots/snpy_params_hicat_v_dr3.png')
-    param_hist('output/combiend__salt_params_cut.txt',
-               'output/norm_salt_params_cut.txt',
-               algo='salt', type='median', st_width=0.3, c_width=0.08,
-               save_loc='saved/readme_plots/salt_params_hicat_v_dr3.png')
+    param_hist('output/combiend__salt_params.txt',
+               'output/norm_salt_params.txt',
+               algo='salt', line_type='median', st_width=0.3, c_width=0.08, norm_factor=2,
+               save_loc='saved/readme_plots/salt_params_hicat_v_normcsp.png')
     return
 
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
-
-    # format_dr3()
 
     refresh_all()
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
