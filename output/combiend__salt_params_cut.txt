@@ -1,5 +1,5 @@
-# Created by M.D. Woods -- 2024-12-06 11:19:40.351810 -- HUBBLE RESID STD: 0.18108556594790623
-# Cuts: {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-3.2, 3.2), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
+# Created by M.D. Woods -- 2024-12-10 14:13:59.817869 -- HUBBLE RESID STD: 0.18108556594790623
+# Cuts: {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-3.2, 0), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
 # Avg. 'c': 0.3296536006641562 +/- 0.018664267791890045
 # Avg. 'x1': -2.4109168350899055 +/- 0.1410631852108621
 objname, ra, dec, z, z_cmb, MJDs, MJDe, origin, t0, t0_err, x0, x0_err, x1, x1_err, c, c_err, mu, mu_err, hostMass, hostMass_err, peak_mag, peak_mag_err

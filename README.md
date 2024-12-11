@@ -44,19 +44,29 @@ This plot depicts the relationship between the redshift of the SN and the corres
 ![](saved/readme_plots/merged_resid_v_z.png "")
 ![](saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png "")
 ![](saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png "")
+For perspective, below is the same plot for normal SNe Ia.
+![](saved/readme_plots/normIa_resid_v_z.png "")
 
 --------------------------
 ### Parameter Histograms
 ![](saved/readme_plots/snpy_params_hicat_v_dr3.png "")
 ![](saved/readme_plots/salt_params_hicat_v_panthplus.png "")
 
+### Alpha-Beta Fitting
+![](saved/readme_plots/alpha_beta_91bg.png "")
+![](saved/readme_plots/alpha_beta_norm.png "") 
+
+
 [//]: # (![]&#40;saved/readme_plots/allparam_cornerPlot.png ""&#41;)
 
-Corner Plot of SNooPy Parameters
-![](saved/readme_plots/snpy_cornerPlot.png "")
+[//]: # (Corner Plot of SNooPy Parameters)
 
-Corner Plot of SALT3 Parameters
-![](saved/readme_plots/salt_cornerPlot.png "")
+[//]: # (![]&#40;saved/readme_plots/snpy_cornerPlot.png ""&#41;)
+
+[//]: # ()
+[//]: # (Corner Plot of SALT3 Parameters)
+
+[//]: # (![]&#40;saved/readme_plots/salt_cornerPlot.png ""&#41;)
 
 --------------------------
 ## Publications

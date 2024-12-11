@@ -17,10 +17,13 @@ from astropy.coordinates import SkyCoord, Galactic
 from astropy.table import Table
 from astroquery.sdss import SDSS
 from astropy.stats import sigma_clip, sigma_clipped_stats
+from sklearn.linear_model import LinearRegression
+from scipy.optimize import minimize
+from matplotlib.gridspec import GridSpec
 
 from scripts import general as gen
 from scripts.salt3_param_fitter import optimize_alpha_beta
-# from scripts import get_vpec  # Loads heavy data so if not activly fitting I would comment this out
+from scripts import get_vpec  # Loads heavy data so if not activly fitting I would comment this out
 
 CONSTANTS = gen.get_constants()
 CURRENTDATE = datetime.datetime.now()
@@ -28,7 +31,7 @@ COLOR_WHEEL = {'ZTF': '#D8973C', 'ATLAS': '#BD632F', 'CSP': '#72513B', 'ATLAS-ZT
                'ZTF_SNPY': '#D8973C', 'ATLAS_SNPY': '#BD632F', 'CSP_SNPY': '#72513B', 'ATLAS-ZTF_SNPY': '#273E47',
                'ZTF_SALT': '#D8973C', 'ATLAS_SALT': '#BD632F', 'CSP_SALT': '#72513B', 'ATLAS-ZTF_SALT': '#273E47',
                'Pan+': '#BD632F', 'PanPlus': '#BD632F', 'Histogram': '#3B5058',
-               '10': '#A4243B', 'median': '#D8C99B'}
+               '10': '#A4243B', 'median': '#474694'}
 
 class SN91bg:
     """
@@ -838,11 +841,16 @@ def norm_fit(algo: str = 'snpy', save_loc: str = '', dmag_max: float = 0.00, dfl
     :return: SNe: list[object]; List of SN91bg classes from fitting call.
     """
     SNe, files = [], glob.glob('data/CSPdata/*.txt')
+    SNIa_peculiar = ['2004dt', '2005gj', '2005hk', '2006bt', '2006ot', '2007so', '2008ae', '2008bd', '2008ha', '2008J', '2009dc', '2009J', '2010ae']
     for path in files:
         print('[', files.index(path) + 1, '/', len(files), ']')
         print('-----------------------------------------------------------------------------------------------')
         tempSN = SN91bg(path=path, data_set = 'CSP', dmag_max = dmag_max, dflux_max = dflux_max)
-        if tempSN is not None:
+
+        if tempSN.objname in SNIa_peculiar:
+            print(f"[!!!] '{tempSN.objname}' is a known peculiar SNIa! Passing...")
+            continue
+        elif tempSN is not None:
             tempSN.fit(algo)
 
         # Check if fit failed
@@ -1103,7 +1111,8 @@ def sample_cutter(path: str, algo: str = 'snpy', save_loc: str = ''):
     elif algo == 'salt':
         print('[+++] Cutting sample for SALT data...')
         # cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
-        cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-3.2, 3.2), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
+        # cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-3.2, 3.2), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
+        cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-3.2, 0), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
@@ -1357,6 +1366,74 @@ def resid_v_z(path: str, title: str = '', save_loc: str = ''):
         plt.savefig(save_loc)
     plt.show()
     return
+def mu_v_z(path: str, title: str = '', save_loc: str = ''):
+    """
+    Plots the Hubble Residual v. Redshift
+    :param path: str; location of file of parameter file
+    :param title: str = ''; optional title to put at top of file
+    :param save_loc: str = ''; location to save plot
+    """
+    fig = plt.figure(layout="constrained", figsize=(15, 6), constrained_layout=True)
+    gs = GridSpec(6, 9, figure=fig)
+    ax1 = fig.add_subplot(gs[:4, :8])
+    ax2 = fig.add_subplot(gs[4:, :8])
+    ax3 = fig.add_subplot(gs[:4, 8:])
+    ax4 = fig.add_subplot(gs[4:, 8:])
+
+    # Pull data from saved text & header
+    hdr, data = gen.default_open(path)
+
+    # Set Arrays
+    z = data[:, hdr.index('z_cmb')].astype(float)
+    mass, mass_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
+    mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
+    resid_mu, resid_mu_err = sigma_clip(mu - gen.current_cosmo().distmod(z).value, sigma=3.0), np.copy(mu_err)
+
+    # Make main plot
+    for origin in np.unique(data[:, hdr.index('origin')]):
+        format_dict = {'marker': 'o', 'fmt': 'o', 'label': origin, 'alpha': 1, 'ms': 6}
+        if 'SNPY' in origin:
+            format_dict['label'] = origin[:-5]
+        elif 'SALT' in origin:
+            format_dict['label'], format_dict['marker'] = None, '^'
+
+        indexes = np.where(data[:, hdr.index('origin')] == origin)[0]
+        ax1.errorbar(z[indexes], mu[indexes], yerr=mu_err[indexes],
+                        color=COLOR_WHEEL[origin], elinewidth=0.8, **format_dict)
+        ax2.errorbar(z[indexes], resid_mu[indexes], yerr=resid_mu_err[indexes],
+                     color=COLOR_WHEEL[origin], elinewidth=0.8, **format_dict)
+
+    # Plot fit line
+    ax1.plot(np.sort(z), gen.current_cosmo().distmod(np.sort(z)).value, label='Model [$H_0 = 70$, $\Omega_m = 0.3$]')
+
+    # Make histogram
+    ax3.hist(mu, bins=int((np.max(mu) - np.min(mu)) / 0.2),  # Bin Width = 0.1
+                orientation="horizontal", color=COLOR_WHEEL['Histogram'])
+    ax4.hist(resid_mu, bins=int((np.max(resid_mu) - np.min(resid_mu)) / 0.03),  # Bin Width = 0.3
+             orientation="horizontal", color=COLOR_WHEEL['Histogram'])
+
+    # Extra Info
+    extra_info = '$\sigma$: ' + str(round(np.std(mu), 4)) + ', $n$: ' + str(len(mu))
+    if 'merged' in path:
+        extra_info += r' | SALT3: $\triangle$, SNooPy: $\bigcirc$'
+    ax1.text(np.min(z), np.median(mu+1), extra_info, horizontalalignment='left', verticalalignment='bottom')
+
+    # Formatting
+    fig.suptitle(title)
+    ax1.set(ylabel='$\mu$')
+    ax2.set(ylabel='Residuals')
+    ax2.set(xlabel='Host Galaxy CMB Redshift')
+    ax1.get_xaxis().set_visible(False)
+    ax3.get_yaxis().set_visible(False)
+    ax4.get_yaxis().set_visible(False)
+    ax1.legend(loc='best')
+
+    # Saving Figure
+    if len(save_loc) != 0:
+        print('Saved figure to... ', save_loc)
+        plt.savefig(save_loc)
+    plt.show()
+    return
 def resid_v_mass(path: str, title: str = '', cuts: list = [10, 'median'], save_loc: str = '', label: bool = False):
     """
     Plots the Hubble Residual v. Mass
@@ -1446,13 +1523,13 @@ def resid_v_mass(path: str, title: str = '', cuts: list = [10, 'median'], save_l
                             resid_dict['lower_resid']['value'] + resid_dict['lower_resid']['err'],
                             **fill_details)
         axs[0].hlines(y=resid_dict['upper_resid']['value'], xmin=num_cut, xmax=np.max(mass) + 0.3,
+                      label=str(cut) + ': ' +
+                            str(round(mass_step_dict['value'], 4)) + ' +/- ' +
+                            str(round(mass_step_dict['err'], 4)),
                       **lin_details)  # Right
         axs[0].fill_between([num_cut, np.max(mass) + 0.3],
                             resid_dict['upper_resid']['value'] - resid_dict['upper_resid']['err'],
                             resid_dict['upper_resid']['value'] + resid_dict['upper_resid']['err'],
-                            label=str(cut) + ': ' +
-                                  str(round(mass_step_dict['value'], 4)) + ' +/- ' +
-                                  str(round(mass_step_dict['err'], 4)),
                             **fill_details)  # Right
 
     # Labels
@@ -1589,21 +1666,21 @@ def mass_step_v_c():
     mass_err, mu_err = data[:, hdr.index('hostMass_err')].astype(float), data[:, hdr.index('mu_err')].astype(float)
     resid = gen.get_resid(mu, z)
 
-    # all_gamma, all_c_bin = [], []
-    # num_bins = 30
-    # c_sort = np.arange(np.min(np.sort(c)), np.max(np.sort(c)), np.max(np.sort(c))/(num_bins+1))
-    # for i in range(len(c_sort) - 1):
-    #     indexes = np.where((c > c_sort[i]) & (c < c_sort[i+1]))[0]
-    #     gamma, cut_dict = mass_step_calc(mu[indexes], mu_err[indexes], resid[indexes], mass[indexes], z[indexes], cut=10)
-    #     print(f"{gamma['value']} +/- {gamma['err']}")
-    #     all_gamma.append(gamma['value'])
-    #     all_c_bin.append(c_sort[i])
-    #
-    # plt.scatter(all_c_bin, all_gamma)
-    # plt.show()
+    all_gamma, all_c_bin = [], []
+    num_bins = 10
+    c_sort = np.arange(np.min(np.sort(c)), np.max(np.sort(c)), np.max(np.sort(c))/(num_bins+1))
+    for i in range(len(c_sort) - 1):
+        indexes = np.where((c > c_sort[i]) & (c < c_sort[i+1]))[0]
+        gamma, cut_dict = mass_step_calc(mu[indexes], mu_err[indexes], resid[indexes], mass[indexes], z[indexes], cut=10)
+        print(f"{gamma['value']} +/- {gamma['err']}")
+        all_gamma.append(gamma['value'])
+        all_c_bin.append(c_sort[i])
 
-    hist, bins = np.histogram(c, bins=9)
-    print(hist[0])
+    plt.plot(all_c_bin, all_gamma)
+    plt.show()
+
+    # hist, bins = np.histogram(c, bins=9)
+    # print(bins)
 
 
 
@@ -1698,7 +1775,36 @@ def param_hist(hicat_params_file: str, norm_params_file: str, algo: str, line_ty
     ax[1].legend()
 
     if len(save_loc) > 0:
+        print(f"Saved figure to...  {save_loc}")
         plt.savefig(save_loc, dpi=300)
+    plt.show()
+    return
+def param_hist_new(hicat_params_file: str, norm_params_file: str, algo: str, line_type: str, save_loc: str = '',
+    sigma: float = 3.0, st_width: float = 0.04, c_width: float = 0.04, norm_factor: int = 1):
+    """
+    Histogram of the SNooPy paramaters of 91bg-like vs. normal SNe Ia
+    :param hicat_params_file: str; location of 91bg-like paramaters
+    :param norm_params_file: str; location of normal paramaters
+    :param algo: str; algo of histogram to generate
+    :param save_loc: str = '';
+    :param line_type: str = 'median' or 'average';
+    :param sigma: float = 3.0;
+    :param st_width: float = 0.02;
+    :param c_width: float = 0.02;
+    :param norm_factor: int = 1;
+    """
+    line_type = 'median'
+    hdr_91bg_snpy, hdr_91bg_snpy = gen.default_open('output/combiend__snpy_params.txt')
+    hdr_91bg_salt, hdr_91bg_salt = gen.default_open('output/combiend__salt_params.txt')
+    hdr_norm_snpy, hdr_norm_snpy = gen.default_open('output/dr3_params.txt')
+    hdr_norm_salt, hdr_norm_salt = gen.default_open('output/norm_salt_params.txt')
+
+    fig, ax = plt.subplots(2, 2, figsize=(16, 8), constrained_layout=True)
+
+    ax[0, 0].get_xaxis().set_visible(False)
+    ax[0, 1].get_xaxis().set_visible(False)
+    ax[0, 1].get_yaxis().set_visible(False)
+    ax[1, 1].get_yaxis().set_visible(False)
     plt.show()
     return
 def param_corner_plot(snpy_path: str, salt_path: str, save_loc: str = ''):
@@ -1734,6 +1840,150 @@ def param_corner_plot(snpy_path: str, salt_path: str, save_loc: str = ''):
         if len(save_loc) != 0:
             plt.savefig(save_loc+algo.lower()+'_cornerPlot.png')
         plt.show()
+    return
+def alpha_beta_plot(path: str = 'output/combiend__salt_params_cut.txt', save_loc: str = '',
+                    label: bool = False, norm: bool = False):
+    # Load data
+    hdr, data = gen.default_open(path)
+    names = data[:, hdr.index('objname')]
+    mu = data[:, hdr.index('mu')].astype(float)
+    z = data[:, hdr.index('z')].astype(float)
+    c = data[:, hdr.index('c')].astype(float)
+    c_err = data[:, hdr.index('c_err')].astype(float)
+    x1 = data[:, hdr.index('x1')].astype(float)
+    x1_err = data[:, hdr.index('x1_err')].astype(float)
+    x0 = data[:, hdr.index('x0')].astype(float)
+    resid = gen.get_resid(mu, z)
+
+    # Get y-axis (Absolute Mag)
+    m_b = (-2.5 * np.log10(x0)) + 10.635
+    y_axis = m_b - mu
+
+    # Plot
+    fig, ax = plt.subplots(1, 2, figsize=(14, 6), constrained_layout=True)
+
+    # Adjust opacity for lots of points
+    opacity = 1.0
+    if norm: opacity = 0.3
+
+    ax[0].errorbar(x1, y_axis, xerr=x1_err, fmt='o', alpha=opacity)
+    ax[1].errorbar(c, y_axis, xerr=c_err, fmt='o', alpha=opacity)
+
+    # Plot alpha & beta values
+    alpha = -1*float(CONSTANTS['salt_alpha'])
+    beta = float(CONSTANTS['salt_beta'])
+    alpha_norm = -1*0.109
+    beta_norm = 3.552
+
+    # Line of best fit -- x1
+    model = LinearRegression()
+    model.fit(x1.reshape(-1, 1), y_axis)
+    bestfit_alpha = model.coef_[0]
+    intercept = model.intercept_
+    if not norm:
+        ax[0].axline((0, intercept), slope=alpha, color='green', label="$-\\alpha_{scipy}" + f"={round(alpha, 3)}$")
+    # ax[0].axline((0, intercept), slope=bestfit_alpha, color='orange', label="$-\\alpha_{LinRegr}"+f"={round(bestfit_alpha,3)}$")
+    ax[0].axline((0, intercept), slope=alpha_norm, color='red', label="$-\\alpha_{norm}"+f"={round(alpha_norm,3)}$")
+
+    # Line of best fit -- c
+    model = LinearRegression()
+    model.fit(c.reshape(-1, 1), y_axis)
+    bestfit_beta = model.coef_[0]
+    intercept = model.intercept_
+    if not norm:
+        ax[1].axline((0, intercept), slope=beta, color='green', label="$\\beta_{scipy}" + f"={round(beta, 3)}$")
+    # ax[1].axline((0, intercept), slope=bestfit_beta, color='orange', label="$\\beta_{LinRegr}"+f"={round(bestfit_beta,3)}$")
+    ax[1].axline((0, intercept), slope=beta_norm, color='red', label="$\\beta_{norm}"+f"={round(beta_norm,3)}$")
+
+    # Label Object Names
+    if label:
+        for n in range(len(names)):
+            ax[0].text(x1[n], y_axis[n], names[n], ha='left', va='top', size='x-small')
+            ax[1].text(c[n], y_axis[n], names[n], ha='left', va='top', size='x-small')
+
+    # Formatting
+    ax[0].set_xlabel('x1')
+    ax[0].set_ylabel('$m_{B} - \mu$')
+    ax[0].invert_yaxis()
+    ax[0].legend()
+    ax[1].set_xlabel('c')
+    ax[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
+    ax[1].invert_yaxis()
+    ax[1].legend()
+
+    if len(save_loc) > 0:
+        plt.savefig(save_loc, dpi=300)
+    plt.show()
+    return
+def alpha_beta_plot_chi2(path: str = 'output/combiend__salt_params_cut.txt', save_loc: str = '',
+                         label: bool = False, norm: bool = False):
+    # Load data
+    hdr, data = gen.default_open(path)
+    names = data[:, hdr.index('objname')]
+    mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
+    c, c_err = data[:, hdr.index('c')].astype(float), data[:, hdr.index('c_err')].astype(float)
+    x1, x1_err = data[:, hdr.index('x1')].astype(float), data[:, hdr.index('x1_err')].astype(float)
+    x0, x0_err = data[:, hdr.index('x0')].astype(float), data[:, hdr.index('x0_err')].astype(float)
+
+    # Get y-axis (Absolute Mag)
+    m_b = (-2.5 * np.log10(x0)) + 10.635
+    m_b_err = np.abs(-2.5*(x0_err/(x0*np.log(10))))
+    y_axis = m_b - mu
+    y_axis_err = np.sqrt(m_b_err**2 + mu_err**2)
+
+    # Plot alpha & beta values
+    alpha = -1*float(CONSTANTS['salt_alpha'])
+    beta = float(CONSTANTS['salt_beta'])
+    alpha_norm = -1*float(CONSTANTS['salt_alpha_norm'])
+    beta_norm = float(CONSTANTS['salt_beta_norm'])
+
+    # Adjust opacity for lots of points
+    opacity = 1.0
+    if norm: opacity = 0.3
+
+    # Plot
+    fig, ax = plt.subplots(1, 2, figsize=(14, 6), constrained_layout=True)
+    ax[0].errorbar(x1, y_axis, xerr=x1_err, yerr=y_axis_err, fmt='o', alpha=opacity)
+    ax[1].errorbar(c, y_axis, xerr=c_err, yerr=y_axis_err, fmt='o', alpha=opacity)
+
+    # Plot x1 line
+    result = minimize(gen.get_chi2, 0.00, args=(x1, y_axis, x1_err, alpha_norm))
+    b_fit = result.x[0]
+    ax[0].axline((0, b_fit), slope=alpha_norm, color='red', label="$-\\alpha_{Pantheon\\text{+}}" + f"={round(alpha_norm, 3)}$") # Normal
+    if not norm:
+        result = minimize(gen.get_chi2, 0.00, args=(x1, y_axis, x1_err, alpha))
+        b_fit = result.x[0]
+        ax[0].axline((0, b_fit), slope=alpha, color='green', label="$-\\alpha_{1991bg\\text{-}like}" + f"={round(alpha, 3)}$") # 1991bg-like
+
+    # Plot c line
+    result = minimize(gen.get_chi2, 0.00, args=(c, y_axis, c_err, beta_norm))
+    b_fit = result.x[0]
+    ax[1].axline((0, b_fit), slope=beta_norm, color='red', label="$\\beta_{Pantheon\\text{+}}"+f"={round(beta_norm,3)}$")
+    if not norm:
+        result = minimize(gen.get_chi2, 0.00, args=(c, y_axis, c_err, beta))
+        b_fit = result.x[0]
+        ax[1].axline((0, b_fit), slope=beta, color='green', label="$\\beta_{1991bg\\text{-}like}" + f"={round(beta, 3)}$")
+
+    # Label Object Names
+    if label:
+        for n in range(len(names)):
+            ax[0].text(x1[n], y_axis[n], names[n], ha='left', va='top', size='x-small')
+            ax[1].text(c[n], y_axis[n], names[n], ha='left', va='top', size='x-small')
+
+    # Formatting
+    ax[0].set_xlabel('x1')
+    ax[0].set_ylabel('$m_{B} - \mu$')
+    ax[0].invert_yaxis()
+    ax[0].legend()
+    ax[1].set_xlabel('c')
+    ax[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
+    ax[1].invert_yaxis()
+    ax[1].legend()
+
+    if len(save_loc) > 0:
+        print(f"Saved figure to...  {save_loc}")
+        plt.savefig(save_loc, dpi=300)
+    plt.show()
     return
 def update_readme_plots():
     """
@@ -1944,7 +2194,9 @@ def format_panthplus(path: str = 'txts/PanPlus_Latest.FITRES', save_loc: str = '
                 f"{np.average(data[:, hdr.index('cERR')].astype(float))}\n")
         f.write(f"# Avg. 'x1': {np.average(data[:, hdr.index('x1')].astype(float))} +/- "
                 f"{np.average(data[:, hdr.index('x1ERR')].astype(float))}\n")
-        f.write(f'objname, ra, dec, z, z_cmb, MJDs, MJDe, origin, mu, mu_err, x1, x1_err, t0, t0_err, c, c_err, chisquare, chisquare_err, hostMass, hostMass_err\n')
+        f.write(f"# Avg. 'x0': {np.average(data[:, hdr.index('x0')].astype(float))} +/- "
+                f"{np.average(data[:, hdr.index('x0ERR')].astype(float))}\n")
+        f.write(f'objname, ra, dec, z, z_cmb, MJDs, MJDe, origin, mu, mu_err, x0, x0_err, x1, x1_err, t0, t0_err, c, c_err, chisquare, chisquare_err, hostMass, hostMass_err\n')
         for i in range(len(data[:, 0])):
             f.write(f"{data[i, hdr.index('CID')]}, "
                     f"{data[i, hdr.index('RA')]}, "
@@ -1956,6 +2208,8 @@ def format_panthplus(path: str = 'txts/PanPlus_Latest.FITRES', save_loc: str = '
                     f"PanPlus, "
                     f"{data[i, hdr.index('MU')]}, "
                     f"{abs(data[i, hdr.index('MUERR')].astype(float))}, "
+                    f"{data[i, hdr.index('x0')]}, "
+                    f"{abs(data[i, hdr.index('x0ERR')].astype(float))}, "
                     f"{data[i, hdr.index('x1')]}, "
                     f"{abs(data[i, hdr.index('x1ERR')].astype(float))}, "
                     f"{data[i, hdr.index('PKMJD')]}, "
@@ -2093,15 +2347,17 @@ def refresh_all(new_data: bool = False):
                  # title='Hubble Residual v. Host Stellar Mass of Normal SNe Ia from CSP [SNooPy]',)
 
     # Update Redshift Plots
-    resid_v_z(path='output/combiend__snpy_params_cut.txt',
-              save_loc='saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png')
-              # title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]')
-    resid_v_z(path='output/combiend__salt_params_cut.txt',
-              save_loc='saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png')
-              # title = 'Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3]',
-    resid_v_z(path='output/merged_params_cut.txt',
-              save_loc='saved/readme_plots/merged_resid_v_z.png')
-              # title = 'Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]',
+    mu_v_z(path='output/combiend__snpy_params_cut.txt',
+           save_loc='saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png')
+           # title='Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SNooPy]')
+    mu_v_z(path='output/combiend__salt_params_cut.txt',
+           save_loc='saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png')
+           # title = 'Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3]',
+    mu_v_z(path='output/merged_params_cut.txt',
+           save_loc='saved/readme_plots/merged_resid_v_z.png')
+           # title = 'Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]',
+    mu_v_z(path='output/norm_merged_params_cut.txt',
+           save_loc='saved/readme_plots/normIa_resid_v_z.png')
 
     # Update Histograms
     param_hist('output/combiend__snpy_params.txt',
@@ -2112,10 +2368,17 @@ def refresh_all(new_data: bool = False):
                'output/norm_salt_params.txt',
                algo='salt', line_type='median', st_width=0.3, c_width=0.08, norm_factor=2,
                save_loc='saved/readme_plots/salt_params_hicat_v_normcsp.png')
+
+    # Alpha-Beta Plots
+    alpha_beta_plot_chi2('output/combiend__salt_params_cut.txt', save_loc='saved/readme_plots/alpha_beta_91bg.png')
+    alpha_beta_plot_chi2('output/panthplus_params_cut.txt', norm=True, save_loc='saved/readme_plots/alpha_beta_norm.png')
+
     return
 
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
+
+    # resid_v_mass(path='output/merged_params_cut.txt')
 
     refresh_all()
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')

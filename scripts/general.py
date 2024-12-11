@@ -143,8 +143,15 @@ def rm_outliers(mu, z):
     return np.where(abs(resid - mn) < 3 * std)[0]
 def get_resid(mu, z):
     return mu.astype(float) - current_cosmo().distmod(z.astype(float)).value
-
-
+def get_chi2(intercept, x, y, sigma, slope):
+    b = intercept[0]  # Extract intercept
+    model = slope * x + b
+    return np.sum(((y - model) / sigma) ** 2)
+def save_figure(save_loc: str):
+    if len(save_loc) > 0:
+        print(f"Saved figure to...  {save_loc}")
+        plt.savefig(save_loc, dpi=300)
+    return
 
 # import numpy as np
 # import requests
