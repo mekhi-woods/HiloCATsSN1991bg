@@ -7,12 +7,14 @@ import glob
 import corner
 import shutil
 import sncosmo
+import warnings
 import numpy as np
 import time as systime
 import datetime
 import matplotlib
 import matplotlib.pyplot as plt
 from astro_ghost.ghostHelperFunctions import getTransientHosts
+import astropy.coordinates as astro_coords
 from astropy.coordinates import SkyCoord, Galactic
 from astropy.table import Table
 from astroquery.sdss import SDSS
@@ -30,8 +32,10 @@ CURRENTDATE = datetime.datetime.now()
 COLOR_WHEEL = {'ZTF': '#D8973C', 'ATLAS': '#BD632F', 'CSP': '#72513B', 'ATLAS-ZTF': '#273E47',
                'ZTF_SNPY': '#D8973C', 'ATLAS_SNPY': '#BD632F', 'CSP_SNPY': '#72513B', 'ATLAS-ZTF_SNPY': '#273E47',
                'ZTF_SALT': '#D8973C', 'ATLAS_SALT': '#BD632F', 'CSP_SALT': '#72513B', 'ATLAS-ZTF_SALT': '#273E47',
-               'Pan+': '#BD632F', 'PanPlus': '#BD632F', 'Histogram': '#3B5058',
-               '10': '#A4243B', 'median': '#474694'}
+               'Histogram': '#3B5058',
+               '10': '#A4243B', 'median': '#474694',
+               'Pan+': '#BD632F', 'PanPlus': '#BD632F', 'AaronDoSALT2': '#BD632F',
+               'CSP_NORM': '#a32744', 'ATLAS_NORM': '#BD632F'}
 
 class SN91bg:
     """
@@ -723,27 +727,29 @@ class SN91bg:
                     f.write(str(self.time[i]) + '\t' + str(self.mag[i]) + '\t' + str(self.dmag[i]) + '\n')
         print('      Saved file to '+save_loc + self.objname + '_snpy.txt')
         return
-    def get_host_mass(self, use_key: bool = False):
+    def get_host_mass(self, use_key: bool = False, calc_zcmb: bool = True):
         """
         Gets host mass of SN using GHOST
         :param use_key: bool; toggle to use key to skip finding host mass
         """
         print('[+++] '+self.objname+' -- Finding host galaxy mass using GHOST...')
+
         local_coords = SkyCoord(self.coords[0], self.coords[1], unit="deg")
-        galac_coords = local_coords.transform_to(Galactic())
 
-        # Get CMB redshift
-        helio_corr = (float(CONSTANTS['cmb_v_helio']) / float(CONSTANTS['cmb_c']) *
-                      ((np.sin(galac_coords.b.deg) * np.sin(float(CONSTANTS['cmb_b_h'])) + np.cos(galac_coords.b.deg) *
-                        np.cos(float(CONSTANTS['cmb_b_h'])) * np.cos(galac_coords.l.deg - float(CONSTANTS['cmb_l_h'])))))
-        corr_term = 1 - helio_corr
-        self.z_cmb = (1 + self.z) / corr_term - 1
+        if calc_zcmb:
+            # Get CMB redshift
+            galac_coords = local_coords.transform_to(Galactic())
+            helio_corr = (float(CONSTANTS['cmb_v_helio']) / float(CONSTANTS['cmb_c']) *
+                          ((np.sin(galac_coords.b.deg) * np.sin(float(CONSTANTS['cmb_b_h'])) + np.cos(galac_coords.b.deg) *
+                            np.cos(float(CONSTANTS['cmb_b_h'])) * np.cos(galac_coords.l.deg - float(CONSTANTS['cmb_l_h'])))))
+            corr_term = 1 - helio_corr
+            self.z_cmb = (1 + self.z) / corr_term - 1
 
-        # Peculiar Velocity Correction -- using 'get_vpec.py' from David
-        VP = get_vpec.VelocityCorrection(f"twomass++_velocity_LH11.npy")
-        self.z_cmb = VP.correct_redshift(self.z, 0, local_coords.galactic.l.deg, local_coords.galactic.b.deg)
-        vpec, vpec_sys = get_vpec.main(self.coords[0], self.coords[1], self.z_cmb)
-        self.z_cmb += vpec / 3e5
+            # Peculiar Velocity Correction -- using 'get_vpec.py' from David
+            VP = get_vpec.VelocityCorrection(f"twomass++_velocity_LH11.npy")
+            self.z_cmb = VP.correct_redshift(self.z, 0, local_coords.galactic.l.deg, local_coords.galactic.b.deg)
+            vpec, vpec_sys = get_vpec.main(self.coords[0], self.coords[1], self.z_cmb)
+            self.z_cmb += vpec / 3e5
 
         # Try mass key
         if use_key:
@@ -1110,9 +1116,8 @@ def sample_cutter(path: str, algo: str = 'snpy', save_loc: str = ''):
                     (data[:, hdr.index('mu_err')].astype(float) < cuts['mu_err'])]
     elif algo == 'salt':
         print('[+++] Cutting sample for SALT data...')
-        # cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-4.5, 4.5), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
-        # cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-3.2, 3.2), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
-        cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-3.2, 0), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
+        cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-3.2, 3.2), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
+        # cuts = {'z': 0.015, 'c': (-0.6, 0.6), 'x1': (-3.2, 0), 'c_err': 0.1, 'x1_err': 1, 't0_err': 1, 'mu_err': 0.2}
         f_out = '      | '
         for c in cuts:
             f_out += c + ': ' + str(cuts[c]) + ' | '
@@ -1177,6 +1182,8 @@ def sample_cutter(path: str, algo: str = 'snpy', save_loc: str = ''):
     print(f'      [ {data.shape[0]} / {original_num} ]')
 
     return
+
+# File Merging ------------------------------------------------------------------------------------------------------ #
 def merge_params(snpy_path: str, salt_path: str, save_loc: str = '', algo_bias: str = 'best'):
     """
     Combines SNooPy and SALT params into a single file.
@@ -1308,6 +1315,63 @@ def merged_options(path_snpy: str, path_salt: str, save_loc: str = '', plot: boo
                  path_salt,
                  save_loc,
                  algo_bias=all_choices[all_std.index(min(all_std))])
+
+    return
+def csp_atlas_norm_merge(csp_path: str = 'output/norm_salt_params.txt',
+                         atlas_path: str = 'output/aaronDo_salt2_params.txt',
+                         save_loc: str = 'output/atlas_csp_norm_params.txt'):
+    csp_hdr, csp_data = gen.default_open(csp_path)
+    atlas_hdr, atlas_data = gen.default_open(atlas_path)
+
+    all_c = np.hstack([csp_data[:, csp_hdr.index('c')].astype(float), atlas_data[:, atlas_hdr.index('c')].astype(float)])
+    all_x1 = np.hstack([csp_data[:, csp_hdr.index('x1')].astype(float), atlas_data[:, atlas_hdr.index('x1')].astype(float)])
+    all_c_err = np.hstack([csp_data[:, csp_hdr.index('c_err')].astype(float), atlas_data[:, atlas_hdr.index('c_err')].astype(float)])
+    all_x1_err = np.hstack([csp_data[:, csp_hdr.index('x1_err')].astype(float), atlas_data[:, atlas_hdr.index('x1_err')].astype(float)])
+
+    with open(save_loc, 'w') as f:
+        f.write(f'# Created by M.D. Woods -- {CURRENTDATE} -- NUM TARGETS: {len(all_c)}\n')
+        f.write(f"# Avg. 'c': {np.average(all_c)} +/- "
+                f"{np.average(all_c_err)}\n")
+        f.write(f"# Avg. 'x1': {np.average(all_x1)} +/- "
+                f"{np.average(all_x1_err)}\n")
+        f.write(f'objname, ra, dec, z, z_cmb, origin, mu, mu_err, x1, x1_err, t0, t0_err, c, c_err, hostMass, hostMass_err\n')
+        # Write CSP data first
+        for i in range(len(csp_data[:, csp_hdr.index('objname')])):
+            f.write(f"{csp_data[i, csp_hdr.index('objname')]}, "
+                    f"{csp_data[i, csp_hdr.index('ra')]}, "
+                    f"{csp_data[i, csp_hdr.index('dec')]}, "
+                    f"{csp_data[i, csp_hdr.index('z')]}, "
+                    f"{csp_data[i, csp_hdr.index('z_cmb')]}, "
+                    f"CSP_NORM, "
+                    f"{csp_data[i, csp_hdr.index('mu')]}, "
+                    f"{csp_data[i, csp_hdr.index('mu_err')]}, "
+                    f"{csp_data[i, csp_hdr.index('x1')]}, "
+                    f"{csp_data[i, csp_hdr.index('x1_err')]}, "
+                    f"{csp_data[i, csp_hdr.index('t0')]}, "
+                    f"{csp_data[i, csp_hdr.index('t0_err')]}, "
+                    f"{csp_data[i, csp_hdr.index('c')]}, "
+                    f"{csp_data[i, csp_hdr.index('c_err')]}, "
+                    f"{csp_data[i, csp_hdr.index('hostMass')]}, "
+                    f"{csp_data[i, csp_hdr.index('hostMass_err')]}\n")
+        # Write ATLAS data next
+        for i in range(len(atlas_data[:, atlas_hdr.index('objname')])):
+            f.write(f"{atlas_data[i, atlas_hdr.index('objname')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('ra')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('dec')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('z')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('z_cmb')]}, "
+                    f"ATLAS_NORM, "
+                    f"{atlas_data[i, atlas_hdr.index('mu')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('mu_err')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('x1')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('x1_err')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('t0')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('t0_err')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('c')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('c_err')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('hostMass')]}, "
+                    f"{atlas_data[i, atlas_hdr.index('hostMass_err')]}\n")
+
 
     return
 
@@ -1464,15 +1528,14 @@ def resid_v_mass(path: str, title: str = '', cuts: list = [10, 'median'], save_l
 
     # Corrections
     mu_err = np.sqrt(mu_err ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
-    # r_mn, r_md, r_std = sigma_clipped_stats(resid_mu)
-    # m_mn, m_md, m_std = sigma_clipped_stats(mass)
-    # iGood = (abs(resid_mu - r_mn) < 3 * r_std) & (abs(mass - m_mn) < 3 * m_std)
-    # mu, mu_err, z, resid_mu, resid_mu_err, mass, mass_err, origins, names = (
-    #     mu[iGood], mu_err[iGood], z[iGood], resid_mu[iGood], resid_mu_err[iGood], mass[iGood], mass_err[iGood], origins[iGood], names[iGood])
+
+    # Adjust alpha
+    pnt_alpha = 1
+    if len(resid_mu) > 100: pnt_alpha = 0.35
 
     # Make main plot
     for origin in np.unique(origins):
-        format_dict = {'marker': 'o', 'fmt': 'o', 'label': origin, 'alpha': 1, 'ms': 6}
+        format_dict = {'marker': 'o', 'fmt': 'o', 'label': origin, 'alpha': pnt_alpha, 'ms': 6}
         if 'algo' in hdr:
             if 'SNPY' in origin:
                 format_dict['label'], format_dict['marker'] = origin[:-5], 'o'
@@ -1583,9 +1646,13 @@ def resid_v_mass_colormap(path: str, param: str, title: str = '', cuts: list = [
     # Corrections
     mu_err = np.sqrt(mu_err ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
 
+    # Adjust alpha
+    pnt_alpha = 1
+    if len(resid_mu) > 100: pnt_alpha = 0.5
+
     # Make main plot
-    axs[0].errorbar(mass, resid_mu, xerr=mass_err, yerr=resid_mu_err, fmt='.')
-    mass_plt = axs[0].scatter(mass, resid_mu, c=param_arr, cmap='viridis_r', label=f"CMAP: '{param}'")
+    axs[0].errorbar(mass, resid_mu, xerr=mass_err, yerr=resid_mu_err, alpha=pnt_alpha, fmt='.')
+    mass_plt = axs[0].scatter(mass, resid_mu, c=param_arr, cmap='magma', alpha=pnt_alpha, label=f"CMAP: '{param}'")
 
     # Labels
     if label:
@@ -1949,11 +2016,11 @@ def alpha_beta_plot_chi2(path: str = 'output/combiend__salt_params_cut.txt', sav
     # Plot x1 line
     result = minimize(gen.get_chi2, 0.00, args=(x1, y_axis, x1_err, alpha_norm))
     b_fit = result.x[0]
-    ax[0].axline((0, b_fit), slope=alpha_norm, color='red', label="$-\\alpha_{Pantheon\\text{+}}" + f"={round(alpha_norm, 3)}$") # Normal
+    ax[0].axline((0, b_fit), slope=alpha_norm, color='red', label="$\\alpha_{Pantheon\\text{+}}" + f"={round(-1*alpha_norm, 3)}$") # Normal
     if not norm:
         result = minimize(gen.get_chi2, 0.00, args=(x1, y_axis, x1_err, alpha))
         b_fit = result.x[0]
-        ax[0].axline((0, b_fit), slope=alpha, color='green', label="$-\\alpha_{1991bg\\text{-}like}" + f"={round(alpha, 3)}$") # 1991bg-like
+        ax[0].axline((0, b_fit), slope=alpha, color='green', label="$\\alpha_{1991bg\\text{-}like}" + f"={round(-1*alpha, 3)}$") # 1991bg-like
 
     # Plot c line
     result = minimize(gen.get_chi2, 0.00, args=(c, y_axis, c_err, beta_norm))
@@ -2246,6 +2313,67 @@ def format_dr3(path: str = 'txts/DR3_fits.dat', save_loc: str = 'output/dr3_para
                     f"{data[i, hdr.index('EBVhost')]}, "
                     f"{abs(data[i, hdr.index('e_EBVhost')].astype(float))}\n")
     return
+def format_aaronDo(path: str = 'txts/SALT2mu_HSF.fitres', save_loc: str = 'output/aaronDo_salt2_params.txt'):
+    # Load Data
+    data = np.genfromtxt(path, dtype=str)
+    hdr, data = list(data[0, :]), data[1:, :]
+
+    # Fix objnames
+    for i in range(len(data[:, hdr.index('CID')])):
+        data[i, hdr.index('CID')] = '20'+data[i, hdr.index('CID')]
+
+    # Get RA & DEC
+    ra, dec = [], []
+    count = 1
+    for obj in data[:, hdr.index('CID')]:
+        print(f"==========================================================\n[{count}/{len(data[:, hdr.index('CID')])}]")
+        n_ra, n_dec, n_z, n_disc = gen.TNS_get_RA_DEC(objname=obj)
+        ra.append(n_ra)
+        dec.append(n_dec)
+        count += 1
+
+    # Get Host Masses
+    masses, masses_err = [], []
+    for i in range(len(data[:, hdr.index('CID')])):
+        print(f"==============================================================\n[{i+1}/{len(data[:, hdr.index('CID')])}]")
+        gen.quiet_mode(True)
+        temp = SN91bg()
+        temp.objname = data[i, hdr.index('CID')]
+        temp.z = float(data[i, hdr.index('zHEL')])
+        temp.z_cmb = float(data[i, hdr.index('zCMB')])
+        temp.coords = [float(ra[i]), float(dec[i])]
+        gen.quiet_mode(False)
+        temp.get_host_mass(use_key = True, calc_zcmb = False)
+        masses.append(temp.params['hostMass']['value'])
+        masses_err.append(temp.params['hostMass']['err'])
+
+    # Write to file
+    with open(save_loc, 'w') as f:
+        f.write(f'# Created by M.D. Woods -- {CURRENTDATE} -- NUM TARGETS: {len(data[:, 0])}\n')
+        f.write(f"# Avg. 'c': {np.average(data[:, hdr.index('c')].astype(float))} +/- "
+                f"{np.average(data[:, hdr.index('cERR')].astype(float))}\n")
+        f.write(f"# Avg. 'x1': {np.average(data[:, hdr.index('x1')].astype(float))} +/- "
+                f"{np.average(data[:, hdr.index('x1ERR')].astype(float))}\n")
+        f.write(f'objname, ra, dec, z, z_cmb, origin, mu, mu_err, x1, x1_err, t0, t0_err, c, c_err, hostMass, hostMass_err\n')
+        for i in range(len(data[:, 0])):
+            if masses_err[i] < 0: continue # Remove failed masses, 33 mostly from GHOST 405 Errors
+            f.write(f"{data[i, hdr.index('CID')]}, "
+                    f"{ra[i]}, "
+                    f"{dec[i]}, "
+                    f"{data[i, hdr.index('zHEL')]}, "
+                    f"{data[i, hdr.index('zCMB')]}, "
+                    f"ATLAS_NORM, "
+                    f"{data[i, hdr.index('MU')]}, "
+                    f"{abs(data[i, hdr.index('MUERR')].astype(float))}, "
+                    f"{data[i, hdr.index('x1')]}, "
+                    f"{abs(data[i, hdr.index('x1ERR')].astype(float))}, "
+                    f"{data[i, hdr.index('PKMJD')]}, "
+                    f"{abs(data[i, hdr.index('PKMJDERR')].astype(float))}, "
+                    f"{data[i, hdr.index('c')]}, "
+                    f"{abs(data[i, hdr.index('cERR')].astype(float))}, "
+                    f"{masses[i]}, "
+                    f"{masses_err[i]}\n")
+    return
 
 # Main Function Call ------------------------------------------------------------------------------------------------ #
 def main_help():
@@ -2308,9 +2436,9 @@ def refresh_all(new_data: bool = False):
         norm_fit('salt', 'output/norm_salt_params.txt', dmag_max=1.00)
 
     # Fix normal files
-    format_dr3()
-    format_panthplus()
-    sample_cutter('output/panthplus_params.txt', 'salt')
+    # format_dr3()
+    # format_panthplus()
+    # sample_cutter('output/panthplus_params.txt', 'salt')
 
     # Merge raw files
     merged_options('output/combiend__snpy_params.txt',
@@ -2342,7 +2470,7 @@ def refresh_all(new_data: bool = False):
     resid_v_mass(path='output/merged_params_cut.txt',
                  save_loc='saved/readme_plots/merged_resid_v_mass.png')
                  # title='Hubble Residual v. Host Stellar Mass of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]')
-    resid_v_mass(path='output/norm_merged_params_cut.txt',
+    resid_v_mass(path='output/aaronDo_salt2_params.txt',
                  save_loc='saved/readme_plots/normIa_resid_v_mass.png')
                  # title='Hubble Residual v. Host Stellar Mass of Normal SNe Ia from CSP [SNooPy]',)
 
@@ -2356,7 +2484,7 @@ def refresh_all(new_data: bool = False):
     mu_v_z(path='output/merged_params_cut.txt',
            save_loc='saved/readme_plots/merged_resid_v_z.png')
            # title = 'Hubble Residual v. CMB Redshift of CSP-ATLAS-ZTF 91bg-like SNe Ia [SALT3-SNooPy]',
-    mu_v_z(path='output/norm_merged_params_cut.txt',
+    mu_v_z(path='output/aaronDo_salt2_params.txt',
            save_loc='saved/readme_plots/normIa_resid_v_z.png')
 
     # Update Histograms
@@ -2378,7 +2506,25 @@ def refresh_all(new_data: bool = False):
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-    # resid_v_mass(path='output/merged_params_cut.txt')
 
-    refresh_all()
+    f = plt.subplot(projection='aitoff')
+    hdr, data = gen.default_open('output/merged_params_cut.txt')
+    for origin in np.unique(data[:, hdr.index('origin')]):
+        algo = origin[-4:]
+        source = origin[:-5]
+        indexs = np.where(data[:, hdr.index('origin')] == origin)[0]
+        ra, dec = data[:, hdr.index('ra')].astype(float)[indexs], data[:, hdr.index('dec')].astype(float)[indexs]
+        plt.scatter(ra, dec, s=25, marker='*', label="$"+source+"_{"+algo+"}$")
+
+    # Norm
+    hdr, data = gen.default_open('output/aaronDo_salt2_params_cut.txt')
+    ra, dec = data[:, hdr.index('ra')].astype(float), data[:, hdr.index('dec')].astype(float)
+    plt.scatter(ra, dec, s=25, marker='.', label='$Norm SN\,Ia$')
+    plt.grid(c='green')
+    # plt.legend(loc='lower right')
+    plt.figure(figsize=(12, 4))
+    plt.show()
+
+
+    # refresh_all()
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')

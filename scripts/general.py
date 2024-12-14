@@ -1,4 +1,5 @@
 import os
+import sys
 import time as systime
 import numpy as np
 
@@ -72,6 +73,53 @@ def TNS_details(obj_ra, obj_dec, attempts=10, radius=2, use_keys=True):
             systime.sleep(5)
             obj_name, obj_z, obj_discdate = TNS_details(obj_ra, obj_dec, attempts=attempts-1, radius=radius+1, use_keys=use_keys)
     return obj_name, obj_z, obj_discdate
+def TNS_get_RA_DEC(objname, attempts=10, radius=2, use_keys=True):
+    from scripts import tnsAPI
+    APIkey = get_APIkeys()
+    print('-----------------------------------------------------------------------------------------------------------')
+    print(f'Searching TNS for {objname} [{radius}"]...')
+    tns_bot_id, tns_bot_name, tns_bot_api_key = APIkey['tns_bot_id'], APIkey['tns_bot_name'], APIkey['tns_bot_api_key']
+    tns_key = dict_handler(choice='unpack', path=get_constants()['tns_key_txt'])
+    obj_ra, obj_dec, obj_z, obj_discdate = '', '', 0.00, ''
+
+    known_objname, known_ra = [], []
+    for o in tns_key:
+        known_objname.append(tns_key[o]['objname'])
+        known_ra.append(o)
+
+    # Check key
+    print('Checking TNS key...')
+    if use_keys and (objname in known_objname):
+        obj_ra = known_ra[known_objname.index(objname)]
+        obj_dec, obj_z, obj_discdate = tns_key[obj_ra]['dec'], tns_key[obj_ra]['z'], tns_key[obj_ra]['discoverydate']
+    else:
+        # Query TNS key
+        print('Querying TNS...')
+        try:
+            # Code abridged from David's code
+            headers = tnsAPI.build_tns_header(tns_bot_id, tns_bot_name)
+            tns_api_url = f"https://www.wis-tns.org/api/get"
+            search_tns_url = tnsAPI.build_tns_url(tns_api_url, mode="search")
+            get_tns_url = tnsAPI.build_tns_url(tns_api_url, mode="get")
+            search_data = tnsAPI.build_tns_search_query_data_objname(tns_bot_api_key, objname, radius=radius)
+            transients = tnsAPI.rate_limit_query_tns(search_data, headers, search_tns_url)
+            get_data = tnsAPI.build_tns_get_query_data(tns_bot_api_key, transients[0])
+            details = tnsAPI.rate_limit_query_tns(get_data, headers, get_tns_url)
+            obj_ra, obj_dec, obj_z = details['radeg'], details['decdeg'], details['redshift']
+            obj_discdate = float(astrotime(details['discoverydate'], format='iso').jd) - 2400000.5 # JD to MJD
+            if use_keys:
+                with open(get_constants()['tns_key_txt'], 'a') as f:
+                    f.write(str(obj_ra) + ', ' + str(obj_dec) + ', ' + objname + ', ' + str(obj_z) +
+                            ', ' + str(obj_discdate) + '\n') # Save to key
+        except Exception as error:
+            print('Error:', error)
+            if attempts <= 0:
+                print('TNS completly timed out.')
+                return None, None, None, None
+            print(f'{attempts} attempts remaining')
+            systime.sleep(5)
+            obj_name, obj_z, obj_discdate = TNS_get_RA_DEC(objname=objname, attempts=attempts-1, radius=radius+1, use_keys=use_keys)
+    return obj_ra, obj_dec, obj_z, obj_discdate
 def dict_handler(data_dict={}, choice='', path='default/dict.txt', delimiter=', '):
     if choice == 'unpack':
         print('[+++] Unpacking objects from '+path+'...')
@@ -152,7 +200,10 @@ def save_figure(save_loc: str):
         print(f"Saved figure to...  {save_loc}")
         plt.savefig(save_loc, dpi=300)
     return
-
+def quiet_mode(enabled: bool):
+    if enabled: sys.stdout = open(os.devnull, 'w')
+    else: sys.stdout = sys.__stdout__
+    return
 # import numpy as np
 # import requests
 # from requests.auth import HTTPBasicAuth
