@@ -32,8 +32,8 @@ csp91bglike_txt, txts/csp_91bg.txt
 ztf_spread, 300
 salt_alpha, 0.153
 salt_beta, 2.98
-salt_alpha_norm, 0.109
-salt_beta_norm, 3.552
+salt_alpha_91bg, 0.06
+salt_beta_91bg, 3.284
 salt_mB_const, 10.635
 salt_absolute_mag, -19.36
 

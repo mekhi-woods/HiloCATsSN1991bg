@@ -1060,6 +1060,7 @@ def save_params_to_file_cov(save_loc: str, SNe: list[object]):
 
     # Write data to file
     with open(save_loc, 'w') as f:
+        f.write(f'# Created by M.D. Woods -- {CURRENTDATE} -- NUM TARGETS: {len(SNe)}\n')
         # Write header
         f.write(str(hdr[0]))
         for i in range(1, len(hdr)):
@@ -1987,22 +1988,24 @@ def alpha_beta_plot_chi2(path: str = 'output/combiend__salt_params_cut.txt', sav
     # Load data
     hdr, data = gen.default_open(path)
     names = data[:, hdr.index('objname')]
-    mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
+    z_cmb = data[:, hdr.index('z_cmb')].astype(float)
+    x0, x0_err = data[:, hdr.index('x0')].astype(float), data[:, hdr.index('x0_err')].astype(float)
     c, c_err = data[:, hdr.index('c')].astype(float), data[:, hdr.index('c_err')].astype(float)
     x1, x1_err = data[:, hdr.index('x1')].astype(float), data[:, hdr.index('x1_err')].astype(float)
-    x0, x0_err = data[:, hdr.index('x0')].astype(float), data[:, hdr.index('x0_err')].astype(float)
 
     # Get y-axis (Absolute Mag)
     m_b = (-2.5 * np.log10(x0)) + 10.635
-    m_b_err = np.abs(-2.5*(x0_err/(x0*np.log(10))))
-    y_axis = m_b - mu
-    y_axis_err = np.sqrt(m_b_err**2 + mu_err**2)
+    y_axis = m_b - gen.current_cosmo().distmod(z_cmb).value
+    # m_b_err = np.abs(-2.5*(x0_err/(x0*np.log(10))))
+    m_b_err = np.sqrt((2.5 * (x0_err / (x0 * np.log(10)))) ** 2. + 0.1 ** 2.)
+    y_axis_err = np.copy(m_b_err)
+
 
     # Plot alpha & beta values
-    alpha = -1*float(CONSTANTS['salt_alpha'])
-    beta = float(CONSTANTS['salt_beta'])
-    alpha_norm = -1*float(CONSTANTS['salt_alpha_norm'])
-    beta_norm = float(CONSTANTS['salt_beta_norm'])
+    alpha_91bg = -1*float(CONSTANTS['salt_alpha_91bg'])
+    beta_91bg = float(CONSTANTS['salt_beta_91bg'])
+    alpha_norm = -1*float(CONSTANTS['salt_alpha'])
+    beta_norm = float(CONSTANTS['salt_beta'])
 
     # Adjust opacity for lots of points
     opacity = 1.0
@@ -2013,23 +2016,20 @@ def alpha_beta_plot_chi2(path: str = 'output/combiend__salt_params_cut.txt', sav
     ax[0].errorbar(x1, y_axis, xerr=x1_err, yerr=y_axis_err, fmt='o', alpha=opacity)
     ax[1].errorbar(c, y_axis, xerr=c_err, yerr=y_axis_err, fmt='o', alpha=opacity)
 
-    # Plot x1 line
-    result = minimize(gen.get_chi2, 0.00, args=(x1, y_axis, x1_err, alpha_norm))
-    b_fit = result.x[0]
-    ax[0].axline((0, b_fit), slope=alpha_norm, color='red', label="$\\alpha_{Pantheon\\text{+}}" + f"={round(-1*alpha_norm, 3)}$") # Normal
-    if not norm:
-        result = minimize(gen.get_chi2, 0.00, args=(x1, y_axis, x1_err, alpha))
-        b_fit = result.x[0]
-        ax[0].axline((0, b_fit), slope=alpha, color='green', label="$\\alpha_{1991bg\\text{-}like}" + f"={round(-1*alpha, 3)}$") # 1991bg-like
+    # Find y-intercept
+    x1_yint_91bg = minimize(gen.get_chi2, 0.00, args=(x1, y_axis, y_axis_err, alpha_91bg)).x[0]
+    x1_yint_norm = minimize(gen.get_chi2, 0.00, args=(x1, y_axis, y_axis_err, alpha_norm)).x[0]
+    c_yint_91bg = minimize(gen.get_chi2, 0.00, args=(c, y_axis, y_axis_err, beta_91bg)).x[0]
+    c_yint_norm = minimize(gen.get_chi2, 0.00, args=(c, y_axis, y_axis_err, beta_norm)).x[0]
 
-    # Plot c line
-    result = minimize(gen.get_chi2, 0.00, args=(c, y_axis, c_err, beta_norm))
-    b_fit = result.x[0]
-    ax[1].axline((0, b_fit), slope=beta_norm, color='red', label="$\\beta_{Pantheon\\text{+}}"+f"={round(beta_norm,3)}$")
+    # Plot normal SNe lines
+    ax[0].axline((0, x1_yint_norm), slope=alpha_norm, color='red', label="$\\alpha_{Pantheon\\text{+}}" + f"={round(-1*alpha_norm, 3)}$")
+    ax[1].axline((0, c_yint_norm), slope=beta_norm, color='red', label="$\\beta_{Pantheon\\text{+}}"+f"={round(beta_norm, 3)}$")
+
+    # Plot 91bg-like lines
     if not norm:
-        result = minimize(gen.get_chi2, 0.00, args=(c, y_axis, c_err, beta))
-        b_fit = result.x[0]
-        ax[1].axline((0, b_fit), slope=beta, color='green', label="$\\beta_{1991bg\\text{-}like}" + f"={round(beta, 3)}$")
+        ax[0].axline((0, x1_yint_91bg), slope=alpha_91bg, color='green', label="$\\alpha_{1991bg\\text{-}like}" + f"={round(-1*alpha_91bg, 3)}$")
+        ax[1].axline((0, c_yint_91bg), slope=beta_91bg, color='green', label="$\\beta_{1991bg\\text{-}like}" + f"={round(beta_91bg, 3)}$")
 
     # Label Object Names
     if label:
@@ -2038,18 +2038,34 @@ def alpha_beta_plot_chi2(path: str = 'output/combiend__salt_params_cut.txt', sav
             ax[1].text(c[n], y_axis[n], names[n], ha='left', va='top', size='x-small')
 
     # Formatting
-    ax[0].set_xlabel('x1')
-    ax[0].set_ylabel('$m_{B} - \mu$')
-    ax[0].invert_yaxis()
-    ax[0].legend()
-    ax[1].set_xlabel('c')
+    ax[0].set(xlabel='x1', ylabel='$m_{B} - \mu$')
+    ax[1].set(xlabel='c')
+    ax[0].invert_yaxis(); ax[1].invert_yaxis()
+    ax[0].legend(); ax[1].legend()
     ax[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
-    ax[1].invert_yaxis()
-    ax[1].legend()
 
     if len(save_loc) > 0:
         print(f"Saved figure to...  {save_loc}")
         plt.savefig(save_loc, dpi=300)
+    plt.show()
+    return
+def aitoff_plot(path: str = 'output/merged_params_cut.txt'):
+    f = plt.subplot(projection='aitoff')
+    hdr, data = gen.default_open(path)
+    for origin in np.unique(data[:, hdr.index('origin')]):
+        algo = origin[-4:]
+        source = origin[:-5]
+        indexs = np.where(data[:, hdr.index('origin')] == origin)[0]
+        ra, dec = data[:, hdr.index('ra')].astype(float)[indexs], data[:, hdr.index('dec')].astype(float)[indexs]
+        plt.scatter(ra, dec, s=25, marker='*', label="$"+source+"_{"+algo+"}$")
+
+    # # Norm
+    # hdr, data = gen.default_open('output/aaronDo_salt2_params_cut.txt')
+    # ra, dec = data[:, hdr.index('ra')].astype(float), data[:, hdr.index('dec')].astype(float)
+    # plt.scatter(ra, dec, s=25, marker='.', label='$Norm SN\,Ia$')
+    # plt.legend(loc='lower right')
+    plt.figure(figsize=(12, 4))
+    plt.grid(c='green')
     plt.show()
     return
 def update_readme_plots():
@@ -2162,26 +2178,20 @@ def SNooPy_SALT3_overlap(snpy_path: str, salt_path: str):
     plt.show()
 
     return
-def alpha_beta_fitting():
-    # SNe = main(fit_type='combiend', algo='salt', dmag_max=1.00)
-    # save_params_to_file_cov('output/combiend__salt_params_cov.txt', SNe)
-    # sample_cutter('output/combiend__salt_params_cov.txt', 'salt')
-    opt_dict = optimize_alpha_beta('output/old/combiend__salt_params_cov_cut.txt')
-    print('91bg-like SNe Ia ========================')
-    print('\tAlpha: '+str(round(opt_dict['alpha'], 3)))
-    print('\tBeta:  '+str(round(opt_dict['beta'], 3)))
-
-    # SNe = norm_fit(algo = 'salt', save_loc = 'txts/norm_10-18-24/norm_10-18-24_params.txt', dflux_max = 1.00)
-    # save_params_to_file_cov('txts/norm_10-18-24/norm_10-18-24_params_cov.txt', SNe)
-    # sample_cutter('txts/norm_10-18-24/norm_10-18-24_params_cov.txt', 'salt')
-    opt_dict = optimize_alpha_beta('txts/norm_10-18-24/norm_10-18-24_params_cov_cut.txt')
-    print('Normal SNe Ia ===========================')
-    print('\tAlpha: '+str(round(opt_dict['alpha'], 3)))
-    print('\tBeta:  '+str(round(opt_dict['beta'], 3)))
-
-    print('Expected Normal SNe =====================')
-    print('\tAlpha: 0.153')
-    print('\tBeta:  2.980')
+def alpha_beta_fitting(cut_path: str, uncut_path: str):
+    # alpha_beta_fitting('output/salt_norm_params_cov_cut.txt', 'output/salt_norm_params_cov.txt')
+    # alpha_beta_fitting('output/salt_params_cov_cut.txt', 'output/salt_params_cov.txt')
+    opt_dict = optimize_alpha_beta('output/salt_norm_params_cov.txt')
+    print(f"Cut -- {cut_path}\n"
+          f"\tAlpha: {round(opt_dict['alpha'], 3)}\n"
+          f"\tBeta: {round(opt_dict['beta'], 3)}\n"
+          f"======================================================")
+    opt_dict = optimize_alpha_beta('output/salt_norm_params_cov_cut.txt')
+    print(f"Uncut -- {uncut_path}\n"
+          f"\tAlpha: {round(opt_dict['alpha'], 3)}\n"
+          f"\tBeta: {round(opt_dict['beta'], 3)}\n"
+          f"======================================================")
+    print("Expected SALT3 Normal \n\tAlpha: 0.153 \n\tBeta:  2.980")
     return
 def data_stats(fmt: str = 'print', path: str = 'output/merged_params_cut.txt'):
     hdr, data = gen.default_open(path)
@@ -2506,25 +2516,5 @@ def refresh_all(new_data: bool = False):
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-
-    f = plt.subplot(projection='aitoff')
-    hdr, data = gen.default_open('output/merged_params_cut.txt')
-    for origin in np.unique(data[:, hdr.index('origin')]):
-        algo = origin[-4:]
-        source = origin[:-5]
-        indexs = np.where(data[:, hdr.index('origin')] == origin)[0]
-        ra, dec = data[:, hdr.index('ra')].astype(float)[indexs], data[:, hdr.index('dec')].astype(float)[indexs]
-        plt.scatter(ra, dec, s=25, marker='*', label="$"+source+"_{"+algo+"}$")
-
-    # Norm
-    hdr, data = gen.default_open('output/aaronDo_salt2_params_cut.txt')
-    ra, dec = data[:, hdr.index('ra')].astype(float), data[:, hdr.index('dec')].astype(float)
-    plt.scatter(ra, dec, s=25, marker='.', label='$Norm SN\,Ia$')
-    plt.grid(c='green')
-    # plt.legend(loc='lower right')
-    plt.figure(figsize=(12, 4))
-    plt.show()
-
-
-    # refresh_all()
+    refresh_all()
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
