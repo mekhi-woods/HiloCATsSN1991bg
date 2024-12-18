@@ -53,8 +53,7 @@ For perspective, below is the same plot for normal SNe Ia.
 ![](saved/readme_plots/salt_params_hicat_v_panthplus.png "")
 
 ### Alpha-Beta Fitting
-![](saved/readme_plots/alpha_beta_91bg.png "")
-![](saved/readme_plots/alpha_beta_norm.png "") 
+![](saved/readme_plots/alpha_beta_overlap.png "") 
 
 
 [//]: # (![]&#40;saved/readme_plots/allparam_cornerPlot.png ""&#41;)

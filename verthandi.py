@@ -1614,6 +1614,86 @@ def resid_v_mass(path: str, title: str = '', cuts: list = [10, 'median'], save_l
         plt.savefig(save_loc)
     plt.show()
     return
+def resid_v_mass_overlap(path_91bg: str, path_norm: str, cuts: list = [10, 'median'], save_loc: str = '', label: bool = False):
+    """
+    Plots the Hubble Residual v. Mass
+    :param path: str; location of file of parameter file
+    :param title: str = ''; optional title to put at top of file
+    :param save_loc: str = ''; location to save plot
+    """
+    fig, axs = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [10, 1]}, constrained_layout=True)
+    plt.style.use('tableau-colorblind10')
+
+    for p_i, path in enumerate([path_norm, path_91bg]):
+        # Pull data from saved text & header
+        hdr, data = gen.default_open(path)
+
+        # Set Arrays
+        names = data[:, hdr.index('objname')]
+        z = data[:, hdr.index('z_cmb')].astype(float)
+        origins = data[:, hdr.index('origin')]
+        mass, mass_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
+        mu, mu_err = data[:, hdr.index('mu')].astype(float), data[:, hdr.index('mu_err')].astype(float)
+        mu_err = np.sqrt(mu_err ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
+
+        # Calculate Hubble Residual
+        resid_mu = mu - gen.current_cosmo().distmod(z).value
+        resid_mu -= np.average(resid_mu[~np.isnan(resid_mu)]) # Centering around average
+        resid_mu_err = np.copy(mu_err)
+
+        # Make main plot
+        for index, origin in enumerate(np.unique(origins)):
+            mk = '^' if origin[-4:] == 'SALT' else 'o'
+            pnt_a = 0.2 if len(resid_mu) > 100 else 1.0
+            lb = "$"+f"{origin[:-5]}"+"_{"+f"{origin[-4:]}"+"}$" if origin[-4:] == 'SALT' or 'SNPY' else origin[:-5]
+            format_dict = {'marker': mk, 'alpha': pnt_a, 'label': lb, 'color': f'C{index+(p_i)}',
+                           'fmt': 'o', 'ms': 6, 'elinewidth': 0.8}
+            axs[0].errorbar(mass[origins == origin], resid_mu[origins == origin],
+                            xerr=mass_err[origins == origin], yerr=resid_mu_err[origins == origin], **format_dict)
+            # Labels
+            if label:
+                for i in range(len(resid_mu)):
+                    axs[0].text(mass[i], resid_mu[i], names[i], ha='left', va='top', size='xx-small')
+
+        # Make histogram -- Bin Width = 0.05
+        axs[1].hist(resid_mu, bins=int((np.max(resid_mu) - np.min(resid_mu)) / 0.05),
+                    orientation="horizontal", color=f'C{p_i+4}', label='')
+
+        # Display Both Mass Steps
+        for index, cut in enumerate(cuts):
+            cut_copy = cut
+            if cut == 'median': cut = round(np.median(mass), 4)
+            # Get Mass Step
+            mass_step_dict, resid_dict = mass_step_calc(mu, mu_err, resid_mu, mass, z, cut=float(cut))
+            if mass_step_dict['value'] == 0.00 and mass_step_dict['err'] == 0.00: continue
+
+            # Plot Mass Step
+            lin_details = {'linestyle': '--', 'linewidth': 3.0, 'color': f'C{1+index}', 'zorder': 10}
+            axs[0].vlines(x=cut, ymin=resid_dict['lower_resid']['value'], ymax=resid_dict['upper_resid']['value'], **lin_details)
+            axs[0].hlines(y=resid_dict['lower_resid']['value'], xmin=np.min(mass) - 0.3, xmax=cut, **lin_details)  # Left
+            axs[0].hlines(y=resid_dict['upper_resid']['value'], xmin=cut, xmax=np.max(mass) + 0.3,
+                          label=f"{cut_copy}: {round(mass_step_dict['value'], 4)} $\pm$ {round(mass_step_dict['err'], 4)}",
+                          **lin_details)  # Right
+
+    # Labels
+    fig.suptitle(f'$\sigma$: {round(np.std(resid_mu), 4)}, $n$: {len(resid_mu)}')
+    axs[0].set(xlabel="Host Stellar Mass ($\log M_{*}[M_{\odot}]$)",
+               ylabel='Hubble Residuals (mag)')  # Sub-plot Labels
+    axs[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
+    axs[0].legend(loc='best')
+
+    # Adjust axies
+    clearance = 0.2
+    plt.tick_params(labelleft=False)
+    axs[0].set_ylim(np.min(resid_mu) - clearance, np.max(resid_mu) + clearance)
+    axs[1].set_ylim(np.min(resid_mu) - clearance, np.max(resid_mu) + clearance)
+
+    # Saving Figure
+    if len(save_loc) != 0:
+        print('Saved figure to... ', save_loc)
+        plt.savefig(save_loc)
+    plt.show()
+    return
 def resid_v_mass_colormap(path: str, param: str, title: str = '', cuts: list = [10, 'median'], save_loc: str = '',
                           label: bool = False):
     fig, axs = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [10, 1]},
@@ -2038,11 +2118,91 @@ def alpha_beta_plot_chi2(path: str = 'output/combiend__salt_params_cut.txt', sav
             ax[1].text(c[n], y_axis[n], names[n], ha='left', va='top', size='x-small')
 
     # Formatting
-    ax[0].set(xlabel='x1', ylabel='$m_{B} - \mu$')
-    ax[1].set(xlabel='c')
+    ax[0].set(xlabel='$x_1$', ylabel='$m_{B} - \mu$')
+    ax[1].set(xlabel='$c$')
     ax[0].invert_yaxis(); ax[1].invert_yaxis()
     ax[0].legend(); ax[1].legend()
     ax[1].get_yaxis().set_visible(False)  # Turn off y-axis labels
+
+    if len(save_loc) > 0:
+        print(f"Saved figure to...  {save_loc}")
+        plt.savefig(save_loc, dpi=300)
+    plt.show()
+    return
+def alpha_beta_plot_chi2_overlap(path_91bg: str = 'output/salt_params_cov_cut.txt',
+                                 path_norm: str = 'output/panthplus_params_cut.txt',
+                                 save_loc: str = '', label: bool = False):
+    # Plot alpha & beta values
+    alpha_91bg = -1*float(CONSTANTS['salt_alpha_91bg'])
+    beta_91bg = float(CONSTANTS['salt_beta_91bg'])
+    alpha_norm = -1*float(CONSTANTS['salt_alpha'])
+    beta_norm = float(CONSTANTS['salt_beta'])
+
+    # Plot points
+    fig, ax = plt.subplots(1, 2, figsize=(14, 6), constrained_layout=True)
+    plt.style.use('tableau-colorblind10')
+
+    ## 91bg
+    hdr, data = gen.default_open(path_91bg)
+    x0_91bg, x0_err_91bg = data[:, hdr.index('x0')].astype(float), data[:, hdr.index('x0_err')].astype(float)
+    x1_91bg, x1_err_91bg = data[:, hdr.index('x1')].astype(float), data[:, hdr.index('x1_err')].astype(float)
+    c_91bg, c_err_91bg = data[:, hdr.index('c')].astype(float), data[:, hdr.index('c_err')].astype(float)
+    z_91bg = data[:, hdr.index('z_cmb')].astype(float)
+
+    m_b_91bg = ((-2.5 * np.log10(x0_91bg)) + 10.635)
+    y_axis_91bg = m_b_91bg - gen.current_cosmo().distmod(z_91bg).value
+    m_b_err_91bg = np.sqrt((2.5 * (x0_err_91bg / (x0_91bg * np.log(10)))) ** 2.0 + 0.1 ** 2.0)
+    y_axis_err_91bg = np.copy(m_b_err_91bg)
+
+    ax[0].errorbar(x1_91bg, y_axis_91bg, xerr=x1_err_91bg, yerr=y_axis_err_91bg, fmt='o', marker='s', alpha=1.0, label='$M_{1991bg\\text{-}like}$', color='C1')
+    ax[1].errorbar(c_91bg, y_axis_91bg, xerr=c_err_91bg, yerr=y_axis_err_91bg, fmt='o', marker='s', alpha=1.0, label='$M_{1991bg\\text{-}like}$', color='C1')
+
+    ## Normal
+    hdr, data = gen.default_open(path_norm)
+    x0_norm, x0_err_norm = data[:, hdr.index('x0')].astype(float), data[:, hdr.index('x0_err')].astype(float)
+    x1_norm, x1_err_norm = data[:, hdr.index('x1')].astype(float), data[:, hdr.index('x1_err')].astype(float)
+    c_norm, c_err_norm= data[:, hdr.index('c')].astype(float), data[:, hdr.index('c_err')].astype(float)
+    z_norm = data[:, hdr.index('z_cmb')].astype(float)
+
+    m_b_norm = ((-2.5 * np.log10(x0_norm)) + 10.635)
+    y_axis_norm = m_b_norm - gen.current_cosmo().distmod(z_norm).value
+    m_b_err_norm = np.sqrt((2.5 * (x0_err_norm / (x0_norm * np.log(10)))) ** 2.0 + 0.1 ** 2.0)
+    y_axis_err_norm = np.copy(m_b_err_norm)
+
+    ax[0].errorbar(x1_norm, y_axis_norm, xerr=x1_err_norm, yerr=y_axis_err_norm, fmt='o', alpha=0.2, label='$M_{Pantheon+}$', color='C3')
+    ax[1].errorbar(c_norm, y_axis_norm, xerr=c_err_norm, yerr=y_axis_err_norm, fmt='o', alpha=0.2, label='$M_{Pantheon+}$', color='C3')
+
+    # Find y-intercept
+    x1_yint_norm_norm = minimize(gen.get_chi2, 0.00, args=(x1_norm, y_axis_norm, y_axis_err_norm, alpha_norm)).x[0]
+    x1_yint_91bg_91bg = minimize(gen.get_chi2, 0.00, args=(x1_91bg, y_axis_91bg, y_axis_err_91bg, alpha_91bg)).x[0]
+    x1_yint_91bg_norm = minimize(gen.get_chi2, 0.00, args=(x1_norm, y_axis_norm, y_axis_err_norm, alpha_91bg)).x[0]
+    x1_yint_norm_91bg = minimize(gen.get_chi2, 0.00, args=(x1_91bg, y_axis_91bg, y_axis_err_91bg, alpha_norm)).x[0]
+
+    c_yint_norm_norm = minimize(gen.get_chi2, 0.00, args=(c_norm, y_axis_norm, y_axis_err_norm, beta_norm)).x[0]
+    c_yint_91bg_91bg = minimize(gen.get_chi2, 0.00, args=(c_91bg, y_axis_91bg, y_axis_err_91bg, beta_91bg)).x[0]
+    c_yint_91bg_norm = minimize(gen.get_chi2, 0.00, args=(c_norm, y_axis_norm, y_axis_err_norm, beta_91bg)).x[0]
+    c_yint_norm_91bg = minimize(gen.get_chi2, 0.00, args=(c_91bg, y_axis_91bg, y_axis_err_91bg, beta_norm)).x[0]
+
+    # Plot x1 lines
+    ax[0].axline((0, x1_yint_norm_norm), slope=alpha_norm, color='C6', label="$\\alpha_{Pantheon\\text{+}}" + f"={round(-1*alpha_norm, 2)}$", zorder=10)
+    ax[0].axline((0, x1_yint_91bg_91bg), slope=alpha_91bg, color='C8', label="$\\alpha_{1991bg\\text{-}like}" + f"={round(-1 * alpha_91bg, 2)}$", zorder=10)
+    ax[0].axline((0, x1_yint_norm_91bg), slope=alpha_norm, color='C6', linestyle='--', zorder=10)
+    ax[0].axline((0, x1_yint_91bg_norm), slope=alpha_91bg, color='C8', linestyle='--', zorder=10)
+
+    # Plot c lines
+    ax[1].axline((0, c_yint_norm_norm), slope=beta_norm, color='C6', label="$\\beta_{Pantheon\\text{+}}"+f"={round(beta_norm, 2)}$", zorder=10)
+    ax[1].axline((0, c_yint_91bg_91bg), slope=beta_91bg, color='C8', label="$\\beta_{1991bg\\text{-}like}" + f"={round(beta_91bg, 2)}$", zorder=10)
+    ax[1].axline((0, c_yint_norm_91bg), slope=beta_norm, color='C6', linestyle='--', zorder=10)
+    ax[1].axline((0, c_yint_91bg_norm), slope=beta_91bg, color='C8', linestyle='--', zorder=10)
+
+    # Formatting
+    ax[0].set_xlabel('$x_1$', size=16)
+    ax[0].set_ylabel('$m_{B} - \mu$', size=16)
+    ax[1].set_xlabel('$c$', size=16)
+    ax[0].invert_yaxis(); ax[1].invert_yaxis()
+    ax[0].legend(); ax[1].legend()
+    plt.subplots_adjust(wspace=0)
+    plt.tick_params(labelleft=False)
 
     if len(save_loc) > 0:
         print(f"Saved figure to...  {save_loc}")
@@ -2510,11 +2670,17 @@ def refresh_all(new_data: bool = False):
     # Alpha-Beta Plots
     alpha_beta_plot_chi2('output/combiend__salt_params_cut.txt', save_loc='saved/readme_plots/alpha_beta_91bg.png')
     alpha_beta_plot_chi2('output/panthplus_params_cut.txt', norm=True, save_loc='saved/readme_plots/alpha_beta_norm.png')
+    alpha_beta_plot_chi2_overlap('output/salt_params_cov_cut.txt',
+                                 'output/panthplus_params_cut.txt',
+                                 save_loc='saved/readme_plots/alpha_beta_overlap.png')
 
     return
 
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
-    refresh_all()
+    resid_v_mass_overlap('output/merged_params_cut.txt', 'output/aaronDo_salt2_params.txt')
+
+
+    # refresh_all()
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
