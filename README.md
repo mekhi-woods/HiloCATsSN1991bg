@@ -1,4 +1,4 @@
-# Mass Step of Type-1a Supernova 1991bg
+# Mass Step of 1991bg-like Ia Supernovae 
 This repository works to analyze and calculate the mass step function of Supernovae Type Ia using forced photometry 
 data from the ATLAS and ZTF sky surveys. This project is a segment of the collaboration 
 'Hilo Cosmology And Transients (CATs)', an initiative operative from the University of Hawaii.  
@@ -29,43 +29,32 @@ If any instructions are unclear, please run `help()` to see examples of each fit
 [//]: # ([TwoMass download here]&#40;https://www.dropbox.com/scl/fi/7hzwmr4xn3pd8pwaqh67i/twomass-_velocity_LH11.npy?rlkey=r2cvszip56wc6js8ebioaynj5&dl=0&#41;. )
 
 --------------------------
-### Hubble Residual v. Host Mass
-This plot depicts the relationship between the mass of the host galaxy for the SN and the corresponding Hubble Residual. 
-![](saved/readme_plots/merged_resid_v_mass.png "")
-![](saved/readme_plots/csp-atlas-ztf_snpy_resid_v_mass.png "")
-![](saved/readme_plots/csp-atlas-ztf_salt_resid_v_mass.png "")
-For perspective, below is the same plot for normal SNe Ia.
-![](saved/readme_plots/normIa_resid_v_mass.png "")
-
---------------------------
 ## Recent Plots
-### Hubble Residual v. Redshift
+--------------------------
+### Hubble Residual v. Host Mass
+This plot depicts the relationship between the mass of the host galaxy for the SN and the corresponding Hubble Residual.
+![](saved/readme_plots/combined_resid_v_mass.png "")
+
+### Hubble Diagram (Distance v. Redshift)
 This plot depicts the relationship between the redshift of the SN and the corresponding Hubble Residual.
-![](saved/readme_plots/merged_resid_v_z.png "")
-![](saved/readme_plots/csp-atlas-ztf_snpy_resid_v_z.png "")
-![](saved/readme_plots/csp-atlas-ztf_salt_resid_v_z.png "")
-For perspective, below is the same plot for normal SNe Ia.
-![](saved/readme_plots/normIa_resid_v_z.png "")
+![](saved/readme_plots/combined_mu_v_z.png "")
+
+-------------------------- 
+### SNooPy & SALT3 Parameter Histograms 
+#### Before Selection Criteria 
+![](saved/readme_plots/combined_params_91bg_v_norm_precut.png "")
+
+#### After Selection Criteria 
+![](saved/readme_plots/combined_params_91bg_v_norm_cut.png "")
 
 --------------------------
-### Parameter Histograms
-![](saved/readme_plots/snpy_params_hicat_v_dr3.png "")
-![](saved/readme_plots/salt_params_hicat_v_panthplus.png "")
+### SALT3 Distance Modulus Constants (Alpha-Beta) Fitting
+![](saved/readme_plots/combined_alpha_beta.png "") 
 
-### Alpha-Beta Fitting
-![](saved/readme_plots/alpha_beta_overlap.png "") 
-
-
-[//]: # (![]&#40;saved/readme_plots/allparam_cornerPlot.png ""&#41;)
-
-[//]: # (Corner Plot of SNooPy Parameters)
-
-[//]: # (![]&#40;saved/readme_plots/snpy_cornerPlot.png ""&#41;)
-
-[//]: # ()
-[//]: # (Corner Plot of SALT3 Parameters)
-
-[//]: # (![]&#40;saved/readme_plots/salt_cornerPlot.png ""&#41;)
+--------------------------
+### Dust Dependency of Red SNe
+![](saved/readme_plots/combined_absMag_v_dust.png "") 
+![](saved/readme_plots/combined_dust_params.png "") 
 
 --------------------------
 ## Publications

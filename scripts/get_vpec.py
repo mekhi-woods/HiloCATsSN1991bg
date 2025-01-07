@@ -41,9 +41,8 @@ https://ui.adsabs.harvard.edu/abs/2019ApJ...881...19J
 
 import argparse
 import os
-import numpy as np
 
-from astropy.table import Table
+import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 

@@ -6,6 +6,7 @@ import numpy as np
 from astropy.cosmology import FlatLambdaCDM
 from astropy.time import Time as astrotime
 from astropy.stats import sigma_clip, sigma_clipped_stats
+from astropy.table import Table
 
 
 def current_cosmo(H0=70, O_m=0.3):
@@ -173,18 +174,27 @@ def dict_handler(data_dict={}, choice='', path='default/dict.txt', delimiter=', 
     else:
         print("[!!!] Invalid packing option! ['arrays'/'pack'/'unpack']")
         return
-def default_open(path: str) -> list:
+def default_open(path: str, table_mode: bool = False):
     """
     Open file that has the typical format of this project's 'txt' files.
     :param path: str; location of file
-    :return: (hdr, data)
+    :param table_mode: bool; whether or not to return the data as an astropy table
+    :return: (list, np.array[str]) | astropy.table.Table
     """
     data = np.genfromtxt(path, dtype='str', delimiter=', ')
     hdr, data = data[0, :], data[1:, :]
     for i in range(len(hdr)):
         if hdr[i] in ['objname', 'origin', 'algo']: continue
         data[:, i] = data[:, i].astype(float)
-    return hdr.tolist(), data
+    if table_mode:
+        var_table = Table()
+        hdr = hdr.tolist()
+        for h in hdr:
+            try: var_table[h] = data[:, hdr.index(h)].astype(float)
+            except ValueError: var_table[h] = data[:, hdr.index(h)]
+        return var_table
+    else:
+        return hdr.tolist(), data
 def rm_outliers(mu, z):
     resid = mu - current_cosmo().distmod(z).value
     mn, md, std = sigma_clipped_stats(resid)
@@ -204,6 +214,12 @@ def quiet_mode(enabled: bool):
     if enabled: sys.stdout = open(os.devnull, 'w')
     else: sys.stdout = sys.__stdout__
     return
+def get_bin_num(data: np.ndarray) -> int:
+    # Using Freedman Diaconis Rule: bn = (max-min)/(2*IQR*n^(1/3))
+    q1, q3 = np.percentile(data, 25), np.percentile(data, 75)
+    iqr = q3 - q1
+    return int((np.max(data) - np.min(data)) / (2 * iqr * (len(data)**(-1/3))))
+
 # import numpy as np
 # import requests
 # from requests.auth import HTTPBasicAuth
