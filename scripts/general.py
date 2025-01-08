@@ -205,6 +205,9 @@ def get_chi2(intercept, x, y, sigma, slope):
     b = intercept[0]  # Extract intercept
     model = slope * x + b
     return np.sum(((y - model) / sigma) ** 2)
+def new_get_chi2(m, y, x, b, y_err):
+    model_y = (m*x)+b
+    return np.sum(((y - model_y) / y_err) ** 2)
 def save_figure(save_loc: str):
     if len(save_loc) > 0:
         print(f"Saved figure to...  {save_loc}")

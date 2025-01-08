@@ -2518,7 +2518,7 @@ def combined_mu_v_z(path_91bg: str = 'output/merged_params_cut.txt',
 
     ## Scatter plot
     fmt_scatter_dict = {'marker': 'o', 'alpha': 0.2, 'color': c_norm, 'fmt': 'o', 'ms': 6, 'elinewidth': 0.8}
-    ax1.errorbar(z, mu, yerr=mu_err, label='Normal SNIa', **fmt_scatter_dict)
+    ax1.errorbar(z, mu, yerr=mu_err, label='$Normal\\text{ }Ia\\text{ }SNe$', **fmt_scatter_dict)
     ax2.errorbar(z, resid_mu, yerr=resid_mu_err, **fmt_scatter_dict)
 
     ## Labels
@@ -2527,11 +2527,18 @@ def combined_mu_v_z(path_91bg: str = 'output/merged_params_cut.txt',
             ax1.text(z[i], mu[i], names[i], ha='left', va='top', size='xx-small')
 
     ## Make histogram
-    fmt_hist_dict = {'orientation': "horizontal", 'color': c_norm, 'label':'$Normal\\text{ }SNIa$'}
+    fmt_hist_dict = {'orientation': "horizontal", 'color': c_norm,}
     ax3.hist(mu, bins=int((np.max(mu) - np.min(mu)) / 0.2), **fmt_hist_dict)
     ax4.hist(resid_mu, bins=20, **fmt_hist_dict)
 
     all_resid.append(resid_mu) # Save mu data
+
+    # Label number of SNe and Scatter
+    ax1.text(0.98, 0.20,
+             "Normal SNe Ia\n" +
+             "$N_{SNe}$ = " + f"{len(mu)}\n" +
+             "$\sigma$ = " + f"{round(np.std(resid_mu), 3)} mag",
+             transform=ax1.transAxes, ha='right', va='bottom', fontsize=12)
 
     # # Plot 91bg-like
     # # -----------------------------------------------------------------------------------------------------------------
@@ -2551,13 +2558,15 @@ def combined_mu_v_z(path_91bg: str = 'output/merged_params_cut.txt',
 
     # Make main plot
     ax1.errorbar(x=z[algo == 'SNPY'], y=mu[algo == 'SNPY'], yerr=mu_err[algo == 'SNPY'],
-                 marker='s', alpha=1, color=c_91bg, fmt='o', ms=6, elinewidth=0.8, label='SNooPy')
+                 marker='s', alpha=1, color=c_91bg, fmt='o', ms=6, elinewidth=0.8,
+                 label='$1991bg\\text{-}like\\text{ }Ia\\text{ }SNe_{SNooPy}$')
     ax2.errorbar(x=z[algo == 'SNPY'], y=resid_mu[algo == 'SNPY'], yerr=resid_mu_err[algo == 'SNPY'],
-                 marker='s', alpha=1, color=c_91bg, fmt='o', ms=6, elinewidth=0.8, label='SNooPy')
+                 marker='s', alpha=1, color=c_91bg, fmt='o', ms=6, elinewidth=0.8)
     ax1.errorbar(x=z[algo == 'SALT'], y=mu[algo == 'SALT'], yerr=mu_err[algo == 'SALT'],
-                 marker='^', alpha=1, color=c_91bg, fmt='o', ms=6, elinewidth=0.8, label='SALT3')
+                 marker='^', alpha=1, color=c_91bg, fmt='o', ms=6, elinewidth=0.8,
+                 label='$1991bg\\text{-}like\\text{ }Ia\\text{ }SNe_{SALT3}$')
     ax2.errorbar(x=z[algo == 'SALT'], y=resid_mu[algo == 'SALT'], yerr=resid_mu_err[algo == 'SALT'],
-                 marker='^', alpha=1, color=c_91bg, fmt='o', ms=6, elinewidth=0.8, label='SALT3')
+                 marker='^', alpha=1, color=c_91bg, fmt='o', ms=6, elinewidth=0.8)
 
     # Labels
     if label:
@@ -2565,11 +2574,17 @@ def combined_mu_v_z(path_91bg: str = 'output/merged_params_cut.txt',
             ax1.text(z[i], mu[i], names[i], ha='left', va='top', size='xx-small')
 
     # Make histogram
-    hist_lb = '91bg' if origins[0][-4:] == 'SALT' else origins[0][-4:].lower()
-    ax3.hist(mu, bins=int((np.max(mu) - np.min(mu)) / 0.2), orientation="horizontal", color=c_91bg, label=hist_lb)
-    ax4.hist(resid_mu, bins=20, orientation="horizontal", color=c_91bg, label=hist_lb)
+    ax3.hist(mu, bins=int((np.max(mu) - np.min(mu)) / 0.2), orientation="horizontal", color=c_91bg)
+    ax4.hist(resid_mu, bins=20, orientation="horizontal", color=c_91bg)
 
     all_resid.append(resid_mu) # Save mu data
+
+    # Label number of SNe and Scatter
+    ax1.text(0.98, 0.02,
+             "1991bg-like SNe Ia\n" +
+             "$N_{SNe}$ = " + f"{len(mu)}\n" +
+             "$\sigma$ = " + f"{round(np.std(resid_mu), 3)} mag",
+             transform=ax1.transAxes, ha='right', va='bottom', fontsize=12)
 
     # Plot fit line
     # -----------------------------------------------------------------------------------------------------------------
@@ -2577,6 +2592,13 @@ def combined_mu_v_z(path_91bg: str = 'output/merged_params_cut.txt',
     ax1.plot(model_z, gen.current_cosmo().distmod(model_z).value,
              label='Model [$H_0 = 70$, $\Omega_m = 0.3$]', zorder=10, c=c_model)
     ax2.axhline(y=0, zorder=10, color=c_model)
+
+
+    # axs[1, 0].text(0.04, 0.96,
+    #                "1991bg-like SNe Ia\n" +
+    #                "$N_{SNe}$ = " + f"{len(tb_91bg)}\n" +
+    #                "$\sigma$ = " + f"{round(np.std(tb_91bg['resid_mu']), 3)} mag",
+    #                transform=axs[1, 0].transAxes, ha='left', va='top', fontsize=12)
 
     # Formatting
     fig.suptitle('Residual STD, Count | ' +
@@ -2586,7 +2608,6 @@ def combined_mu_v_z(path_91bg: str = 'output/merged_params_cut.txt',
     ax2.set_ylabel('Residuals', size=16)
     ax2.set_xlabel('Host Galaxy CMB Redshift', size=16)
     ax1.legend(loc='best')
-    ax3.legend(loc='best')
     ax1.tick_params(axis='x', labelbottom=False)
     ax3.tick_params(axis='x', labelbottom=False)
     ax3.tick_params(axis='y', labelleft=False)
@@ -2809,8 +2830,8 @@ def combined_param_hist(snpy_91bg_path: str, salt_91bg_path: str, snpy_norm_path
     axs[1, 1].legend(loc='upper right')
 
     # Set labels
-    axs[0, 0].set_ylabel('$n_{SNe}$', size=16)
-    axs[1, 0].set_ylabel('$n_{SNe}$', size=16)
+    axs[0, 0].set_ylabel('$N_{SNe}$', size=16)
+    axs[1, 0].set_ylabel('$N_{SNe}$', size=16)
     axs[1, 0].set_xlabel('Stretch', size=16)
     axs[1, 1].set_xlabel('Color', size=16)
 
@@ -2871,9 +2892,9 @@ def combined_dust_hist(path_91bg: str = 'output/salt_params_cov_cut.txt',
 
     # Plot histogram
     ax.hist(tb_combined['av'][tb_combined['source'] == 'norm'], color=c_norm, bins=20,
-            label='$av_{50}$ (c < ~) Normal Ia SNe')
+            label='$av_{50}$ (c > 0.15) Normal Ia SNe')
     ax.hist(tb_combined['av'][tb_combined['source'] == '91bg'], color=c_91bg, bins=20, alpha=0.75,
-            label='$av_{50}$ (c < ~) 1991bg-like Ia SNe')
+            label='$av_{50}$ (c > 0.15) 1991bg-like Ia SNe')
 
     # Median lines
     for s, cl, lb in zip(['norm', '91bg'],
@@ -2893,7 +2914,7 @@ def combined_dust_hist(path_91bg: str = 'output/salt_params_cov_cut.txt',
 
     # Add labels
     ax.set_xlabel('$E(B-V)_{dust}$', size=16)
-    ax.set_ylabel('Counts', size=16)
+    ax.set_ylabel('$N_{SNe}$', size=16)
 
     if len(save_loc) > 0:
         print(f"Saved figure to...  {save_loc}")
@@ -2906,8 +2927,8 @@ def combined_abs_mag_v_dust(path_91bg: str = 'output/salt_params_cov_cut.txt',
                             save_loc: str = '', label: bool = False):
     fig, ax = plt.subplots(1, 2, figsize=(21, 7), constrained_layout=True)
     plt.style.use('tableau-colorblind10')
-    c_norm = 'C2'
-    c_91bg = 'C8'
+    c_norm, c_norm_line = 'C2', 'C3'
+    c_91bg, c_91bg_line = 'C8', 'C1'
 
     # Open data
     tb_91bg = gen.default_open(path_91bg, True)
@@ -2954,7 +2975,7 @@ def combined_abs_mag_v_dust(path_91bg: str = 'output/salt_params_cov_cut.txt',
     # Plot data
     fmt_dict_91bg = {'fmt': 'o', 'marker': 's', 'alpha': 1.0, 'color': c_91bg, 'label': '$M_{1991bg\\text{-}like}$'}
     fmt_dict_norm = {'fmt': 'o', 'marker': 'o', 'alpha': 1.0, 'color': c_norm, 'label': '$M_{Normal\\text{ }Ia\\text{ }SNe}$'}
-    for s, fmt_dict in zip(['norm', '91bg'], [fmt_dict_norm, fmt_dict_91bg]):
+    for s, fmt_dict, ln_cl in zip(['norm', '91bg'], [fmt_dict_norm, fmt_dict_91bg], [c_norm_line, c_91bg_line]):
         # Fix av_err
         av_err = []
         low = np.array(tb_combined['av_lower'][tb_combined['source'] == s])
@@ -2973,6 +2994,11 @@ def combined_abs_mag_v_dust(path_91bg: str = 'output/salt_params_cov_cut.txt',
                        xerr=tb_combined['c_err'][tb_combined['source'] == s],
                        yerr=tb_combined['absmB_err'][tb_combined['source'] == s],
                        **fmt_dict)
+
+        # Fit Lines
+        a, b = np.polyfit(tb_combined['c'][tb_combined['source'] == s],
+                          tb_combined['absmB'][tb_combined['source'] == s], 1)
+        ax[1].axline((0, b), slope=a, color=ln_cl, zorder=5) # label=f'{round(a, 2)}',
 
     # # Correlation Coeffficients
     # print(f"Red Normal Ia SNe [{len(tb_combined['av'][tb_combined['source'] == 'norm'])}]")
@@ -3463,7 +3489,7 @@ if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
 
     # combined_abs_mag_v_dust()
-    # combined_dust_hist()
+    combined_dust_hist()
 
     # refresh_all()
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
