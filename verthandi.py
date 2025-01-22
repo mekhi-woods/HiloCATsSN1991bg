@@ -132,23 +132,70 @@ class SN91bg:
             self.originalname = path.split('/')[-1][:-4]
 
             # Load data
-            data = np.genfromtxt(path, delimiter=',', dtype=str, skip_header=1)
+            data = np.genfromtxt(path, dtype='str', delimiter=',')
+            hdr, data = list(data[0, :]), data[1:, :]
+            for i in range(len(hdr)): hdr[i] = hdr[i].lower()
+            print(hdr)
 
             # Query TNS for transient details
-            self.coords = [np.average(data[:, 1].astype(float)), np.average(data[:, 2].astype(float))]
+            # self.coords = [np.average(data[:, hdr.index('ra')].astype(float)),
+            #                np.average(data[:, hdr.index('dec')].astype(float))]
+            # self.objname, self.z, self.discovery_date = gen.TNS_details(self.coords[0], self.coords[1])
+            # self.discovery_date = float(self.discovery_date)
+            # if self.z == 'None': self.z = np.nan
+            # else: self.z = float(self.z)
+
+            # Set arrays
+            try:
+                self.zp = data[:, hdr.index('zp')].astype(float)
+            except ValueError:
+                self.zp = np.full(len(data[:, 0]), 23.9)
+
+            self.filters = data[:, hdr.index('filter')]
+            self.time = data[:, 8]
+            self.flux = data[:, 16]
+            self.dflux = data[:, 17]
+            self.mag = data[:, 3]
+            self.dmag = data[:, 4]
+
+            # # Remove '<' & '>' from magnitudes
+            # for n in range(len(self.mag)):
+            #     self.mag[n] = self.mag[n].replace('>', '')
+            #     self.mag[n] = self.mag[n].replace('<', '')
+        elif data_set.upper() == 'ATLASNORM':
+            print('[+++] Creating class using ATLAS Normal data...')
+            print(path)
+
+            # Set static variables
+            self.origin = 'ATLAS'
+            self.z_cmb = np.nan
+            self.params = {}
+            self.covariance = np.array([])
+
+            # Get original name from file name
+            self.originalname = path.split('/')[-1][:-4]
+
+            # Load data
+            data = np.genfromtxt(path, dtype='str', delimiter=',')
+            hdr, data = list(data[0, :]), data[1:, :]
+            for i in range(len(hdr)): hdr[i] = hdr[i].lower()
+
+            # Query TNS for transient details
+            self.coords = [np.average(data[:, hdr.index('ra')].astype(float)),
+                           np.average(data[:, hdr.index('dec')].astype(float))]
             self.objname, self.z, self.discovery_date = gen.TNS_details(self.coords[0], self.coords[1])
             self.discovery_date = float(self.discovery_date)
             if self.z == 'None': self.z = np.nan
             else: self.z = float(self.z)
 
             # Set arrays
-            self.zp = data[:, 7].astype(float)
-            self.filters = data[:, 6]
-            self.time = data[:, 8]
-            self.flux = data[:, 16]
-            self.dflux = data[:, 17]
-            self.mag = data[:, 3]
-            self.dmag = data[:, 4]
+            self.zp = np.full(len(data[:, 0]), 23.9)
+            self.filters = data[:, hdr.index('f')]
+            self.time = data[:, hdr.index('mjd')]
+            self.flux = data[:, hdr.index('ujy')]
+            self.dflux = data[:, hdr.index('dujy')]
+            self.mag = data[:, hdr.index('m')]
+            self.dmag = data[:, hdr.index('dm')]
 
             # Remove '<' & '>' from magnitudes
             for n in range(len(self.mag)):
@@ -236,7 +283,7 @@ class SN91bg:
             self.dmag = np.array([])
         else:
             raise ValueError("Data set '" +
-                             data_set + "' not recognized [CSP/ATLAS/ZTF/EMPTY]")
+                             data_set + "' not recognized [CSP/ATLAS/ATLASnorm/ZTF/EMPTY]")
 
         # Remove None
         indexes = (self.mag != 'None') & (self.flux != 'None')
@@ -292,6 +339,7 @@ class SN91bg:
         else:
             print('[!!!] No valid points found in file!')
             return
+        return
     # Display Options ----------------------------------------------------------------------------------------------- #
     def __str__(self):
         """
@@ -1004,6 +1052,65 @@ def batch_load(data_set: str, algo: str = 'snpy') -> list[object]:
 
         tempSN.load_from_file(path)
         SNe.append(tempSN)
+    return SNe
+def new_atlas_norm_fitting(data_loc: str = 'data/ATLASnorms/ATLAS*.txt', failed_loc: str = 'failed.txt',
+                           algo: str = 'snpy', check_failed: bool = True, check_saved: bool = True):
+    # Get paths
+    atlas_norms_paths = glob.glob(data_loc)
+
+    # Get failed SNe
+    if check_failed:
+        failed_SNe = []
+        with open(failed_loc, 'r') as f:
+            for line in f.readlines():
+                failed_SNe.append(line.split(',')[0])
+
+    SNe = []
+    for i, path in enumerate(atlas_norms_paths):
+        hdr = f"[{i+1} / {len(atlas_norms_paths)}] =================================================================="
+        csr = f"{'='*len(hdr)}"
+        #######
+        print(hdr)
+
+        # Check if previously fit
+        if check_saved:
+            name = path.split('/')[-1][5:-4]
+
+        # Check if previously failed
+        if check_failed and (name in failed_SNe):
+            print(f"[+++++] Operation previously failed exsist for {name}! Skipping...")
+            continue
+
+        if os.path.exists(f"saved/{algo}/atlas/classes/{name}_class.txt"):
+            print(f"[+++++] Class already exsist for {name}! Pulling...")
+            tempSN = SN91bg(data_set='EMPTY')
+            tempSN.load_from_file(f"saved/{algo}/atlas/classes/{name}_class.txt")
+            SNe.append(tempSN)
+        else:
+            tempSN = SN91bg(path=path, data_set='ATLASnorm', dmag_max=1.00, dflux_max=0.00)
+
+            # Check if data file could make class
+            if len(tempSN.objname) == 0:
+                print(csr)
+                with open(failed_loc, 'a') as f: print(name+', Failed to make class.', file=f)
+                continue
+
+            # Check if fit fail in any way
+            success_fit, err = False, 'Fitting error.'
+            try:
+                success_fit = tempSN.fit(algo)
+            except Exception as e:
+                err = str(e)
+            if success_fit:
+                print(f'[+++++] Success!\n{csr}')
+                SNe.append(tempSN)
+            else:
+                print(f"[-----] An error occured while fitting! Discarding {tempSN.objname}...\n{csr}")
+                with open(failed_loc, 'a') as f: print(name+f', {err}', file=f)
+                continue
+
+    print(f'Sucessfully fit [{len(SNe)} / {len(atlas_norms_paths)}]!')
+    save_params_to_file('output/jan_atlas_norms.txt', SNe=SNe)
     return SNe
 
 # File Saving / Augmentation ---------------------------------------------------------------------------------------- #
@@ -2830,8 +2937,8 @@ def combined_param_hist(snpy_91bg_path: str, salt_91bg_path: str, snpy_norm_path
     axs[1, 1].legend(loc='upper right')
 
     # Set labels
-    axs[0, 0].set_ylabel('$N_{SNe}$', size=16)
-    axs[1, 0].set_ylabel('$N_{SNe}$', size=16)
+    axs[0, 0].set_ylabel('SNooPy\n$N_{SNe}$', size=16)
+    axs[1, 0].set_ylabel('SALT3\n$N_{SNe}$', size=16)
     axs[1, 0].set_xlabel('Stretch', size=16)
     axs[1, 1].set_xlabel('Color', size=16)
 
@@ -3457,39 +3564,98 @@ def refresh_all(new_data: bool = False, recut: bool = False, only_combined: bool
                             save_loc='saved/readme_plots/alpha_beta_overlap.png')
 
     # Combined Plots
-    combined_resid_v_mass('output/merged_params_cut.txt', 'output/aaronDo_salt2_params_cut.txt',
-                          save_loc='saved/readme_plots/combined_resid_v_mass.png')
-    combined_mu_v_z('output/merged_params_cut.txt', 'output/aaronDo_salt2_params_cut.txt',
-                    save_loc='saved/readme_plots/combined_mu_v_z.png')
-    combined_alpha_beta('output/combiend__salt_params_cut.txt', 'output/aaronDo_salt2_params_cut.txt',
-                        save_loc='saved/readme_plots/combined_alpha_beta.png')
-    combined_param_hist(snpy_91bg_path='output/combiend__snpy_params.txt',
-                        salt_91bg_path='output/combiend__salt_params.txt',
-                        snpy_norm_path='output/dr3_params.txt',
-                        salt_norm_path='output/aaronDo_salt2_params.txt',
-                        save_loc='saved/readme_plots/combined_params_91bg_v_norm_precut.png',
+    # format: pm_{source}_{salt/snpy/merged}_{cut/uncut}
+    final_dir = 'saved/readme_plots/'
+
+    pm_norm_salt_cut = 'output/aaronDo_salt2_params_cut.txt'
+    pm_norm_salt_uncut = 'output/aaronDo_salt2_params.txt'
+    pm_norm_snpy_cut = 'output/dr3_params.txt'  # Needs to be cut?
+    pm_norm_snpy_uncut = 'output/dr3_params.txt'
+    pm_norm_merged_cut = 'output/aaronDo_salt2_params_cut.txt'  # only contains salt fitted
+    pm_norm_merged_uncut = 'output/aaronDo_salt2_params.txt'  # only contains salt fitted
+
+    pm_91bg_salt_cut = 'output/combiend__salt_params_cut.txt'
+    pm_91bg_salt_uncut = 'output/combiend__salt_params.txt'
+    pm_91bg_snpy_cut = 'output/combiend__snpy_params_cut.txt'
+    pm_91bg_snpy_uncut = 'output/combiend__snpy_params.txt'
+    pm_91bg_merged_cut = 'output/merged_params_cut.txt'
+    pm_91bg_merged_uncut = 'output/merged_params.txt'
+
+    pm_redNorms = 'output/redNormSNe_salt.txt'
+    pm_dust = 'output/local_dust_params.txt'
+
+    combined_resid_v_mass(path_91bg=pm_91bg_merged_cut,
+                          path_norm=pm_norm_merged_cut,
+                          save_loc=final_dir+'combined_resid_v_mass.png',
+                          label = False)
+    combined_mu_v_z(path_91bg=pm_91bg_merged_cut,
+                    path_norm=pm_norm_merged_cut,
+                    save_loc=final_dir+'combined_mu_v_z.png',
+                    label = False)
+
+    ## SALT3 Plots
+    combined_alpha_beta(path_91bg=pm_91bg_salt_cut,
+                        path_norm=pm_norm_salt_cut,
+                        save_loc=final_dir+'combined_alpha_beta.png')
+
+    ## Dust Plots
+    combined_abs_mag_v_dust(path_91bg=pm_91bg_salt_cut,
+                            path_red_norm=pm_redNorms,
+                            path_dust=pm_dust,
+                            save_loc=final_dir+'combined_absMag_v_dust.png')
+    combined_dust_hist(path_91bg=pm_91bg_salt_cut,
+                       path_red_norm=pm_redNorms,
+                       path_dust=pm_dust,
+                       save_loc=final_dir+'combined_dust_params.png')
+
+    ## Paramater Histograms
+    combined_param_hist(snpy_91bg_path=pm_91bg_snpy_uncut,
+                        salt_91bg_path=pm_91bg_salt_uncut,
+                        snpy_norm_path=pm_norm_snpy_uncut,
+                        salt_norm_path=pm_norm_salt_uncut,
+                        save_loc=final_dir + 'combined_params_91bg_v_norm_precut.png',
                         line_type='median')
-    combined_param_hist(snpy_91bg_path='output/combiend__snpy_params_cut.txt',
-                        salt_91bg_path='output/combiend__salt_params_cut.txt',
-                        snpy_norm_path='output/dr3_params.txt',
-                        salt_norm_path='output/aaronDo_salt2_params_cut.txt',
-                        save_loc='saved/readme_plots/combined_params_91bg_v_norm_cut.png',
+    combined_param_hist(snpy_91bg_path=pm_91bg_snpy_cut,
+                        salt_91bg_path=pm_91bg_salt_cut,
+                        snpy_norm_path=pm_norm_snpy_cut,
+                        salt_norm_path=pm_norm_salt_cut,
+                        save_loc=final_dir + 'combined_params_91bg_v_norm_cut.png',
                         line_type='median')
-    combined_abs_mag_v_dust(path_91bg='output/salt_params_cov_cut.txt',
-                            path_red_norm='output/redNormSNe_salt.txt',
-                            path_dust='output/local_dust_params.txt',
-                            save_loc='saved/readme_plots/combined_absMag_v_dust.png')
-    combined_dust_hist(path_91bg='output/salt_params_cov_cut.txt',
-                       path_red_norm='output/redNormSNe_salt.txt',
-                       path_dust='output/local_dust_params.txt',
-                       save_loc='saved/readme_plots/combined_dust_params.png')
+
+    # combined_resid_v_mass('output/merged_params_cut.txt', 'output/aaronDo_salt2_params_cut.txt',
+    #                       save_loc='saved/readme_plots/combined_resid_v_mass.png')
+    # combined_mu_v_z('output/merged_params_cut.txt', 'output/aaronDo_salt2_params_cut.txt',
+    #                 save_loc='saved/readme_plots/combined_mu_v_z.png')
+    # combined_alpha_beta('output/combiend__salt_params_cut.txt', 'output/aaronDo_salt2_params_cut.txt',
+    #                     save_loc='saved/readme_plots/combined_alpha_beta.png')
+    # combined_param_hist(snpy_91bg_path='output/combiend__snpy_params.txt',
+    #                     salt_91bg_path='output/combiend__salt_params.txt',
+    #                     snpy_norm_path='output/dr3_params.txt',
+    #                     salt_norm_path='output/aaronDo_salt2_params.txt',
+    #                     save_loc='saved/readme_plots/combined_params_91bg_v_norm_precut.png',
+    #                     line_type='median')
+    # combined_param_hist(snpy_91bg_path='output/combiend__snpy_params_cut.txt',
+    #                     salt_91bg_path='output/combiend__salt_params_cut.txt',
+    #                     snpy_norm_path='output/dr3_params.txt',
+    #                     salt_norm_path='output/aaronDo_salt2_params_cut.txt',
+    #                     save_loc='saved/readme_plots/combined_params_91bg_v_norm_cut.png',
+    #                     line_type='median')
+    # combined_abs_mag_v_dust(path_91bg='output/salt_params_cov_cut.txt',
+    #                         path_red_norm='output/redNormSNe_salt.txt',
+    #                         path_dust='output/local_dust_params.txt',
+    #                         save_loc='saved/readme_plots/combined_absMag_v_dust.png')
+    # combined_dust_hist(path_91bg='output/salt_params_cov_cut.txt',
+    #                    path_red_norm='output/redNormSNe_salt.txt',
+    #                    path_dust='output/local_dust_params.txt',
+    #                    save_loc='saved/readme_plots/combined_dust_params.png')
     return
 
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
+    # new_atlas_norm_fitting(algo='snpy', failed_loc='failed.txt')
 
-    # combined_abs_mag_v_dust()
-    combined_dust_hist()
 
-    # refresh_all()
+
+
+    refresh_all(only_combined=True)
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
