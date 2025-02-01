@@ -1,0 +1,2 @@
+#expname,ra,dec,mag,dm,snr,filter,zp,mjd,x,y,peakval,skyval,peakfit,dpeak,skyfit,flux,dflux,chin,major,minor,snrdet,snrlimit,apfit,uJy,duJy,mag5sig,texp
+
