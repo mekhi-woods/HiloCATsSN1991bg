@@ -1,7 +1,8 @@
-/default/ghost_stuff/
-/default/dict.txt
+/old_file_system/default/ghost_stuff/
+/old_file_system/default/dict.txt
 /api_keys.txt
 /snpy/
 /temp.txt
 /twomass++_velocity_LH11.npy
-/txts/APIkeys.txt
+/old_file_system/txts/APIkeys.txt
+/old_file_system/twomass++_velocity_LH11.npy

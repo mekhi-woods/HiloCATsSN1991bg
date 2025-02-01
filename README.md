@@ -33,28 +33,28 @@ If any instructions are unclear, please run `help()` to see examples of each fit
 --------------------------
 ### Hubble Residual v. Host Mass
 This plot depicts the relationship between the mass of the host galaxy for the SN and the corresponding Hubble Residual.
-![](saved/readme_plots/combined_resid_v_mass.png "")
+![](old_file_system/saved/readme_plots/combined_resid_v_mass.png "")
 
 ### Hubble Diagram (Distance v. Redshift)
 This plot depicts the relationship between the redshift of the SN and the corresponding Hubble Residual.
-![](saved/readme_plots/combined_mu_v_z.png "")
+![](old_file_system/saved/readme_plots/combined_mu_v_z.png "")
 
 -------------------------- 
 ### SNooPy & SALT3 Parameter Histograms 
 #### Before Selection Criteria 
-![](saved/readme_plots/combined_params_91bg_v_norm_precut.png "")
+![](old_file_system/saved/readme_plots/combined_params_91bg_v_norm_precut.png "")
 
 #### After Selection Criteria 
-![](saved/readme_plots/combined_params_91bg_v_norm_cut.png "")
+![](old_file_system/saved/readme_plots/combined_params_91bg_v_norm_cut.png "")
 
 --------------------------
 ### SALT3 Distance Modulus Constants (Alpha-Beta) Fitting
-![](saved/readme_plots/combined_alpha_beta.png "") 
+![](old_file_system/saved/readme_plots/combined_alpha_beta.png "") 
 
 --------------------------
 ### Dust Dependency of Red SNe
-![](saved/readme_plots/combined_absMag_v_dust.png "") 
-![](saved/readme_plots/combined_dust_params.png "") 
+![](old_file_system/saved/readme_plots/combined_absMag_v_dust.png "") 
+![](old_file_system/saved/readme_plots/combined_dust_params.png "") 
 
 --------------------------
 ## Publications
