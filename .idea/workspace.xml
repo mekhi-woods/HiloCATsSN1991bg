@@ -5,7 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8b356fbe-13e0-4f0b-a319-7fe9c31645a1" name="Changes" comment="Updates">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/failed.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/skuld.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -315,14 +316,7 @@
       <workItem from="1738291964044" duration="13000" />
       <workItem from="1738360583655" duration="15982000" />
       <workItem from="1738626564115" duration="806000" />
-    </task>
-    <task id="LOCAL-00049" summary="added it to where ZTF fitting zooms in on the date of discovery before fitting">
-      <option name="closed" value="true" />
-      <created>1726001088151</created>
-      <option name="number" value="00049" />
-      <option name="presentableId" value="LOCAL-00049" />
-      <option name="project" value="LOCAL" />
-      <updated>1726001088151</updated>
+      <workItem from="1738633223240" duration="356000" />
     </task>
     <task id="LOCAL-00050" summary="restructuring to main files">
       <option name="closed" value="true" />
@@ -708,7 +702,15 @@
       <option name="project" value="LOCAL" />
       <updated>1738626587024</updated>
     </task>
-    <option name="localTasksCounter" value="98" />
+    <task id="LOCAL-00098" summary="Updates">
+      <option name="closed" value="true" />
+      <created>1738633462905</created>
+      <option name="number" value="00098" />
+      <option name="presentableId" value="LOCAL-00098" />
+      <option name="project" value="LOCAL" />
+      <updated>1738633462905</updated>
+    </task>
+    <option name="localTasksCounter" value="99" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
