@@ -1,4 +1,4 @@
-# MSF-91bg – Mass-Step Function of 1991bg-like SNe Ia 
+![alpha_beta](https://github.com/user-attachments/assets/c6822d15-aef1-4952-a814-88b55a0d7db7)# MSF-91bg – Mass-Step Function of 1991bg-like SNe Ia 
 At the end of the star's life, it can go out in two likely ways: quietly into the night with one last burst of light or by dragging its companions down with it. The former, core-collapse supernovae, have their own rich history, but the latter, thermonuclear supernovae, bring with them an abundance of inspiring questions. 
 
 1991bg-like supernovae (SNe) are a SNe Type Ia that behave similarly to the supernova SN1991bg. This subtype of SNe Type Ia is **fast-declining**, declines faster than Normal SNe Ia after 15 days of peak B-band brightness, and **subluminous**, 1.5–2.5 magnitudes less at peak B-band brightness. 
@@ -25,9 +25,16 @@ __NOTE: This repository is currently under construction__
 --------------------------
 ## Getting Started
 1. Install necessary packages by running `pip install -r requirements.txt`
-2. Place `api_keys.txt` in working directory with proper TNS & ATLAS API keys (tns_bot_id, tns_bot_name, tns_bot_api_key, atlas_key).
+2. Place `api_keys.txt` in working directory with proper TNS API keys (tns_bot_id, tns_bot_name, tns_bot_api_key).
    * Format per line: "[key_name], [key]"
 3. Place `twomass++_velocity_LH11.npy` in working directory. ([Download](https://drive.google.com/file/d/1DGcWQPgmI2ZoHJm_zCqyscogmWwY7lQu/view?usp=sharing))
+4. Ensure that the following directories are in \data\ and have contents.
+   * \data\CSP-91bg
+   * \data\CSP-norm
+   * \data\ATLAS-91bg
+   * \data\ATLAS-norm
+   * \data\ZTF-91bg
+   * \data\ZTF-norm
 
 --------------------------
 ## Operation Guide
@@ -88,16 +95,21 @@ This plot depicts the relationship between the redshift of the SN and the corres
 
 --------------------------
 ### SALT3 Distance Modulus Constants (Alpha-Beta) Fitting
-![](old_file_system/saved/readme_plots/combined_alpha_beta.png "") 
+![](plots/alpha_beta.png "") 
 
 --------------------------
-### Dust Dependency of Red SNe
-![](old_file_system/saved/readme_plots/combined_absMag_v_dust.png "") 
-![](old_file_system/saved/readme_plots/combined_dust_params.png "") 
+### Dust Dependencies
+![](plots/absMag_v_dust.png "") 
+![](plots/dust_params.png "") 
+
+--------------------------
+### Scatter Dependencies
+![](plots/color_v_scatter.png "") 
+![](plots/dust_v_scatter.png "") 
 
 --------------------------
 ## Publications
-Please cite the following if this repo is utilized for a scientific project:
+Please cite the following if this repository is utilized for a scientific project:
 * Kenworthy et al. 2021. [SALT3: An Improved Type Ia Supernova Model for Measuring Cosmic Distances](https://ui.adsabs.harvard.edu/abs/2021ApJ...923..265K/abstract)
 * Krisciunas et al. 2017. [The Carnegie Supernova Project. I. Third Photometry Data Release of Low-redshift Type Ia 
 Supernovae and Other White Dwarf Explosions](https://ui.adsabs.harvard.edu/abs/2017AJ....154..211K/abstract)
