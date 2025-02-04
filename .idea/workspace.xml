@@ -5,8 +5,322 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8b356fbe-13e0-4f0b-a319-7fe9c31645a1" name="Changes" comment="Updates">
-      <change beforePath="$PROJECT_DIR$/failed.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/skuld.py" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/legacy/scripts/download.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/legacy/scripts/general.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/legacy/scripts/get_vpec.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/legacy/scripts/salt3_param_fitter.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/legacy/scripts/tnsAPI.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/legacy/tmp.npz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2022acxe.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2022acyj.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2022acyu.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2022zue.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023aaqu.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023abdj.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023acfg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023acha.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023acs.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023dpc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023tfc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023wpj.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023xhr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023xid.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023xsp.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023zmd.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2023zob.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024N.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aalt.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aaur.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aayt.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024abga.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024abla.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ably.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024abmg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024abmv.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024abof.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024abqi.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024abvq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024acde.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024acdf.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024acdn.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aceg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aceh.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024acei.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024acnp.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024acnr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024acoe.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024acpg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024actb.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024acti.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024adac.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024addv.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024adix.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024adki.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ado.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024adzy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aebn.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aedt.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aeec.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aeed.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aeet.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aefe.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aeis.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aeje.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aemf.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aemh.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aemk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aemw.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aepl.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aepn.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aeuh.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aevx.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aewf.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aexm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aexz.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aeyp.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aeyv.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024afph.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024afxa.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024afze.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024agld.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ahq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ana.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024anm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ans.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024aov.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024apt.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024arb.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ard.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024auh.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024axd.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024axg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024bcg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024bdo.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024beq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024bjc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024bjk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024bkg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024bkp.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024bks.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024brz.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024bsc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024byk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024bzx.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024cdi.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024cdu.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024cet.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024dci.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ddb.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ddk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024dix.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024dz.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024dza.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024dzj.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ecv.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024edz.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024eeg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024egm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024eif.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ejm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ejq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ejr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ejy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024elv.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024eno.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024enp.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024eny.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024eor.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024epl.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024epm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ere.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ezk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ezl.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fav.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fbr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fbt.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fcd.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fib.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fke.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fkw.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fsf.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fwj.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fxh.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fxl.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024fyc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024gda.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024gdb.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024gev.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024grb.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024gsn.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024gwi.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024hhr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024hig.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024hl.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024hlj.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024hm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024hpw.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024hqp.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024hrs.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024hud.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024hue.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ilb.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ind.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024jck.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024jea.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024jfl.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024jhc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024jhm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024jkx.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024jvc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024jxa.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024jzm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024kdy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024kef.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024kgh.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024kgu.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024klg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024kzl.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024lbt.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024les.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024luq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024lxm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024mnq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024moo.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024moy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024mpq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024mss.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024msu.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024mwf.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024mys.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024myw.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024mzx.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024mzy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024nrb.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024nrj.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024nsk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024nwu.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ozs.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ozx.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pab.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024paf.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pag.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pam.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pbb.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pbe.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pbf.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pcv.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pcx.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pft.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pmk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pml.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pmm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pno.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pol.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pqk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024prg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ptm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ptn.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ptp.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ptq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024puf.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pwm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024pwn.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024qar.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024qat.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024qcc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024qjh.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024qls.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024qng.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024qnk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024qwp.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024qxa.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024qxx.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024rkc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024rkg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024rkk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024rlh.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024rxr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024saw.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024sfk.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024sku.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024skv.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024slf.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024smo.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024sol.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ssi.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ssj.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024svg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024svr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024sza.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024tdb.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024tyd.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024tyh.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024uad.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024uae.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ucy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ufy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ugc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024uks.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024uqc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024usv.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024vdu.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024vfz.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024vke.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024vks.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024vr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024vuu.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024wdm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024wsp.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024wtr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024wuj.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xed.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xel.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xem.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xex.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xez.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xhf.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xhg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xhi.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xhm.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xhw.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xhx.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xjv.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xky.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xkz.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xl.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xli.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xmd.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xmy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xoq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xos.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xot.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xqa.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xqc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xup.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024xyn.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ygg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024yid.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ykr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024yq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024yrc.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ysu.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024ysw.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024yt.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zca.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zg.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zjo.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zss.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zug.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zvq.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zvr.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zvu.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zvx.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zwa.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2024zxt.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2025J.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2025eh.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2025fi.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/ATLASnorms/ATLAS2025gm.txt" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,43 +393,43 @@
     <option name="sortByType" value="true" />
     <option name="sortKey" value="BY_TYPE" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.SNCosmoSALT2Fit.executor&quot;: &quot;Run&quot;,
-    &quot;Python.amadeusx.executor&quot;: &quot;Run&quot;,
-    &quot;Python.arc-light.executor&quot;: &quot;Run&quot;,
-    &quot;Python.atlas_download.executor&quot;: &quot;Run&quot;,
-    &quot;Python.david_code.executor&quot;: &quot;Run&quot;,
-    &quot;Python.download.executor&quot;: &quot;Run&quot;,
-    &quot;Python.general.executor&quot;: &quot;Run&quot;,
-    &quot;Python.ghost_process.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.skul.executor&quot;: &quot;Run&quot;,
-    &quot;Python.skuld.executor&quot;: &quot;Run&quot;,
-    &quot;Python.snpy test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.tess.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.urd.executor&quot;: &quot;Run&quot;,
-    &quot;Python.verthandi.executor&quot;: &quot;Run&quot;,
-    &quot;Python.ztf_process.executor&quot;: &quot;Run&quot;,
-    &quot;Python.ztf_wget.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/mekhiwoods/PycharmProjects/HiloCATsSN1991bg/txts&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.SNCosmoSALT2Fit.executor": "Run",
+    "Python.amadeusx.executor": "Run",
+    "Python.arc-light.executor": "Run",
+    "Python.atlas_download.executor": "Run",
+    "Python.david_code.executor": "Run",
+    "Python.download.executor": "Run",
+    "Python.general.executor": "Run",
+    "Python.ghost_process.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.skul.executor": "Run",
+    "Python.skuld.executor": "Run",
+    "Python.snpy test.executor": "Run",
+    "Python.tess.executor": "Run",
+    "Python.test.executor": "Run",
+    "Python.urd.executor": "Run",
+    "Python.verthandi.executor": "Run",
+    "Python.ztf_process.executor": "Run",
+    "Python.ztf_wget.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "/Users/mekhiwoods/PycharmProjects/MSF-91bg/legacy",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.keymap",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;ChangesTree.GroupingKeys&quot;: [
-      &quot;directory&quot;
+  "keyToStringList": {
+    "ChangesTree.GroupingKeys": [
+      "directory"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/txts" />
@@ -317,14 +631,7 @@
       <workItem from="1738360583655" duration="15982000" />
       <workItem from="1738626564115" duration="806000" />
       <workItem from="1738633223240" duration="356000" />
-    </task>
-    <task id="LOCAL-00050" summary="restructuring to main files">
-      <option name="closed" value="true" />
-      <created>1726010771477</created>
-      <option name="number" value="00050" />
-      <option name="presentableId" value="LOCAL-00050" />
-      <option name="project" value="LOCAL" />
-      <updated>1726010771477</updated>
+      <workItem from="1738633680848" duration="510000" />
     </task>
     <task id="LOCAL-00051" summary="fixes to ZTF errors and fitting">
       <option name="closed" value="true" />
@@ -710,7 +1017,15 @@
       <option name="project" value="LOCAL" />
       <updated>1738633462905</updated>
     </task>
-    <option name="localTasksCounter" value="99" />
+    <task id="LOCAL-00099" summary="Updates">
+      <option name="closed" value="true" />
+      <created>1738633713871</created>
+      <option name="number" value="00099" />
+      <option name="presentableId" value="LOCAL-00099" />
+      <option name="project" value="LOCAL" />
+      <updated>1738633713871</updated>
+    </task>
+    <option name="localTasksCounter" value="100" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
