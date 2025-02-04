@@ -1,4 +1,4 @@
-![alpha_beta](https://github.com/user-attachments/assets/c6822d15-aef1-4952-a814-88b55a0d7db7)# MSF-91bg – Mass-Step Function of 1991bg-like SNe Ia 
+# MSF-91bg – Mass-Step Function of 1991bg-like SNe Ia 
 At the end of the star's life, it can go out in two likely ways: quietly into the night with one last burst of light or by dragging its companions down with it. The former, core-collapse supernovae, have their own rich history, but the latter, thermonuclear supernovae, bring with them an abundance of inspiring questions. 
 
 1991bg-like supernovae (SNe) are a SNe Type Ia that behave similarly to the supernova SN1991bg. This subtype of SNe Type Ia is **fast-declining**, declines faster than Normal SNe Ia after 15 days of peak B-band brightness, and **subluminous**, 1.5–2.5 magnitudes less at peak B-band brightness. 
