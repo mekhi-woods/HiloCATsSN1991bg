@@ -9,7 +9,7 @@ Type Ia is **fast-declining**, declines faster than Normal SNe Ia after 15 days 
 
 In this study, we investigate this subtype using the parameters of distance and host stellar mass. In normal 
 populations of SNe Type Ia, the weighted average of the SN's host galaxy's stellar mass **decreases** after 
-$log(10)M/M_{\odot}$. To determine this we combine data from three (3) sky surveys: 
+${\rm log}_{10}(M_{\ast}/M_{\odot}) = 10$. To determine this we combine data from three (3) sky surveys: 
 [The Carnegie Supernova Project-I: Third Photometric Data Release (CSP) (Krisciunas et al., 2017)](https://ui.adsabs.harvard.edu/abs/2017AJ....154..211K/abstract), 
 [The Asteroid Terrestrial-impact Last Alert System (ATLAS)](https://atlas.fallingstar.com/), and 
 [The Zwicky Transient Facility (ZTF)](https://www.ztf.caltech.edu/). These servers gives excellent photometry data that we can then use light 
@@ -20,8 +20,8 @@ supernova and their host. Finally, we can produce stellar host masses using
 several extragalactic databases to determine stellar host galaxy masses.
 
 From this research, we determined that there is strong evidence that 1991bg-like SNe Ia follow the inverse of this 
-relationship. The weighted stellar host mass average **increases** after both $log(10)M/M_{\odot}$ and the median 
-stellar host mass. 
+relationship. The weighted stellar host mass average **increases** after both ${\rm log}_{10}(M_{\ast}/M_{\odot}) = 10$ 
+and the median stellar host mass. 
 
 Future investigations into this phenomenon include investigation the dependency of interstellar dust and if this same 
 mass-step phenomena occurs with other SNe Type Ia subtypes (1991T-like, 2003fg-like, 2003es-like). 

@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8b356fbe-13e0-4f0b-a319-7fe9c31645a1" name="Changes" comment="Updataes" />
+    <list default="true" id="8b356fbe-13e0-4f0b-a319-7fe9c31645a1" name="Changes" comment="Updates">
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -315,15 +317,7 @@
       <workItem from="1738633223240" duration="356000" />
       <workItem from="1738633680848" duration="2055000" />
       <workItem from="1738795194333" duration="11078000" />
-      <workItem from="1738874441443" duration="5005000" />
-    </task>
-    <task id="LOCAL-00054" summary="Adjustments to the hubble residual plotter">
-      <option name="closed" value="true" />
-      <created>1726519876644</created>
-      <option name="number" value="00054" />
-      <option name="presentableId" value="LOCAL-00054" />
-      <option name="project" value="LOCAL" />
-      <updated>1726519876644</updated>
+      <workItem from="1738874441443" duration="6262000" />
     </task>
     <task id="LOCAL-00055" summary="Adjustments to the hubble residual plotter">
       <option name="closed" value="true" />
@@ -709,7 +703,15 @@
       <option name="project" value="LOCAL" />
       <updated>1738879544191</updated>
     </task>
-    <option name="localTasksCounter" value="103" />
+    <task id="LOCAL-00103" summary="Updates">
+      <option name="closed" value="true" />
+      <created>1738879556163</created>
+      <option name="number" value="00103" />
+      <option name="presentableId" value="LOCAL-00103" />
+      <option name="project" value="LOCAL" />
+      <updated>1738879556163</updated>
+    </task>
+    <option name="localTasksCounter" value="104" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -771,11 +773,11 @@
     <MESSAGE value="Restructed files system, work flow now works out of main.py function." />
     <MESSAGE value="updates" />
     <MESSAGE value="restructuring to main.py" />
-    <MESSAGE value="Updates" />
     <MESSAGE value="File restructuring." />
     <MESSAGE value="Added queryCSP.py logic to automatically download CSP-I 3rd data release and sort by normal and 91bg-like SNe." />
     <MESSAGE value="Updataes" />
-    <option name="LAST_COMMIT_MESSAGE" value="Updataes" />
+    <MESSAGE value="Updates" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updates" />
     <option name="GROUP_MULTIFILE_MERGE_BY_DIRECTORY" value="true" />
   </component>
   <component name="XDebuggerManager">
