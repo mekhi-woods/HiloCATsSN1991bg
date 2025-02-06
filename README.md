@@ -9,11 +9,14 @@ Type Ia is **fast-declining**, declines faster than Normal SNe Ia after 15 days 
 
 In this study, we investigate this subtype using the parameters of distance and host stellar mass. In normal 
 populations of SNe Type Ia, the weighted average of the SN's host galaxy's stellar mass **decreases** after 
-$log(10)M/M_{\odot}$. To determine this we combine data from three all-sky surveys: 
-[The Carnegie Supernova Project (CSP)](https://csp.obs.carnegiescience.edu/), [The Asteroid Terrestrial-impact Last Alert System (ATLAS)](https://atlas.fallingstar.com/), and 
+$log(10)M/M_{\odot}$. To determine this we combine data from three (3) sky surveys: 
+[The Carnegie Supernova Project-I: Third Photometric Data Release (CSP) (Krisciunas et al., 2017)](https://ui.adsabs.harvard.edu/abs/2017AJ....154..211K/abstract), 
+[The Asteroid Terrestrial-impact Last Alert System (ATLAS)](https://atlas.fallingstar.com/), and 
 [The Zwicky Transient Facility (ZTF)](https://www.ztf.caltech.edu/). These servers gives excellent photometry data that we can then use light 
-curve fitting algorithms, in our case [SNooPy](https://csp.obs.carnegiescience.edu/data/snpy) and [SALT3](https://saltshaker.readthedocs.io/en/latest/), to determine the distances, $\mu$, of each 
-supernova and their host. Finally, we can produce stellar host masses using [GHOST](https://uiucsnastro-ghost.readthedocs.io/en/latest/), a tool that searches across 
+curve fitting algorithms, in our case [SNooPy](https://csp.obs.carnegiescience.edu/data/snpy) and 
+[SALT3](https://saltshaker.readthedocs.io/en/latest/), to determine the distances, $\mu$, of each 
+supernova and their host. Finally, we can produce stellar host masses using 
+[GHOST](https://uiucsnastro-ghost.readthedocs.io/en/latest/), a tool that searches across 
 several extragalactic databases to determine stellar host galaxy masses.
 
 From this research, we determined that there is strong evidence that 1991bg-like SNe Ia follow the inverse of this 

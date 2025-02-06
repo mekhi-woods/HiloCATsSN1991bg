@@ -10,7 +10,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 # Utility Functions ===================================================================================================
-def get_APIkeys(apikeys_loc='api_keys.txt'):
+def get_APIkeys(apikeys_loc='txts/api_keys.txt'):
     if not os.path.isfile(apikeys_loc):
         raise FileNotFoundError('[!!!] API keys file not found!')
     APIKEY = {}
@@ -29,12 +29,15 @@ def retrive_objname_ra_dec(path: str):
     for i, line in enumerate(open(path)):
         if i == 0:
             continue  # Skip header
-        n_line = line.split('",')
-        n_ra, n_dec = n_line[2][1:], n_line[3][1:]
+        elif i == 1:
+            hdr = line.rstrip().split(',')
+            continue
+        n_line = line.rstrip().split(',')
+        n_ra, n_dec = n_line[hdr.index('RA')], n_line[hdr.index('DEC')]
         c = SkyCoord(n_ra, n_dec, frame='icrs', unit=(u.hourangle, u.deg))
         ra.append(c.ra.deg)
         dec.append(c.dec.deg)
-        names.append(n_line[1][4:])
+        names.append(n_line[hdr.index('Name')].split('SN ')[-1])
     return names, ra, dec
 def initate_download(ra: str, dec: str, headers: dict[str, str]):
     task_url = None
@@ -94,9 +97,9 @@ def save_download(result_url: str, headers: dict[str, str], save_path: str):
     return
 
 # Main Call ===========================================================================================================
-def download(tns_targets_path: str = "txts/tns_targets_normIa.csv", save_loc: str = 'data/other/'):
+def download(tar_list: str, save_loc: str):
     # Get TNS CSV of RA/DEC Information
-    objnames, ra, dec = retrive_objname_ra_dec(tns_targets_path)
+    objnames, ra, dec = retrive_objname_ra_dec(tar_list)
 
     # Create TNS Header
     headers = {'Authorization': f'Token {get_APIkeys()["atlas_key"]}', 'Accept': 'application/json'}
@@ -104,7 +107,7 @@ def download(tns_targets_path: str = "txts/tns_targets_normIa.csv", save_loc: st
     # Get known names
     known_names = []
     for k in glob.glob(save_loc + "*.txt"):
-        known_names.append(k.split('/')[-1][5:-4])
+        known_names.append(k.split('/')[-1].split('ATLAS')[-1].split('.txt')[0])
 
     # Download light curves for each set of coordinates
     for i, n in enumerate(zip(objnames, ra, dec)):

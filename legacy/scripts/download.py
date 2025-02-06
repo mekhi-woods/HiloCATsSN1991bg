@@ -81,7 +81,7 @@ def save_download(result_url: str, headers: dict[str, str], save_path: str):
         print('Saved data to... ', save_path)
     return
 def main():
-    objnames, ra, dec = retrive_objname_ra_dec("../../txts/norm_Ia_tns_24-25.csv")
+    objnames, ra, dec = retrive_objname_ra_dec("../norm_Ia_tns_24-25.csv")
     save_loc = "../data/ATLASnorms/"  # Output directory for light curves
     headers = {'Authorization': f'Token {TOKEN}', 'Accept': 'application/json'}
 

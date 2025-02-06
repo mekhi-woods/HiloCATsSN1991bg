@@ -307,7 +307,7 @@ def resid_v_mass(path_91bg: str = 'merged_params_cut.txt',
         axs[0,0].hlines(y=resid_dict['upper_resid']['value'], xmin=cut, xmax=np.max(tb_norm['hostMass']) + tol, **lin_details)  # Right
         axs[0,0].axvline(cut, alpha=0.75, **lin_details,
                          label="$\gamma (M_{split}=$" + f"{round(cut, 2)}) = " +
-                               f"${round(mass_step_dict['value'], 3)} \pm {round(mass_step_dict['err'], 3)}$")
+                               f"${round(mass_step_dict['value'], 3)} \pm {round(mass_step_dict['err'], 3)}$ mag")
 
     # Plot 91bg-like
     # -----------------------------------------------------------------------------------------------------------------
@@ -353,7 +353,7 @@ def resid_v_mass(path_91bg: str = 'merged_params_cut.txt',
         axs[1, 0].hlines(y=resid_dict['upper_resid']['value'], xmin=cut, xmax=np.max(tb_91bg['hostMass']) + tol, **lin_details)  # Right
         axs[1, 0].axvline(cut, alpha=0.75, **lin_details,
                           label="$\gamma (M_{split}=$" + f"{round(cut, 2)}) = " +
-                                f"${round(mass_step_dict['value'], 3)} \pm {round(mass_step_dict['err'], 3)}$")
+                                f"${round(mass_step_dict['value'], 3)} \pm {round(mass_step_dict['err'], 3)}$ mag")
 
     # Brount, Scolnic 2021 Dust Prediction
     axs[1, 0].hlines(y=np.average(tb_91bg['resid_mu'][tb_91bg['hostMass'] < 10]) - 0.25,
