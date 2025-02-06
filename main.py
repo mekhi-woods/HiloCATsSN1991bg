@@ -2,10 +2,10 @@ import time
 import time as systime
 import queryCSP    # Retrieves "Photometric Data release 3" tarball from Krisciunas et al. 2017 hosted on
                    # https://csp.obs.carnegiescience.edu/data, then seperates data using target file.
-import queryATLAS  # Retrieves data from ATLAS server and stores it in \data\
-import queryZTF    # Retrieves data from ZTF server and stores it in \data\
-import fitter      # Uses data in \data\ to create SNooPy & SALT fits
-import plotter     # Plots data found in files in \results\
+import queryATLAS  # Retrieves data from ATLAS server and stores it in data\ -- requires 'atlas_key' in 'txts/api_keys.txt'
+import queryZTF    # Retrieves data from ZTF server sends out request to be send to an email
+import fitter      # Uses data in data\ to create SNooPy & SALT fits
+import plotter     # Plots data found in files in results\
 
 def run_queryCSP():
     queryCSP.download(save_loc='data/')  # location of CSP-norm & CSP-91bg
@@ -17,11 +17,11 @@ def run_queryCSP():
                            save_loc='data/CSP-norm')  # Seperate Normals out of all CSP-I data
     return
 def run_queryATLAS():
-    # queryATLAS.download(tns_targets_path = "txts/tns_targets_normIa.csv", save_loc = 'data/ATLAS-norm/')
     queryATLAS.download(tar_list = "txts/target_files/tarlist_ATLAS_91bg.csv", save_loc = 'data/ATLAS-91bg/')
-    # queryATLAS.download(tar_list = "txts/target_files/tarlist_ATLAS_norm.csv", save_loc = 'data/ATLAS-norm/')
+    queryATLAS.download(tar_list = "txts/target_files/tarlist_ATLAS_norm.csv", save_loc = 'data/ATLAS-norm/')
     return
 def run_queryZTF():
+    queryZTF.download(tns_targets_path = "txts/target_files/tarlist_ZTF_91bg.csv", save_loc = 'data/ZTF-91bg/')
     queryZTF.download(tns_targets_path = "txts/target_files/tarlist_ZTF_norm.csv", save_loc = 'data/ZTF-norm/')
     return
 def run_fitter():
@@ -92,7 +92,7 @@ def run_plotter():
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
     # run_queryCSP()
-    run_queryATLAS()
+    # run_queryATLAS()
     # run_queryZTF
     # run_fitter()
     # run_plotter()
