@@ -12,7 +12,7 @@ from astropy.time import Time as astrotime
 
 class sneObj:
     # Construction Functions ----------------------------------------------------------------------------------------- #
-    def __init__(self, source: str, path: str):
+    def __init__(self, source: str, algo: str, path: str):
         source = source.lower()
         if source == 'empty' or len(path) == 0:
             print('[+++] Creating empty SNe object...')
@@ -40,8 +40,9 @@ class sneObj:
             self.covariance = [] # Initalized for later
 
             # Extra details
+            self.originalname = path.split('/')[-1].split('.')[0]
             self.origin = source
-            self.path = f"classes/{source}/{source}_{self.objname}_class.txt"
+            self.path = f"classes/{source}/{source}_{self.originalname}_{algo}_class.txt"
             if source == 'csp' and self.z == None: # CSP seems to sometimes fail to find a 'z' with TNS
                 try: self.z = round(np.average(var_tbl['z']), 4)
                 except: pass
@@ -54,25 +55,7 @@ class sneObj:
                 f"{str(self.coords)} | ({self.z}, {str(round(self.z_cmb, 2))})")
     def make_objTbl(self, source: str, path: str) -> astropy.table.Table:
         # Load data and make intial table
-        if source == 'atlas-91bg':
-            # Open data
-            with open(path, 'r') as f: hdr = f.readline()[1:-1].split(',')
-            data = np.genfromtxt(path, dtype='str', delimiter=',')
-
-            # Make table
-            var_table = Table()
-            for h in hdr:
-                try: var_table[h] = data[:, hdr.index(h)].astype(float)
-                except ValueError: var_table[h] = data[:, hdr.index(h)]
-
-            # Add parity with CSP & ZTF
-            var_table.remove_columns(['expname', 'flux', 'dflux', 'snr', 'snr', 'x', 'y', 'peakval', 'skyval', 'peakfit',
-                                      'dpeak', 'skyfit', 'chin', 'major', 'minor', 'snrdet', 'snrlimit', 'apfit',
-                                      'mag5sig', 'texp'])
-            for h_old, h_new in zip(['dm', 'uJy', 'duJy'],
-                                    ['dmag', 'flux', 'dflux']):
-                var_table[h_old].name = h_new
-        elif source == 'atlas-norm':
+        if source == 'atlas-91bg' or source == 'atlas-norm':
             # Load data
             with open(path, 'r') as f: hdr = f.readline()[1:-1].split(',')
             data = np.genfromtxt(path, dtype='str', delimiter=',', skip_header=1)
@@ -180,7 +163,7 @@ class sneObj:
     def save_class(self):
         print(f"[+++] Saving {self.objname} class to {self.path}...")
         with open(self.path, 'w') as f:
-            f.write(f"{self.origin},{self.objname},{self.coords[0]},{self.coords[1]},{self.z},{self.z_cmb},{self.discdate}\n")
+            f.write(f"{self.origin},{self.objname},{self.originalname},{self.coords[0]},{self.coords[1]},{self.z},{self.z_cmb},{self.discdate}\n")
             f.write('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n')
             for p in self.params:
                 f.write(f"{p},{self.params[p]['value']},{self.params[p]['err']}\n")
@@ -205,29 +188,31 @@ class sneObj:
             self.path = path
             self.origin = details[0]
             self.objname = details[1]
-            self.coords = [float(details[2]), float(details[3])]
-            self.z = float(details[4])
-            self.z_cmb = float(details[5])
-            self.discdate = float(details[6][:-1])
+            self.originalname = details[2]
+            self.coords = [float(details[3]), float(details[4])]
+            self.z = None if details[5] == "None" else float(details[5])
+            self.z_cmb = float(details[6])
+            self.discdate = float(details[7][:-1])
             f.readline()  # Skip break line
 
             # Read params
+            self.params = {}
             line = f.readline()
             while '+++' not in line:
                 line = line.split(',')
                 self.params.update({line[0]: {'value': float(line[1]), 'err': float(line[2])}})
                 line = f.readline()
 
-            # Read covariances
-            if 'salt' in path:
-                self.covariance = np.array([])
-                line = f.readline()
-                while '+++' not in line:
-                    line = line.split(', ')
-                    line[-1] = line[-1][:-1]
-                    self.covariance = np.append(self.covariance, np.array(line).astype(float))
-                    line = f.readline()
-                self.covariance = self.covariance.reshape(4, 4)
+            # # Read covariances
+            # if 'salt' in path:
+            #     self.covariance = np.array([])
+            #     line = f.readline()
+            #     while '+++' not in line:
+            #         line = line.split(', ')
+            #         line[-1] = line[-1][:-1]
+            #         self.covariance = np.append(self.covariance, np.array(line).astype(float))
+            #         line = f.readline()
+            #     self.covariance = self.covariance.reshape(4, 4)
             f.readline()  # Skip break line
 
             # Read arrays
@@ -284,8 +269,17 @@ class sneObj:
         return
 
     # Fitting Functions ---------------------------------------------------------------------------------------------- #
+    def snpy_fit(self):
 
-def get_constant(cosntant_loc='txts/constants.txt'):
+        return
+    def salt_fit(self):
+        return
+
+def get_constant(cosntant_loc: str = 'txts/constants.txt'):
+    """
+    :param cosntant_loc: Location of constants file; default = 'txts/constants.txt'
+    :return: dict of constants
+    """
     CONSTANTS = {}
     with open(cosntant_loc, 'r') as f:
         temp = f.readlines()
@@ -295,7 +289,11 @@ def get_constant(cosntant_loc='txts/constants.txt'):
                 continue
             CONSTANTS.update({line[0]: line[1]})
     return CONSTANTS
-def get_APIkeys(apikeys_loc='api_keys.txt'):
+def get_APIkeys(apikeys_loc: str = 'txts/api_keys.txt'):
+    """
+    :param apikeys_loc: Location of api_keys file; default = 'txts/api_keys.txt'
+    :return: dict of API keys
+    """
     if not os.path.isfile(apikeys_loc):
         raise FileNotFoundError('[!!!] API keys file not found!')
     APIKEY = {}
@@ -307,7 +305,13 @@ def get_APIkeys(apikeys_loc='api_keys.txt'):
                 continue
             APIKEY.update({line[0]: line[1]})
     return APIKEY
-def get_TNSDetails(ra, dec, radius=2):
+def get_TNSDetails(ra: str, dec: str, radius: str = '2'):
+    """
+    :param ra: Right Ascension in degrees
+    :param dec: Declination in degrees
+    :param radius: Radius to search out for in arcseconds
+    :return: dict of TNS details
+    """
     APIKEY = get_APIkeys()
     tns_bot_id, tns_bot_name, tns_bot_api_key = APIKEY['tns_bot_id'], APIKEY['tns_bot_name'], APIKEY['tns_bot_api_key']
     tns_marker = (
@@ -342,56 +346,65 @@ def get_TNSDetails(ra, dec, radius=2):
     response = json.loads(response.text)
     details = response["data"]
     return details
-def fit(data_loc: str):
+def fit_subprocess(dataset: str, path: str, algo: str, rewrite: bool = False):
+    """
+    :param dataset: Data set to pull light curves from
+    :param path: Path to pull lightcurve
+    :param algo: Algorithm to use for fitting
+    :param rewrite: Even if data is already procced, it will act as if its the not
+    :return: sneObj object
+    """
+    # Check if preveiously fit
+    class_save_loc = f"classes/{dataset}/{dataset}_{path.split('/')[-1].split('.txt')[0]}_{algo}_class.txt"
+    print(f"[+++] Checking for saved class at {class_save_loc}...")
+    if os.path.exists(class_save_loc) and not rewrite:
+        sn = sneObj('class', algo, class_save_loc)
+    else:
+        sn = sneObj(dataset, algo, path)
+
+    # Fit SN class
+    if len(sn.params) == 0 and not rewrite:
+        print(f"[+++] Fitting '{sn.objname}' with '{dataset}' data & the '{algo}' algorithm...")
+        if algo.lower() == 'snpy':
+            sn.snpy_fit()
+        elif algo.lower() == 'salt':
+            sn.salt_fit()
+        else:
+            print(f"[+++] '{sn.objname}' already fit! Loading...")
+    return sn
+def fit(data_loc: str, algo: str, rewrite: bool = False) -> sneObj or list[sneObj]:
+    """
+    :param data_loc: Location of data; if single path -> indivisual mode, if directory -> batch mode
+    :param algo: Algorithm to fit; either SNooPy or SALT3
+    :param rewrite: Even if data is already procced, it will act as if its the not
+    :return: sneObj object or list of sneObj objects
+    """
     paths = glob.glob(data_loc)
     dataset = paths[0].split('/')[-2].lower()
 
-    # Verify proper dataset
-    if dataset not in ['atlas-91bg','atlas-norm', 'csp-91bg', 'csp-norm', 'ztf-91bg', 'ztf-norm']:
-        raise ValueError(f"[!!!] Dataset, '{dataset}', not recognized!")
+    # Verify proper dataset & proper algorithm
+    valid_datasets = ['csp-91bg', 'csp-norm', 'atlas-91bg','atlas-norm', 'ztf-91bg', 'ztf-norm']
+    valid_algorithms = ['snpy', 'salt']
+    if dataset not in valid_datasets: raise ValueError(f"[!!!] Dataset, '{dataset}', not recognized! {valid_datasets}")
+    elif algo not in valid_algorithms: raise ValueError(f"[!!!] Algorithm, '{algo}', not recognized! {valid_algorithms}")
 
     # Select fitting mode
+    ## Indivisual mode
     if len(paths) == 1:
         print(f"[+++] Fitting file '{data_loc}'...")  # Indivisual fit
-        sn = sneObj(dataset, paths[0])  # Initiate
-
+        sn = fit_subprocess(dataset, paths[0], algo, rewrite)
         return sn
+    ## Batch mode
     elif len(paths) > 1:
         print(f"[+++] Fitting data in '{data_loc}'...")  # Batch fit
         sne = []
         for i, path in enumerate(paths):
             print(f'[{i + 1} / {len(paths)}] ================================================================')
-            sne.append(sneObj(dataset, path))  # Initiate
+            sne.append(fit_subprocess(dataset, path, algo, rewrite))
         return sne
     else:
         print('[!!!] Invalid file/data path!')
-        return
 
-
-
-    # all_atlas_norm = glob.glob('data/ATLAS-norm/*.txt')
-    # for i, path in enumerate(all_atlas_norm):
-    #     print(f'[{i + 1} / {len(all_atlas_norm)}] ====================================================================')
-    #     test = sneObj('atlas-norm', path)
-    # all_atlas_91bg = glob.glob('data/ATLAS-91bg/*.txt')
-    # for i, path in enumerate(all_atlas_91bg):
-    #     print(f'[{i + 1} / {len(all_atlas_91bg)}] ====================================================================')
-    #     test = sneObj('atlas-91bg', path)
-    #
-    # all_csp_norm = glob.glob('data/CSP-norm/*.txt')
-    # for i, path in enumerate(all_csp_norm):
-    #     print(f'[{i + 1} / {len(all_csp_norm)}] ====================================================================')
-    #     test = sneObj('csp', path)
-    #
-    # all_csp_91bg = glob.glob('data/CSP-91bg/*.txt')
-    # for i, path in enumerate(all_csp_91bg):
-    #     print(f'[{i + 1} / {len(all_csp_91bg)}] ====================================================================')
-    #     test = sneObj('csp', path)
-    #
-    # all_ztf_91bg = glob.glob('data/ZTF-91bg/*.txt')
-    # for i, path in enumerate(all_ztf_91bg):
-    #     print(f'[{i + 1} / {len(all_ztf_91bg)}] ====================================================================')
-    #     test = sneObj('ztf', path)
     return
 
 

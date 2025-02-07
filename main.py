@@ -24,9 +24,32 @@ def run_queryZTF():
     queryZTF.download(tns_targets_path = "txts/target_files/tarlist_ZTF_91bg.csv", save_loc = 'data/ZTF-91bg/')
     queryZTF.download(tns_targets_path = "txts/target_files/tarlist_ZTF_norm.csv", save_loc = 'data/ZTF-norm/')
     return
-def run_fitter():
-    fitter.fit('data/ATLAS-norm/*.txt')
-    # fitter.fit('data/ATLAS-norm/ATLAS2024afze.txt')
+def run_fitter(algo: str = 'snpy', rewrite: bool = True):
+    """
+    :param algo: Algorithm to use for fitting
+    :param rewrite: Whether to rewrite the fit data or not
+    :return: None
+    """
+    # Batch
+    # fitter.fit(data_loc = 'data/CSP-91bg/*.txt', algo = algo)
+    # fitter.fit(data_loc = 'data/CSP-norm/*.txt', algo = algo)
+    # fitter.fit(data_loc = 'data/ATLAS-91bg/*.txt', algo = algo)
+    # fitter.fit(data_loc = 'data/ATLAS-norm/*.txt', algo = algo)
+    # fitter.fit(data_loc = 'data/ZTF-91bg/*.txt', algo = algo)
+    # fitter.fit(data_loc = 'data/ZTF-norm/*.txt', algo = algo)
+
+    # Indivisual
+    # fitter.fit(data_loc = 'data/CSP-91bg/SN2005ke_snpy.txt', algo = algo, rewrite = rewrite)
+    # print("================================================================")
+    # fitter.fit(data_loc = 'data/CSP-norm/SN2005A_snpy.txt', algo = algo, rewrite = rewrite)
+    # print("================================================================")
+    # fitter.fit(data_loc = 'data/ATLAS-91bg/ATLAS2020abmg.txt', algo = algo, rewrite = rewrite)
+    # print("================================================================")
+    # fitter.fit(data_loc = 'data/ATLAS-norm/ATLAS2024zjo.txt', algo = algo, rewrite = rewrite)
+    # print("================================================================")
+    # fitter.fit(data_loc = 'data/ZTF-91bg/forcedphotometry_req00381085_lc.txt', algo = algo, rewrite = rewrite)
+    # print("================================================================")
+    # fitter.fit(data_loc = 'data/ZTF-norm/*.txt', algo = algo)  # None downloaded yet
     return
 def run_plotter():
     final_dir = 'plots/'
@@ -94,6 +117,6 @@ if __name__ == '__main__':
     # run_queryCSP()
     # run_queryATLAS()
     # run_queryZTF
-    # run_fitter()
+    # run_fitter(algo = 'snpy', rewrite = True)
     # run_plotter()
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
