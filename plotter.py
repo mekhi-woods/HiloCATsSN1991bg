@@ -1,4 +1,5 @@
 import scipy
+import utils  # Import of utils.py
 import numpy as np
 import time as systime
 import matplotlib.pyplot as plt
@@ -9,39 +10,6 @@ from matplotlib.gridspec import GridSpec
 from astropy.cosmology import FlatLambdaCDM
 
 # Utility Functions ===================================================================================================
-def current_cosmo(H0=70, O_m=0.3):
-    return FlatLambdaCDM(H0, O_m)
-def get_constants(cosntant_loc='constants.txt'):
-    CONSTANTS = {}
-    with open(cosntant_loc, 'r') as f:
-        temp = f.readlines()
-        for line in temp:
-            line = line[:-1].split(', ')
-            if len(line) != 2:
-                continue
-            CONSTANTS.update({line[0]: line[1]})
-    return CONSTANTS
-def default_open(path: str, table_mode: bool = False):
-    """
-    Open file that has the typical format of this project's 'txt' files.
-    :param path: str; location of file
-    :param table_mode: bool; whether or not to return the data as an astropy table
-    :return: (list, np.array[str]) | astropy.table.Table
-    """
-    data = np.genfromtxt(path, dtype='str', delimiter=', ')
-    hdr, data = data[0, :], data[1:, :]
-    for i in range(len(hdr)):
-        if hdr[i] in ['objname', 'origin', 'algo']: continue
-        data[:, i] = data[:, i].astype(float)
-    if table_mode:
-        var_table = Table()
-        hdr = hdr.tolist()
-        for h in hdr:
-            try: var_table[h] = data[:, hdr.index(h)].astype(float)
-            except ValueError: var_table[h] = data[:, hdr.index(h)]
-        return var_table
-    else:
-        return hdr.tolist(), data
 def bootstrap_errs(x):
     try:
         return bootstrap([x], np.std).standard_error
@@ -105,11 +73,11 @@ def resid_v_mass_dust(path_91bg: str = 'merged_params_cut.txt',
 
     # Plot Normals
     # -----------------------------------------------------------------------------------------------------------------
-    tb_norm = default_open(path_norm, True)
+    tb_norm = utils.default_open(path_norm, True)
     tb_norm = tb_norm[tb_norm['hostMass'] > 7.5]  # Removes the low mass Normals
 
     ## Calculate Hubble Residual
-    tb_norm['resid_mu'] = tb_norm['mu'] - current_cosmo().distmod(tb_norm['z_cmb']).value
+    tb_norm['resid_mu'] = tb_norm['mu'] - utils.current_cosmo().distmod(tb_norm['z_cmb']).value
     tb_norm['resid_mu'] -= np.average(tb_norm['resid_mu'][~np.isnan(tb_norm['resid_mu'])])  # Centering around average
     tb_norm['mu_err'] = np.sqrt(tb_norm['mu_err'] ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
     tb_norm['resid_mu_err'] = np.copy(tb_norm['mu_err'])
@@ -149,11 +117,11 @@ def resid_v_mass_dust(path_91bg: str = 'merged_params_cut.txt',
 
     # Plot 91bg-like
     # -----------------------------------------------------------------------------------------------------------------
-    tb_91bg = default_open(path_91bg, True)
-    tb_dust = default_open(path_dust, True)
+    tb_91bg = utils.default_open(path_91bg, True)
+    tb_dust = utils.default_open(path_dust, True)
 
     ## Calculate Hubble Residual
-    tb_91bg['resid_mu'] = tb_91bg['mu'] - current_cosmo().distmod(tb_91bg['z_cmb']).value
+    tb_91bg['resid_mu'] = tb_91bg['mu'] - utils.current_cosmo().distmod(tb_91bg['z_cmb']).value
     tb_91bg['resid_mu'] -= np.average(
         tb_91bg['resid_mu'][~np.isnan(tb_91bg['resid_mu'])])  # Centering around average
     tb_91bg['mu_err'] = np.sqrt(tb_91bg['mu_err'] ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
@@ -272,11 +240,11 @@ def resid_v_mass(path_91bg: str = 'merged_params_cut.txt',
 
     # Plot Normals
     # -----------------------------------------------------------------------------------------------------------------
-    tb_norm = default_open(path_norm, True)
+    tb_norm = utils.default_open(path_norm, True)
     tb_norm = tb_norm[tb_norm['hostMass']>7.5] # Removes the low mass Normals
 
     ## Calculate Hubble Residual
-    tb_norm['resid_mu'] = tb_norm['mu'] - current_cosmo().distmod(tb_norm['z_cmb']).value
+    tb_norm['resid_mu'] = tb_norm['mu'] - utils.current_cosmo().distmod(tb_norm['z_cmb']).value
     tb_norm['resid_mu'] -= np.average(tb_norm['resid_mu'][~np.isnan(tb_norm['resid_mu'])]) # Centering around average
     tb_norm['mu_err'] = np.sqrt(tb_norm['mu_err'] ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
     tb_norm['resid_mu_err'] = np.copy(tb_norm['mu_err'])
@@ -311,10 +279,10 @@ def resid_v_mass(path_91bg: str = 'merged_params_cut.txt',
 
     # Plot 91bg-like
     # -----------------------------------------------------------------------------------------------------------------
-    tb_91bg = default_open(path_91bg, True)
+    tb_91bg = utils.default_open(path_91bg, True)
 
     ## Calculate Hubble Residual
-    tb_91bg['resid_mu'] = tb_91bg['mu'] - current_cosmo().distmod(tb_91bg['z_cmb']).value
+    tb_91bg['resid_mu'] = tb_91bg['mu'] - utils.current_cosmo().distmod(tb_91bg['z_cmb']).value
     tb_91bg['resid_mu'] -= np.average(
         tb_91bg['resid_mu'][~np.isnan(tb_91bg['resid_mu'])])  # Centering around average
     tb_91bg['mu_err'] = np.sqrt(tb_91bg['mu_err'] ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
@@ -466,14 +434,14 @@ def mu_v_z(path_91bg: str = 'merged_params_cut.txt',
 
     # Plot Normals
     # -----------------------------------------------------------------------------------------------------------------
-    hdr, data = default_open(path_norm)
+    hdr, data = utils.default_open(path_norm)
     names = data[:, hdr.index('objname')]
     z = data[:, hdr.index('z_cmb')].astype(float)
     mass, mass_err = data[:, hdr.index('hostMass')].astype(float), data[:, hdr.index('hostMass_err')].astype(float)
     mu, mu_err = data[:, hdr.index('mu')].astype(float), np.sqrt(data[:, hdr.index('mu_err')].astype(float) ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
 
     ## Calculate Hubble Residual
-    resid_mu = mu - current_cosmo().distmod(z).value
+    resid_mu = mu - utils.current_cosmo().distmod(z).value
     resid_mu -= np.average(resid_mu[~np.isnan(resid_mu)])  # Centering around average
     resid_mu_err = np.copy(mu_err)
 
@@ -503,7 +471,7 @@ def mu_v_z(path_91bg: str = 'merged_params_cut.txt',
 
     # # Plot 91bg-like
     # # -----------------------------------------------------------------------------------------------------------------
-    hdr, data = default_open(path_91bg)
+    hdr, data = utils.default_open(path_91bg)
     names = data[:, hdr.index('objname')]
     origins = data[:, hdr.index('origin')]
     algo = data[:, hdr.index('algo')]
@@ -513,7 +481,7 @@ def mu_v_z(path_91bg: str = 'merged_params_cut.txt',
     mu_err = np.sqrt(mu_err ** 2.0 + 0.1 ** 2.0)  # intrinsic dispersion added in quadrature
 
     # Calculate Hubble Residual
-    resid_mu = mu - current_cosmo().distmod(z).value
+    resid_mu = mu - utils.current_cosmo().distmod(z).value
     resid_mu -= np.average(resid_mu[~np.isnan(resid_mu)])  # Centering around average
     resid_mu_err = np.copy(mu_err)
 
@@ -550,7 +518,7 @@ def mu_v_z(path_91bg: str = 'merged_params_cut.txt',
     # Plot fit line
     # -----------------------------------------------------------------------------------------------------------------
     model_z = np.arange(0.015, 0.115, 0.001)
-    ax1.plot(model_z, current_cosmo().distmod(model_z).value,
+    ax1.plot(model_z, utils.current_cosmo().distmod(model_z).value,
              label='Model [$H_0 = 70$, $\Omega_m = 0.3$]', zorder=10, c=c_model)
     ax2.axhline(y=0, zorder=10, color=c_model)
 
@@ -586,19 +554,20 @@ def alpha_beta(path_91bg: str = 'salt_params_cov_cut.txt',
     c_91bg, c_91bg_line = 'C8', 'C1'
 
     # Plot alpha & beta values
-    alpha_91bg = -1*float(get_constants()['salt_alpha_91bg'])
-    beta_91bg = float(get_constants()['salt_beta_91bg'])
-    alpha_norm = -1*float(get_constants()['salt_alpha'])
-    beta_norm = float(get_constants()['salt_beta'])
+    CONSTANTS = utils.get_constants()
+    alpha_91bg = -1*float(CONSTANTS['salt_alpha_91bg'])
+    beta_91bg = float(CONSTANTS['salt_beta_91bg'])
+    alpha_norm = -1*float(CONSTANTS['salt_alpha'])
+    beta_norm = float(CONSTANTS['salt_beta'])
 
     # Scatter Plot for 91bg-like
     fmt_dict_91bg = {'fmt': 'o', 'marker': 's', 'alpha': 1.0, 'label': '$M_{1991bg\\text{-}like}$', 'color': c_91bg}
-    hdr, data = default_open(path_91bg)
+    hdr, data = utils.default_open(path_91bg)
     x0_91bg, x0_err_91bg = data[:, hdr.index('x0')].astype(float), data[:, hdr.index('x0_err')].astype(float)
     x1_91bg, x1_err_91bg = data[:, hdr.index('x1')].astype(float), data[:, hdr.index('x1_err')].astype(float)
     c_91bg, c_err_91bg = data[:, hdr.index('c')].astype(float), data[:, hdr.index('c_err')].astype(float)
     z_91bg = data[:, hdr.index('z_cmb')].astype(float)
-    mu_91bg = current_cosmo().distmod(z_91bg).value
+    mu_91bg = utils.current_cosmo().distmod(z_91bg).value
     mB_91bg, mB_err_91bg = ((-2.5 * np.log10(x0_91bg)) + 10.635), np.sqrt((2.5 * (x0_err_91bg / (x0_91bg * np.log(10)))) ** 2.0 + 0.1 ** 2.0)
     absmB_91bg, absmB_err_91bg = (mB_91bg - mu_91bg), np.copy(mB_err_91bg)
     ax[0].errorbar(x=x1_91bg, y=absmB_91bg, xerr=x1_err_91bg, yerr=absmB_err_91bg, **fmt_dict_91bg)
@@ -606,12 +575,12 @@ def alpha_beta(path_91bg: str = 'salt_params_cov_cut.txt',
 
     # Scatter Plot for Normals
     fmt_dict_norm = {'fmt': 'o', 'marker': 'o', 'alpha': 0.2, 'label': '$M_{Normal\\text{ }SNIa}$', 'color': c_norm}
-    hdr, data = default_open(path_norm)
+    hdr, data = utils.default_open(path_norm)
     x0_norm, x0_err_norm = data[:, hdr.index('x0')].astype(float), data[:, hdr.index('x0_err')].astype(float)
     x1_norm, x1_err_norm = data[:, hdr.index('x1')].astype(float), data[:, hdr.index('x1_err')].astype(float)
     c_norm, c_err_norm = data[:, hdr.index('c')].astype(float), data[:, hdr.index('c_err')].astype(float)
     z_norm = data[:, hdr.index('z_cmb')].astype(float)
-    mu_norm = current_cosmo().distmod(z_norm).value
+    mu_norm = utils.current_cosmo().distmod(z_norm).value
     mB_norm, mB_err_norm = ((-2.5 * np.log10(x0_norm)) + 10.635), np.sqrt((2.5 * (x0_err_norm / (x0_norm * np.log(10)))) ** 2.0 + 0.1 ** 2.0)
     absmB_norm, absmB_err_norm = (mB_norm - mu_norm), np.copy(mB_err_norm)
     ax[0].errorbar(x=x1_norm, y=absmB_norm, xerr=x1_err_norm, yerr=absmB_err_norm, **fmt_dict_norm)
@@ -658,10 +627,10 @@ def param_hist(snpy_91bg_path: str, salt_91bg_path: str, snpy_norm_path: str, sa
     c_91bg, c_91bg_line = 'C8', 'C1'
 
     # Open data
-    tb_snpy_91bg = default_open(snpy_91bg_path, True)
-    tb_snpy_norm = default_open(snpy_norm_path, True)
-    tb_salt_91bg = default_open(salt_91bg_path, True)
-    tb_salt_norm = default_open(salt_norm_path, True)
+    tb_snpy_91bg = utils.default_open(snpy_91bg_path, True)
+    tb_snpy_norm = utils.default_open(snpy_norm_path, True)
+    tb_salt_91bg = utils.default_open(salt_91bg_path, True)
+    tb_salt_norm = utils.default_open(salt_norm_path, True)
 
     # Print data ranges
     if False:
@@ -837,9 +806,9 @@ def dust_hist(path_91bg: str = 'salt_params_cov_cut.txt',
     c_91bg, c_91bg_line = 'C8', 'C1'
 
     # Open data
-    tb_91bg = default_open(path_91bg, True)
-    tb_red_norm = default_open(path_red_norm, True)
-    tb_dust = default_open(path_dust, True)
+    tb_91bg = utils.default_open(path_91bg, True)
+    tb_red_norm = utils.default_open(path_red_norm, True)
+    tb_dust = utils.default_open(path_dust, True)
     tb_combined = Table(
         names=('objname', 'source', 'av', 'av_upper', 'av_lower'),
         dtype=(str, str, float, float, float))
@@ -896,9 +865,9 @@ def abs_mag_v_dust(path_91bg: str = 'salt_params_cov_cut.txt',
     c_91bg, c_91bg_line = 'C8', 'C1'
 
     # Open data
-    tb_91bg = default_open(path_91bg, True)
-    tb_red_norm = default_open(path_red_norm, True)
-    tb_dust = default_open(path_dust, True)
+    tb_91bg = utils.default_open(path_91bg, True)
+    tb_red_norm = utils.default_open(path_red_norm, True)
+    tb_dust = utils.default_open(path_dust, True)
     tb_combined = Table(
         names=('objname', 'source', 'av', 'av_upper', 'av_lower', 'mu', 'mu_err', 'absmB', 'absmB_err', 'c', 'c_err'),
         dtype=(str, str, float, float, float, float, float, float, float, float, float))
@@ -1017,9 +986,9 @@ def color_v_scatter(path_snpy_91bg: str = 'results/combiend__snpy_params_cut.txt
                                                ["1991bg-like SNe Ia, $N_{SNe}$ = ", "Normal SNe Ia, $N_{SNe}$ = "],
                                                [c_91bg, c_norm]):
         ## Open data
-        tb = default_open(path, True)
+        tb = utils.default_open(path, True)
         colors = np.array(tb['EBVhost'])
-        resid = np.array(tb['mu'] - current_cosmo().distmod(tb['z_cmb']).value)
+        resid = np.array(tb['mu'] - utils.current_cosmo().distmod(tb['z_cmb']).value)
 
         ## Bin Dust & Residuals with STD of residuals
         color_bins = np.linspace(bin_bounds[0][0], bin_bounds[0][1], bin_num)
@@ -1054,9 +1023,9 @@ def color_v_scatter(path_snpy_91bg: str = 'results/combiend__snpy_params_cut.txt
                                                ["1991bg-like SNe Ia, $N_{SNe}$ = ", "Normal SNe Ia, $N_{SNe}$ = "],
                                                [c_91bg, c_norm]):
         ## Open data
-        tb = default_open(path, True)
+        tb = utils.default_open(path, True)
         colors = np.array(tb['c'])
-        resid = np.array(tb['mu'] - current_cosmo().distmod(tb['z_cmb']).value)
+        resid = np.array(tb['mu'] - utils.current_cosmo().distmod(tb['z_cmb']).value)
 
         ## Bin Dust & Residuals with STD of residuals
         color_bins = np.linspace(bin_bounds[1][0], bin_bounds[1][1], bin_num)
@@ -1117,8 +1086,8 @@ def dust_v_scatter(path_91bg: str = 'combiend__snpy_params_cut.txt',
     c_91bg = 'C8'
 
     # Open data
-    tb_91bg = default_open(path_91bg, True)
-    tb_dust = default_open(path_dust, True)
+    tb_91bg = utils.default_open(path_91bg, True)
+    tb_dust = utils.default_open(path_dust, True)
 
     # Get associated dust values
     dust = np.array([])
@@ -1127,7 +1096,7 @@ def dust_v_scatter(path_91bg: str = 'combiend__snpy_params_cut.txt',
             dust = np.append(dust, tb_dust['av_50'][tb_dust['objname'] == name].value[0])
         else:
             tb_91bg.remove_row(list(tb_91bg['objname']).index(name))  # Removes if no dust value found
-    resid = np.array(tb_91bg['mu'] - current_cosmo().distmod(tb_91bg['z_cmb']).value)
+    resid = np.array(tb_91bg['mu'] - utils.current_cosmo().distmod(tb_91bg['z_cmb']).value)
 
     # Bin Dust & Residuals with STD of residuals
     dust_bins = np.linspace(0, 7, bin_num)

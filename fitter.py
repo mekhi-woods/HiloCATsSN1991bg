@@ -1,6 +1,7 @@
 import os
 import json
 import glob
+import utils  # Import of utils.py
 import astropy
 import requests
 import numpy as np
@@ -82,7 +83,7 @@ class sneObj:
                     # Filter line
                     if len(l) == 2:
                         csp_filter = str(l[1][:-1])
-                        csp_zp = float(get_constant()['csp_zpts_'+csp_filter])
+                        csp_zp = float(utils.get_constants()['csp_zpts_'+csp_filter])
                     else:
                         csp_mjd, csp_mag, csp_dmag = float(l[-3])+53000, float(l[-2]), float(l[-1])
                         csp_flux = 10 ** ((csp_mag - csp_zp) / -2.5)
@@ -270,41 +271,96 @@ class sneObj:
 
     # Fitting Functions ---------------------------------------------------------------------------------------------- #
     def snpy_fit(self):
-
+        # print('[+++] ' + self.objname + ' -- Fitting data with SNooPy...')
+        # load_path = save_loc + 'ascii/' + self.objname + '_snpy.txt'
+        # save_path = save_loc + 'models/' + self.objname + '_EBV_model2.snpy'
+        # param_names = ['mu', 'st', 'Tmax', 'EBVhost']
+        # snpy_param_names = ['DM', 'st', 'Tmax', 'EBVhost']
+        #
+        # # Check quiet
+        # if quiet:
+        #     sys.stdout = open(os.devnull, 'w')
+        #
+        # # Check saved models
+        # if use_saved and os.path.isfile(save_path):
+        #     print('[+++] Saved model found! Pulling from...', save_path)
+        #     n_s = snpy.get_sn(save_path)
+        #     for i in range(len(param_names)):
+        #         self.params.update({param_names[i]: {'value': n_s.parameters[snpy_param_names[i]],
+        #                                              'err': n_s.errors[snpy_param_names[i]]}})
+        #     return
+        #
+        # # Load Data
+        # try:
+        #     n_s = snpy.get_sn(load_path)
+        # except Exception as error:
+        #     self.params.update({'mu': {'value': 0.00, 'err': 0.00}})
+        #     print('[!!!] Failed to load ASCII file -- ', error)
+        #     return
+        # n_s.choose_model('EBV_model2', stype='st')
+        # n_s.set_restbands()  # Auto pick appropriate rest-bands
+        #
+        # # Remove empty filters -- fix for 'ValueError: attempt to get argmin of an empty sequence'
+        # for class_filter in list(n_s.data.keys()):
+        #     if len(n_s.data[class_filter].magnitude) == 0:
+        #         del n_s.data[class_filter]
+        #     elif self.origin == 'CSP' and class_filter in ['u', 'Y', 'J', 'H', 'Jrc2', 'Ydw']:
+        #         print('[***] Special Process for CSP! Removing ' + class_filter + '...')
+        #         del n_s.data[class_filter]
+        # print('      Best filters:', list(n_s.data.keys()))
+        #
+        # # Fit with SNooPy -- gives 5 tries before failing
+        # for i in range(5):
+        #     try:
+        #         if self.origin == 'CSP':
+        #             initial_filters = []
+        #             for fil in ['B', 'V', 'g']:
+        #                 if fil in list(n_s.data.keys()):
+        #                     initial_filters.append(fil)
+        #             print('[***] Special Process for CSP! Fitting as ' + str(initial_filters) + ' -> remaining...')
+        #
+        #             n_s.fit(initial_filters, dokcorr=True, k_stretch=False, reset_kcorrs=True,
+        #                     **{'mangle': 1, 'calibration': 0})
+        #             n_s.fit(bands=None, dokcorr=True, k_stretch=False, reset_kcorrs=True,
+        #                     **{'mangle': 1, 'calibration': 0})
+        #         else:
+        #             n_s.fit(bands=None, dokcorr=True, k_stretch=False, reset_kcorrs=True,
+        #                     **{'mangle': 1, 'calibration': 0})
+        #         n_s.save(save_path)
+        #
+        #         # Save parameters
+        #         for j in range(len(param_names)):
+        #             self.params.update({param_names[j]: {'value': n_s.parameters[snpy_param_names[j]],
+        #                                                  'err': n_s.errors[snpy_param_names[j]]}})
+        #         self.params.update({'chisquare': {'value': n_s.model.chisquare,
+        #                                           'err': n_s.model.rchisquare}})
+        #
+        #         if show_plot:
+        #             n_s.plot(outfile=save_loc + 'plots/' + self.objname + '_snpyplots.png')
+        #             plt.show()
+        #             systime.sleep(3)
+        #         plt.close()
+        #         break
+        #     except Exception as error:
+        #         if 'All weights for filter' and 'are zero.' in str(error):
+        #             print('[!!!] Weights for filter', str(error).split(' ')[4], 'are zero. Removing...')
+        #             del n_s.data[str(error).split(' ')[4]]
+        #         elif str(error) == 'Error:  to solve for EBVhost, you need to fit more than one filter':
+        #             print('[!!!] To few filters to fit!')
+        #             self.params.update({'mu': {'value': -999.0, 'err': -999.0}})
+        #             break
+        #         else:
+        #             self.params.update({'mu': {'value': -1.0, 'err': -1.0}})
+        #             print(error)
+        #
+        # # Restore print statements
+        # sys.stdout = sys.__stdout__
+        #
+        # print('[+++] Successfully fit ' + self.objname + '!')
         return
     def salt_fit(self):
-        return
 
-def get_constant(cosntant_loc: str = 'txts/constants.txt'):
-    """
-    :param cosntant_loc: Location of constants file; default = 'txts/constants.txt'
-    :return: dict of constants
-    """
-    CONSTANTS = {}
-    with open(cosntant_loc, 'r') as f:
-        temp = f.readlines()
-        for line in temp:
-            line = line[:-1].split(', ')
-            if len(line) != 2:
-                continue
-            CONSTANTS.update({line[0]: line[1]})
-    return CONSTANTS
-def get_APIkeys(apikeys_loc: str = 'txts/api_keys.txt'):
-    """
-    :param apikeys_loc: Location of api_keys file; default = 'txts/api_keys.txt'
-    :return: dict of API keys
-    """
-    if not os.path.isfile(apikeys_loc):
-        raise FileNotFoundError('[!!!] API keys file not found!')
-    APIKEY = {}
-    with open(apikeys_loc, 'r') as f:
-        temp = f.readlines()
-        for line in temp:
-            line = line[:-1].split(', ')
-            if len(line) != 2:
-                continue
-            APIKEY.update({line[0]: line[1]})
-    return APIKEY
+        return
 def get_TNSDetails(ra: str, dec: str, radius: str = '2'):
     """
     :param ra: Right Ascension in degrees
@@ -312,7 +368,7 @@ def get_TNSDetails(ra: str, dec: str, radius: str = '2'):
     :param radius: Radius to search out for in arcseconds
     :return: dict of TNS details
     """
-    APIKEY = get_APIkeys()
+    APIKEY = utils.get_apikeys()
     tns_bot_id, tns_bot_name, tns_bot_api_key = APIKEY['tns_bot_id'], APIKEY['tns_bot_name'], APIKEY['tns_bot_api_key']
     tns_marker = (
         f'tns_marker{{"tns_id": "{int(tns_bot_id)}",'

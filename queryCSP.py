@@ -1,9 +1,10 @@
 import os
 import glob
 import time
+import utils  # Import of utils.py
 import shutil
-import requests
 import tarfile
+import requests
 import numpy as np
 
 def download(save_loc: str):

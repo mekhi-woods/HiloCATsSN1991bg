@@ -4,24 +4,11 @@ import re
 import sys
 import time
 import glob
+import utils  # Import of utils.py
 import requests
 import pandas as pd
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-
-# Utility Functions ===================================================================================================
-def get_APIkeys(apikeys_loc='txts/api_keys.txt'):
-    if not os.path.isfile(apikeys_loc):
-        raise FileNotFoundError('[!!!] API keys file not found!')
-    APIKEY = {}
-    with open(apikeys_loc, 'r') as f:
-        temp = f.readlines()
-        for line in temp:
-            line = line[:-1].split(', ')
-            if len(line) != 2:
-                continue
-            APIKEY.update({line[0]: line[1]})
-    return APIKEY
 
 # WIP Functions =======================================================================================================
 def retrive_objname_ra_dec(path: str):
@@ -102,7 +89,7 @@ def download(tar_list: str, save_loc: str):
     objnames, ra, dec = retrive_objname_ra_dec(tar_list)
 
     # Create TNS Header
-    headers = {'Authorization': f'Token {get_APIkeys()["atlas_key"]}', 'Accept': 'application/json'}
+    headers = {'Authorization': f'Token {utils.get_apikeys()["atlas_key"]}', 'Accept': 'application/json'}
 
     # Get known names
     known_names = []

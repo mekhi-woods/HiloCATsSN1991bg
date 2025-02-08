@@ -1,5 +1,8 @@
+# M. D. Woods
+# 02/07/2025
 import time
 import time as systime
+import utils       # Utility functions for various common actions accross project; Here to be initiated for later.
 import queryCSP    # Retrieves "Photometric Data release 3" tarball from Krisciunas et al. 2017 hosted on
                    # https://csp.obs.carnegiescience.edu/data, then seperates data using target file.
 import queryATLAS  # Retrieves data from ATLAS server and stores it in data\ -- requires 'atlas_key' in 'txts/api_keys.txt'
@@ -114,6 +117,7 @@ def run_plotter():
 
 if __name__ == '__main__':
     start = systime.time()  # Runtime tracker
+    # utils.get_twomass()  # Checks for twomass velocities data (large file)
     # run_queryCSP()
     # run_queryATLAS()
     # run_queryZTF
