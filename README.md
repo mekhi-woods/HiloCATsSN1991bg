@@ -125,6 +125,200 @@ This plot depicts the relationship between the redshift of the SN and the corres
 ![](plots/dust_v_scatter.png "") 
 
 --------------------------
+## Data Notes
+### Error: Too few filters to fit
+Both SNooPy and SALT3 require at least two (2) filters to fit. The data in some of these surveys unfortunately is not 
+robust enough for this process and has been systematically removed.
+
+| Survey+Algorithm | 1991bg-like SN Ia                                                                                                                                                                                                                                                                                                                 | Normal SN Ia                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |   
+|:-----------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| CSP+SNooPy       | None                                                                                                                                                                                                                                                                                                                              | SN2005A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| CSP+SALT3        | None                                                                                                                                                                                                                                                                                                                              | None                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ATLAS+SNooPy     | SN2023mkp, SN2021zsz, SN2023fot, SN2021aare, SN2021agej,<br/> SN2022ubt, SN2024pbd, SN2020abmg, SN2021abzd, SN2020aejj,<br/> SN2022aecb, SN2022ihz, SN2023dk, SN2022ywc, SN2021agnf,<br/> SN2024ulb, SN2024xhs, SN2021wzb, SN2021bls, SN2021jbp,<br/> SN2021gel, SN2021bmu, SN2023acdv, SN2022fjx                                 | SN2021aatq, SN2020adrp, SN2020lhd, SN2020nqd, SN2024lty,<br/> SN2021adu, SN2024wuj, SN2020adhi, SN2020ewx, SN2020ryi,<br/> SN2020obe, SN2020sha, SN2020mtk, SN2024arb, SN2020kui,<br/> SN2020yem, SN2024kgh, SN2021afqx, SN2020eci, SN2020mtk,<br/> SN2020yeo, SN2021ash, SN2022zue, SN2021afdy, SN2020nia,<br/> SN2024fwj, SN2024qwp, SN2023tfc, SN2024tdb, SN2024jvc,<br/> SN2023xhr, SN2024xhl, SN2020xtq, SN2024qcc, SN2020hsh,<br/> SN2024acnr, SN2020xom, SN2019ycb, SN2020eyf, SN2024nwu,<br/> SN2020exu, SN2020acma, SN2020evi, SN2021accx, SN2024ere,<br/> SN2024epm, SN2020rnf, SN2021acck, SN2020pzv, SN2021aann,<br/> SN2020uqb, SN2020yff, SN2021aexp, SN2024xhi, SN2024vfz,<br/> SN2024xjv, SN2024hlj, SN2023xid, SN2021abgc, SN2024dzj,<br/> SN2020cbo, SN2024xex, SN2020zci, SN2024dci, SN2019wno,<br/> SN2024smo, SN2024ars, SN2020alf, SN2024ard, SN2020ryn,<br/> SN2024edz, SN2024kef, SN2024grb, SN2020enj, SN2021acnx,<br/> SN2020npr, SN2024bzx, SN2020adgc, SN2020exr, SN2020mvp,<br/> SN2005mc, SN2024svg, SN2024xem, SN2020jit, SN2020mnv,<br/> SN2024fav, SN2020jhf, SN2020mnw, SN2020tce, SN2020fqi,<br/> SN2024flg, SN2024xel, SN2024qxx, SN2020onu, SN2020bqm,<br/> SN2024ejr, SN2020ndv, SN2021bmu, SN2021adlp, SN2018geo,<br/> SN2024uqc, SN2024pbf, SN2020rsi, SN2024les, SN2024nsk,<br/> SN2020fbo, SN2021aggb, SN2021aggu, SN2020mdd, SN2021aekt,<br/> SN2020dny, SN2024N, SN2024tyh, SN2024afze, SN2020teb,<br/> SN2020tdp, SN2024fke, SN2021agfp, SN2024xup, SN2020fab,<br/> SN2024xl, SN2021aggc, SN2024dix, SN2021agjd, SN2021aceo,<br/> SN2021alk, SN2020acqx, SN2020nxk, SN2020rdt, SN2024ind,<br/> SN2024pcv, SN2024pbe, SN2024elv, SN2021acsw, SN2021afoj,<br/> SN2021aajw, SN2020szr, SN2024anm, SN2024zug, SN2020tgi,<br/> SN2020fab, SN2021abbh |
+| ATLAS+SALT3      | Systematic Error                                                                                                                                                                                                                                                                                                                  | Unknown                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ZTF+SNooPy       | SN2022aecb, SN2021aare, SN2016ije, SN2024dzj, SN2020ecn,<br/> SN2021agnf, SN2020acoo, SN2022dsu, SN2022ubt, SN2023vjh,<br/> SN2019ecx, SN2021gel, SN2017fzw, SN2019op, SN2023ex,<br/> SN2022vxf, SN2020mfd, SN2024wuj, SN2024bjb, SN2023omo,<br/> SN2021bmu, SN2021pom, SN2024fid, SN2020yo, SN2023mkp,<br/> SN2022skw, SN2022bsi | Unprocessed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ZTF+SALT3        | Unknown                                                                                                                                                                                                                                                                                                                           | Unprocessed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+
+### Error: Invalid parameter space
+[//]: # (# Error:  Covariance Matrix is singular.  Either two or more parameters are degenerate or the model has become insensitive to one or more parameters.)
+For some data files, the light curve appears corrupted/incorrect. For some ATLAS files, the points are distributed at 
+mag = 20 **or** mag = -20. Additionally, for SALT3 the fitting can drift into an invalid parameter space. 
+
+| Survey+Algorithm | 1991bg-like SN Ia | Normal SN Ia |   
+|:-----------------|:------------------|:-------------|
+| CSP+SNooPy       | None              | None         |
+| CSP+SALT3        | SN2007ax          | SN2009I      |
+| ATLAS+SNooPy     | None              | None         |
+| ATLAS+SALT3      | Systematic Error  | Unknown      |
+| ZTF+SNooPy       | Unknown           | Unprocessed  |
+| ZTF+SALT3        | Unknown           | Unprocessed  |
+
+### Error: Too few observations
+Some data files only have 1-4 nights of observation which is too few for a reliable lightcurve. Additionally, some data
+files only have points with poor magnitude errors (>1mag).
+
+| Survey+Algorithm | 1991bg-like SN Ia | Normal SN Ia |   
+|:-----------------|:------------------|:-------------|
+| CSP+SNooPy       | None              | None         |
+| CSP+SALT3        | None              | None         |
+| ATLAS+SNooPy     | SN2024msu         | None         |
+| ATLAS+SALT3      | Systematic Error  | Unknown      |
+| ZTF+SNooPy       | Unknown           | Unprocessed  |
+| ZTF+SALT3        | Unknown           | Unprocessed  |
+
+### Need to manually add TNS Information
+ATLAS2020bpz - ATLAS - Normals - SNooPy\
+ATLAS2020spq - ATLAS - Normals - SNooPy\
+ATLAS2021aglf - ATLAS - Normals - SNooPy\
+ATLAS2020hdc - ATLAS - Normals - SNooPy\
+ATLAS2020hfk - ATLAS - Normals - SNooPy\
+ATLAS2020obr - ATLAS - Normals - SNooPy\
+ATLAS2024acti - ATLAS - Normals - SNooPy\
+ATLAS2024acnp - ATLAS - Normals - SNooPy\
+ATLAS2020sid - ATLAS - Normals - SNooPy\
+ATLAS2020zbj - ATLAS - Normals - SNooPy\
+ATLAS2024xhx - ATLAS - Normals - SNooPy\
+ATLAS2024sza - ATLAS - Normals - SNooPy\
+ATLAS2024mpq - ATLAS - Normals - SNooPy\
+ATLAS2020hsk - ATLAS - Normals - SNooPy\
+ATLAS2020ccm - ATLAS - Normals - SNooPy\
+ATLAS2024vdu - ATLAS - Normals - SNooPy\
+ATLAS2021abgd - ATLAS - Normals - SNooPy\
+ATLAS2024ado - ATLAS - Normals - SNooPy\
+ATLAS2020ddo - ATLAS - Normals - SNooPy\
+ATLAS2020jgl - ATLAS - Normals - SNooPy\
+ATLAS2020zbk - ATLAS - Normals - SNooPy\
+ATLAS2024qng - ATLAS - Normals - SNooPy\
+ATLAS2021aele - ATLAS - Normals - SNooPy\
+ATLAS2024fyc - ATLAS - Normals - SNooPy\
+ATLAS2024aexm - ATLAS - Normals - SNooPy\
+ATLAS2020acaa - ATLAS - Normals - SNooPy\
+ATLAS2024aexz - ATLAS - Normals - SNooPy\
+ATLAS2021ajh - ATLAS - Normals - SNooPy\
+ATLAS2024epl - ATLAS - Normals - SNooPy\
+ATLAS2021aatr - ATLAS - Normals - SNooPy\
+ATLAS2021adv - ATLAS - Normals - SNooPy\
+ATLAS2024rkk - ATLAS - Normals - SNooPy\
+ATLAS2020yfc - ATLAS - Normals - SNooPy\
+ATLAS2019ywq - ATLAS - Normals - SNooPy\
+ATLAS2020zad - ATLAS - Normals - SNooPy\
+ATLAS2021akx - ATLAS - Normals - SNooPy\
+ATLAS2020vbv - ATLAS - Normals - SNooPy\
+ATLAS2024svr - ATLAS - Normals - SNooPy\
+ATLAS2020kuo - ATLAS - Normals - SNooPy\
+ATLAS2024aewf - ATLAS - Normals - SNooPy\
+ATLAS2020ddk - ATLAS - Normals - SNooPy\
+ATLAS2020exs - ATLAS - Normals - SNooPy\
+ATLAS2024bdo - ATLAS - Normals - SNooPy\
+ATLAS2024zxt - ATLAS - Normals - SNooPy\
+ATLAS2020aagw - ATLAS - Normals - SNooPy\
+ATLAS2020gho - ATLAS - Normals - SNooPy\
+ATLAS2020hvf - ATLAS - Normals - SNooPy\
+forcedphotometry_req00381096_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381089_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381097_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381140_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381131_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381107_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381168_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381115_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381162_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381137_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381129_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381154_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381093_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381111_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381160_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381103_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381148_lc - ZTF - 1991bg-like - SNooPy\
+forcedphotometry_req00381096_lc - ZTF - 1991bg-like - SALT3\
+forcedphotometry_req00381089_lc - ZTF - 1991bg-like - SALT3\
+forcedphotometry_req00381131_lc - ZTF - 1991bg-like - SALT3\
+forcedphotometry_req00381162_lc - ZTF - 1991bg-like - SALT3\
+forcedphotometry_req00381137_lc - ZTF - 1991bg-like - SALT3\
+forcedphotometry_req00381093_lc - ZTF - 1991bg-like - SALT3\
+forcedphotometry_req00381111_lc - ZTF - 1991bg-like - SALT3\
+forcedphotometry_req00381160_lc - ZTF - 1991bg-like - SALT3\
+forcedphotometry_req00381103_lc - ZTF - 1991bg-like - SALT3\
+forcedphotometry_req00381148_lc - ZTF - 1991bg-like - SALT3\
+
+
+### Special Cases
+**Something generally wrong with ATLAS 1991bg-like SALT3 fitting**\
+**SN2024luo - ATLAS - 1991bg-like - SNooPy:** Unknown\
+**SN2021qvv - ATLAS - 1991bg-like - SNooPy:** Unknown\
+**SN2020dp - ATLAS - Normal - SNooPy:** Unknown\
+**SN2024ejq - ATLAS - Normal - SNooPy:** Unknown\
+**SN2020kum - ATLAS - Normal - SNooPy:** Unknown\
+**SN2020abge - ATLAS - Normal - SNooPy:** Unknown\
+**SN2020cpn - ATLAS - Normal - SNooPy:** Unknown\
+**SN2024ozs - ATLAS - Normal - SNooPy:** Unknown\
+**SN2021aghl - ATLAS - Normal - SNooPy:** Unknown\
+**SN2018bbn - ATLAS - Normal - SNooPy:** Unknown\
+**SN2018gro - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022fjx - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023acdv - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2018lph - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022aecb - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023bhm - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021aare - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023fwb - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023yrs - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021afur - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2016ije - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022ihz - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2005be - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2019noh - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2024dzj - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2020nta - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2019cp - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022kbc - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021agnf - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021wzb - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022zvu - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023abdv - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2020acoo - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022dsu - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021zqs - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023vjh - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2019ecx - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022xhh - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2017fzw - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023dk - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021twa - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2019bwi - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023ex - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2016brx - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022xkq - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021qqr - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023fot - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2020abmg - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2019exc - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022vxf - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021fnr - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021xfm - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021bls - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2020mfd - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2019cdc - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2020abpe - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2018eyi - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023omo - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2018ast - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2016iuh - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2019moq - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022rey - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021zsz - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021bmu - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2021uve - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2024fid - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2020yo - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2023mkp - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2020vae - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022skw - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2009cz - ZTF - 1991bg-like - SALT3:** Unknown\
+**SN2022bsi - ZTF - 1991bg-like - SALT3:** Unknown\
+
+--------------------------
 ## Publications
 Please cite the following if this repository is utilized for a scientific project:
 * Kenworthy et al. 2021. [SALT3: An Improved Type Ia Supernova Model for Measuring Cosmic 

@@ -34,7 +34,11 @@ def get_apikeys(apikeys_loc: str = 'txts/api_keys.txt') -> dict:
             f.write(f"tns_bot_api_key, {input('tns_bot_api_key: ')}\n")
             f.write(f"atlas_key, {input('atlas_key [Optional, Press enter to skip...]: ')}\n")
     return APIKEY
-def get_constants(constant_loc='constants.txt'):
+def get_constants(constant_loc: str = 'txts/constants.txt') -> dict:
+    """
+    :param constant_loc: Location of constants.txt file.
+    :return: dictionary with constants.
+    """
     CONSTANTS = {}
     with open(constant_loc, 'r') as f:
         temp = f.readlines()
@@ -44,6 +48,48 @@ def get_constants(constant_loc='constants.txt'):
                 continue
             CONSTANTS.update({line[0]: line[1]})
     return CONSTANTS
+def get_tnskey(tnskey_loc: str = 'txts/TNS_key.txt') -> Table:
+    """
+    :param tnskey_loc: Location of TNS_key.txt file.
+    :return: An astropy Table with TNS information.
+    """
+    with open(tnskey_loc, 'r') as f:
+        hdr = f.readline().rstrip('\n').split(', ')
+        TNS_KEY = Table(names=hdr, dtype=[float, float, str, str, float])
+        for line in f.readlines():
+            n_line = line.rstrip('\n').split(', ')
+            if len(n_line) < 5:
+                continue
+            TNS_KEY.add_row(n_line)
+    return TNS_KEY
+def check_tnskey(target_ra: float, target_dec: float, sens: float = 0.01) -> Table or None:
+    """
+    :param target_ra: RA to check.
+    :param target_dec: DEC to check.
+    :param sens: sensativity of RA and DEC detection; default = 0.01.
+    :return: astropy Table of TNS key data.
+    """
+    TNS_KEY = get_tnskey()
+    # Check RA first
+    temp_table = TNS_KEY[(TNS_KEY['ra'] > target_ra - sens) & (TNS_KEY['ra'] < target_ra + sens)]
+    if len(temp_table) == 1:
+        pass
+    elif len(temp_table) == 0:
+        print(f"[~~~] Target: '{target_ra}', '{target_dec}' not found with {sens} sensitivity...")
+        return None
+    else:
+        # If ambiguous check DEC
+        temp_table = TNS_KEY[(TNS_KEY['dec'] > target_dec - sens) & (TNS_KEY['dec'] < target_dec + sens)]
+        if len(temp_table) == 1:
+            pass
+        else:
+            print(f"[~~~] Target: '{target_ra}', '{target_dec}' not found with {sens} sensitivity...")
+            return None
+    return temp_table
+def append_tnskey(ra: float, dec: float, objname: str, z: float, discdate: float, tnskey_loc: str = 'txts/TNS_key.txt'):
+    with open(tnskey_loc, 'a') as f:
+        f.write(f"{ra}, {dec}, {objname}, {z}, {discdate}\n")
+    return
 def current_cosmo(H0=70, O_m=0.3):
     return FlatLambdaCDM(H0, O_m)
 def default_open(path: str, table_mode: bool = False):

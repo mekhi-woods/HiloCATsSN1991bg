@@ -1,14 +1,14 @@
 # M. D. Woods
-# 02/07/2025
-import time
+# 02/08/2025
 import time as systime
-import utils       # Utility functions for various common actions accross project; Here to be initiated for later.
-import queryCSP    # Retrieves "Photometric Data release 3" tarball from Krisciunas et al. 2017 hosted on
-                   # https://csp.obs.carnegiescience.edu/data, then seperates data using target file.
-import queryATLAS  # Retrieves data from ATLAS server and stores it in data\ -- requires 'atlas_key' in 'txts/api_keys.txt'
-import queryZTF    # Retrieves data from ZTF server sends out request to be send to an email
-import fitter      # Uses data in data\ to create SNooPy & SALT fits
-import plotter     # Plots data found in files in results\
+import utils              # Utility functions for various common actions accross project; Here to be initiated for later.
+import queryCSP           # Retrieves "Photometric Data release 3" tarball from Krisciunas et al. 2017 hosted on
+                          # https://csp.obs.carnegiescience.edu/data, then seperates data using target file.
+import queryATLAS         # Retrieves data from ATLAS server and stores it in data\ -- requires 'atlas_key' in 'txts/api_keys.txt'.
+import queryZTF           # Retrieves data from ZTF server sends out request to be send to an email.
+import fitter             # Uses data in data\ to create SNooPy & SALT fits.
+import plotter            # Plots data found in files in results\.
+import dataConsolidation  # Consolidates list of sneObjs into one TXT parameter file.
 
 def run_queryCSP():
     queryCSP.download(save_loc='data/')  # location of CSP-norm & CSP-91bg
@@ -34,17 +34,22 @@ def run_fitter(algo: str = 'snpy', rewrite: bool = True):
     :return: None
     """
     # Batch
-    # fitter.fit(data_loc = 'data/CSP-91bg/*.txt', algo = algo)
-    # fitter.fit(data_loc = 'data/CSP-norm/*.txt', algo = algo)
-    # fitter.fit(data_loc = 'data/ATLAS-91bg/*.txt', algo = algo)
-    # fitter.fit(data_loc = 'data/ATLAS-norm/*.txt', algo = algo)
-    # fitter.fit(data_loc = 'data/ZTF-91bg/*.txt', algo = algo)
-    # fitter.fit(data_loc = 'data/ZTF-norm/*.txt', algo = algo)
+    sne_csp_91bg = fitter.fit(data_loc = 'data/CSP-91bg/*.txt', algo = algo, rewrite = rewrite)
+    # sne_csp_norm = fitter.fit(data_loc = 'data/CSP-norm/*.txt', algo = algo, rewrite = rewrite)
+    # sne_atlas_91bg = fitter.fit(data_loc = 'data/ATLAS-91bg/*.txt', algo = algo, rewrite = rewrite)
+    # sne_atlas_norm = fitter.fit(data_loc = 'data/ATLAS-norm/*.txt', algo = algo, rewrite = rewrite)
+    # sne_ztf_91bg = fitter.fit(data_loc = 'data/ZTF-91bg/*.txt', algo = algo, rewrite = rewrite)
+    # sne_ztf_norm = fitter.fit(data_loc = 'data/ZTF-norm/*.txt', algo = algo, rewrite = rewrite)  # Data not downloaded
+
+    ## Combine SNe into one param file
+    dataConsolidation.make_param_file(sne_csp_91bg, f'results/csp_91bg_{algo}.txt')
+    # dataConsolidation.make_param_file(sne_csp_91bg+sne_csp_norm+sne_atlas_91bg+sne_atlas_norm+sne_ztf_91bg)
 
     # Indivisual
-    # fitter.fit(data_loc = 'data/CSP-91bg/SN2005ke_snpy.txt', algo = algo, rewrite = rewrite)
     # print("================================================================")
-    # fitter.fit(data_loc = 'data/CSP-norm/SN2005A_snpy.txt', algo = algo, rewrite = rewrite)
+    # fitter.fit(data_loc = 'data/CSP-91bg/SN2007ax_snpy.txt', algo = algo, rewrite = rewrite)
+    # print("================================================================")
+    # fitter.fit(data_loc = 'data/CSP-norm/SN2005be_snpy.txt', algo = algo, rewrite = rewrite)
     # print("================================================================")
     # fitter.fit(data_loc = 'data/ATLAS-91bg/ATLAS2020abmg.txt', algo = algo, rewrite = rewrite)
     # print("================================================================")
@@ -53,26 +58,31 @@ def run_fitter(algo: str = 'snpy', rewrite: bool = True):
     # fitter.fit(data_loc = 'data/ZTF-91bg/forcedphotometry_req00381085_lc.txt', algo = algo, rewrite = rewrite)
     # print("================================================================")
     # fitter.fit(data_loc = 'data/ZTF-norm/*.txt', algo = algo)  # None downloaded yet
+
+    # Testing
+    # fitter.fit(data_loc = 'data/ATLAS-norm/ATLAS2024msu.txt', algo = algo, rewrite = False)
+    # sne = fitter.fit(data_loc = 'data/CSP-91bg/SN2006bd_snpy.txt', algo = algo, rewrite = True)
+
     return
 def run_plotter():
     final_dir = 'plots/'
 
-    pm_norm_salt_cut = 'results/aaronDo_salt2_params_cut.txt'
-    pm_norm_salt_uncut = 'results/aaronDo_salt2_params.txt'
-    pm_norm_snpy_cut = 'results/dr3_params.txt'  # Needs to be cut?, no mu
-    pm_norm_snpy_uncut = 'results/dr3_params.txt'
-    pm_norm_merged_cut = 'results/aaronDo_salt2_params_cut.txt'  # only contains salt fitted
-    pm_norm_merged_uncut = 'results/aaronDo_salt2_params.txt'  # only contains salt fitted
+    pm_norm_salt_cut = 'results/old/aaronDo_salt2_params_cut.txt'
+    pm_norm_salt_uncut = 'results/old/aaronDo_salt2_params.txt'
+    pm_norm_snpy_cut = 'results/old/dr3_params.txt'  # Needs to be cut?, no mu
+    pm_norm_snpy_uncut = 'results/old/dr3_params.txt'
+    pm_norm_merged_cut = 'results/old/aaronDo_salt2_params_cut.txt'  # only contains salt fitted
+    pm_norm_merged_uncut = 'results/old/aaronDo_salt2_params.txt'  # only contains salt fitted
 
-    pm_91bg_salt_cut = 'results/combiend__salt_params_cut.txt'
-    pm_91bg_salt_uncut = 'results/combiend__salt_params.txt'
-    pm_91bg_snpy_cut = 'results/combiend__snpy_params_cut.txt'
-    pm_91bg_snpy_uncut = 'results/combiend__snpy_params.txt'
-    pm_91bg_merged_cut = 'results/merged_params_cut.txt'
-    pm_91bg_merged_uncut = 'results/merged_params.txt'
+    pm_91bg_salt_cut = 'results/old/combiend__salt_params_cut.txt'
+    pm_91bg_salt_uncut = 'results/old/combiend__salt_params.txt'
+    pm_91bg_snpy_cut = 'results/old/combiend__snpy_params_cut.txt'
+    pm_91bg_snpy_uncut = 'results/old/combiend__snpy_params.txt'
+    pm_91bg_merged_cut = 'results/old/merged_params_cut.txt'
+    pm_91bg_merged_uncut = 'results/old/merged_params.txt'
 
-    pm_redNorms = 'results/redNormSNe_salt.txt'
-    pm_dust = 'results/global_dust_params.txt'
+    pm_redNorms = 'results/old/redNormSNe_salt.txt'
+    pm_dust = 'results/old/global_dust_params.txt'
 
     plotter.resid_v_mass(path_91bg=pm_91bg_merged_cut,
                           path_norm=pm_norm_merged_cut,
@@ -120,7 +130,8 @@ if __name__ == '__main__':
     # utils.get_twomass()  # Checks for twomass velocities data (large file)
     # run_queryCSP()
     # run_queryATLAS()
-    # run_queryZTF
-    # run_fitter(algo = 'snpy', rewrite = True)
+    # run_queryZTF()
+    run_fitter(algo = 'snpy', rewrite = False)
+    # run_fitter(algo = 'salt', rewrite = True)
     # run_plotter()
     print('|---------------------------|\n Run-time: ', round(systime.time() - start, 4), 'seconds\n|---------------------------|')
