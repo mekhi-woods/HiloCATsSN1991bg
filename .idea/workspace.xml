@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8b356fbe-13e0-4f0b-a319-7fe9c31645a1" name="Changes" comment="Finished the refitting of CSP+SNooPy, CSP+SALT3, ATLAS+SNooPy, ZTF+SNooPY." />
+    <list default="true" id="8b356fbe-13e0-4f0b-a319-7fe9c31645a1" name="Changes" comment="Finished the refitting of CSP+SNooPy, CSP+SALT3, ATLAS+SNooPy, ZTF+SNooPY.">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -77,44 +79,44 @@
     <option name="sortByType" value="true" />
     <option name="sortKey" value="BY_TYPE" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.SNCosmoSALT2Fit.executor&quot;: &quot;Run&quot;,
-    &quot;Python.amadeusx.executor&quot;: &quot;Run&quot;,
-    &quot;Python.arc-light.executor&quot;: &quot;Run&quot;,
-    &quot;Python.atlas_download.executor&quot;: &quot;Run&quot;,
-    &quot;Python.david_code.executor&quot;: &quot;Run&quot;,
-    &quot;Python.download.executor&quot;: &quot;Run&quot;,
-    &quot;Python.general.executor&quot;: &quot;Run&quot;,
-    &quot;Python.ghost_process.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.skul.executor&quot;: &quot;Run&quot;,
-    &quot;Python.skuld.executor&quot;: &quot;Run&quot;,
-    &quot;Python.snpy test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.tess.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.urd.executor&quot;: &quot;Run&quot;,
-    &quot;Python.verthandi.executor&quot;: &quot;Run&quot;,
-    &quot;Python.ztf_process.executor&quot;: &quot;Run&quot;,
-    &quot;Python.ztf_wget.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/mekhiwoods/PycharmProjects/MSF-91bg&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;PyScientificConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.SNCosmoSALT2Fit.executor": "Run",
+    "Python.amadeusx.executor": "Run",
+    "Python.arc-light.executor": "Run",
+    "Python.atlas_download.executor": "Run",
+    "Python.david_code.executor": "Run",
+    "Python.download.executor": "Run",
+    "Python.general.executor": "Run",
+    "Python.ghost_process.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.skul.executor": "Run",
+    "Python.skuld.executor": "Run",
+    "Python.snpy test.executor": "Run",
+    "Python.tess.executor": "Run",
+    "Python.test.executor": "Run",
+    "Python.urd.executor": "Run",
+    "Python.verthandi.executor": "Run",
+    "Python.ztf_process.executor": "Run",
+    "Python.ztf_wget.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "/Users/mekhiwoods/PycharmProjects/MSF-91bg",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.intellij.pycharm.community.ide.impl.configuration.PythonContentEntriesConfigurable",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;ChangesTree.GroupingKeys&quot;: [
-      &quot;directory&quot;
+  "keyToStringList": {
+    "ChangesTree.GroupingKeys": [
+      "directory"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
@@ -124,11 +126,11 @@
       <recent name="$PROJECT_DIR$/txts" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/results/old" />
       <recent name="$PROJECT_DIR$/legacy" />
       <recent name="$PROJECT_DIR$/.idea" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/txts" />
-      <recent name="$PROJECT_DIR$/legacy/scripts" />
     </key>
   </component>
   <component name="RunAnythingCache">
@@ -323,15 +325,8 @@
       <workItem from="1739054501863" duration="468000" />
       <workItem from="1739054978164" duration="4000" />
       <workItem from="1739054988035" duration="12971000" />
-      <workItem from="1739226289590" duration="9631000" />
-    </task>
-    <task id="LOCAL-00061" summary="Updates">
-      <option name="closed" value="true" />
-      <created>1727143583853</created>
-      <option name="number" value="00061" />
-      <option name="presentableId" value="LOCAL-00061" />
-      <option name="project" value="LOCAL" />
-      <updated>1727143583853</updated>
+      <workItem from="1739226289590" duration="9911000" />
+      <workItem from="1739236374242" duration="207000" />
     </task>
     <task id="LOCAL-00062" summary="Refractored, urd.py is new main python file. Added operation instructions to README.md.">
       <option name="closed" value="true" />
@@ -717,7 +712,15 @@
       <option name="project" value="LOCAL" />
       <updated>1739235924695</updated>
     </task>
-    <option name="localTasksCounter" value="110" />
+    <task id="LOCAL-00110" summary="Finished the refitting of CSP+SNooPy, CSP+SALT3, ATLAS+SNooPy, ZTF+SNooPY.">
+      <option name="closed" value="true" />
+      <created>1739235970325</created>
+      <option name="number" value="00110" />
+      <option name="presentableId" value="LOCAL-00110" />
+      <option name="project" value="LOCAL" />
+      <updated>1739235970325</updated>
+    </task>
+    <option name="localTasksCounter" value="111" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
